@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "463526138738",
+    "project_id": "swipply-4c511",
+    "storage_bucket": "swipply-4c511.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:463526138738:android:fd5076a23fd324db2f43eb",
+        "android_client_info": {
+          "package_name": "com.example.swipply"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "463526138738-6gr7n1do81ebrvt2b8uf77h3h62j66qn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.swipply",
+            "certificate_hash": "19d7584a88d8525ada748059dbe8c0c2ab7b55ac"
+          }
+        },
+        {
+          "client_id": "463526138738-v3ejoh5jdfd4pr1e90s58mksbak9cbdf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBY0PSA9t-sOWTDD0GlvJbMoVoCFvamqYo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "463526138738-v3ejoh5jdfd4pr1e90s58mksbak9cbdf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,10 @@
+const welcome_img = 'assets/welcome_image.png';
+const job_hunt = 'assets/Job hunt-amico.png';
+const resume = 'assets/Resume-amico.png';
+const progress = 'assets/Career progress-amico.png';
+const google = 'assets/google-logo-9808.png';
+const apple = 'assets/png-apple-logo-9721.png';
+const mcdo = 'assets/mcdoo.png';
+const arrow = 'assets/icons8-up-3-30.png';
+const mcdo_logo = 'assets/mcdo_logo.png';
+const swipply = 'assets/Swipply_logo.png';
