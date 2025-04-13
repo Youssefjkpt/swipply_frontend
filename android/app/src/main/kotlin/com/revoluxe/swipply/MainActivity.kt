@@ -1,4 +1,5 @@
-package com.example.swipply
+package com.revoluxe.swipply
+
 
 import io.flutter.embedding.android.FlutterActivity
 
