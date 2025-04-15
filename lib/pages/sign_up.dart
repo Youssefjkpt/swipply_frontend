@@ -123,10 +123,13 @@ class _SignUpState extends State<SignUp> {
 
       try {
         var response = await http.post(
-          Uri.parse('$BASE_URL_AUTH/users'),
+          Uri.parse('$BASE_URL_AUTH/api/signup'),
           headers: {"Content-Type": "application/json"},
           body: requestBody,
         );
+
+        print("📦 Signup response status: ${response.statusCode}");
+        print("📦 Signup response body: ${response.body}");
 
         final jsonResponse = jsonDecode(response.body);
 
@@ -142,6 +145,7 @@ class _SignUpState extends State<SignUp> {
           });
         }
       } catch (e) {
+        print("❌ Signup error (exception): $e");
         setState(() {
           _errorMessage = "Erreur de connexion au serveur.";
         });

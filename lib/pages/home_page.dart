@@ -188,6 +188,63 @@ class _HomePageState extends State<HomePage> {
     return str;
   }
 
+  Future<void> _personalizeCv(String jobId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("User not logged in.")),
+      );
+      return;
+    }
+
+    try {
+      setState(() => cvLoading = true);
+
+      final response = await http.post(
+        Uri.parse('$BASE_URL_AUTH/api/personalize-cv'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'user_id': userId,
+          'job_id': jobId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = json.decode(response.body);
+        final personalizedResume = jsonResponse['personalized_resume'];
+
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text("CV Personalized"),
+            content: SingleChildScrollView(
+              child: Text(personalizedResume ?? 'No summary available'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Close"),
+              ),
+            ],
+          ),
+        );
+      } else {
+        print("❌ Failed to personalize CV: ${response.body}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to personalize CV.")),
+        );
+      }
+    } catch (e) {
+      print("❌ Exception during CV personalization: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error occurred.")),
+      );
+    } finally {
+      setState(() => cvLoading = false);
+    }
+  }
+
   Future<void> _fetchUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
@@ -1210,6 +1267,21 @@ class _HomePageState extends State<HomePage> {
                     )
                   ],
                 ),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color.fromARGB(255, 37, 57, 138),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          ),
+          onPressed: () {
+            _personalizeCv(jobs[index]['job_id']);
+          },
+          child: const Text(
+            'Personalize CV for this job',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
         ),
         _buildPageIndicator(),
       ],

@@ -51,6 +51,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "463526138738-tauogto08nnf8k6onkinoe9ule7ng5o7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.revoluxe.swipply",
+            "certificate_hash": "19d7584a88d8525ada748059dbe8c0c2ab7b55ac"
+          }
+        },
+        {
           "client_id": "463526138738-v3ejoh5jdfd4pr1e90s58mksbak9cbdf.apps.googleusercontent.com",
           "client_type": 3
         }

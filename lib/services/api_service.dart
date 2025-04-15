@@ -51,7 +51,7 @@ class ApiService {
     try {
       final response = await http
           .post(
-            Uri.parse('$baseUrlAuth/auth/login'),
+            Uri.parse('$baseUrlAuth/api/auth/login'),
             headers: {"Content-Type": "application/json"},
             body: jsonEncode({"email": email, "password": password}),
           )
