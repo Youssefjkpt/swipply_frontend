@@ -37,6 +37,13 @@
             {
               "client_id": "463526138738-v3ejoh5jdfd4pr1e90s58mksbak9cbdf.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "463526138738-k1pcbkdhiajjv89pa5q5i5r37fkgouml.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.revoluxe.swipply"
+              }
             }
           ]
         }
@@ -74,6 +81,13 @@
             {
               "client_id": "463526138738-v3ejoh5jdfd4pr1e90s58mksbak9cbdf.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "463526138738-k1pcbkdhiajjv89pa5q5i5r37fkgouml.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.revoluxe.swipply"
+              }
             }
           ]
         }
