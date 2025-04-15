@@ -203,8 +203,10 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
 
   List<Map<String, dynamic>> skills = [];
   Future<void> saveCV() async {
-    final userId = await getUserId();
-    final token = await getAuthToken();
+    userId ??= await getUserId(); // ✅ assigns only if null
+
+    final token =
+        await getAuthToken(); // no need to assign globally if you only use it inside
 
     if (userId == null || token == null) {
       showUploadPopup(context, errorMessage: "Missing user ID or token");
@@ -230,6 +232,9 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
       'skillsAndProficiency': skills,
       'languages': selectedLanguages.toList(),
       'certificates': certificates,
+      'linkedin_url': null,
+      'lettre_de_motivation': null,
+      'available_start_date': null,
     };
 
     final body = {
@@ -238,6 +243,8 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
     };
 
     try {
+      print("📦 Sending saveCV body: ${jsonEncode(body)}");
+
       final response = await http.post(
         Uri.parse("$BASE_URL_AUTH/api/save-cv"),
         headers: {
@@ -246,6 +253,8 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
         },
         body: jsonEncode(body),
       );
+      print("📨 Save CV Response: ${response.statusCode}");
+      print("📨 Save CV Body: ${response.body}");
 
       Navigator.of(context).pop(); // Close loading
 
