@@ -278,7 +278,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
 
   Future<String?> getAuthToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('auth_token');
+    return prefs.getString('token');
   }
 
   List<String> softSkills = [];

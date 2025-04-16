@@ -191,12 +191,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _personalizeCv(String jobId) async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
-    if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User not logged in.")),
-      );
-      return;
-    }
+    if (userId == null) return;
 
     try {
       setState(() => cvLoading = true);
@@ -204,41 +199,40 @@ class _HomePageState extends State<HomePage> {
       final response = await http.post(
         Uri.parse('$BASE_URL_AUTH/api/personalize-cv'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'user_id': userId,
-          'job_id': jobId,
-        }),
+        body: json.encode({'user_id': userId, 'job_id': jobId}),
       );
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
-        final personalizedResume = jsonResponse['personalized_resume'];
 
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text("CV Personalized"),
-            content: SingleChildScrollView(
-              child: Text(personalizedResume ?? 'No summary available'),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Close"),
-              ),
-            ],
-          ),
+        setState(() {
+          // Replace current data with personalized data
+          resume = jsonResponse['personalized_resume'] ?? resume;
+          education =
+              _safeDecodeStringifiedSet(jsonResponse['education']) ?? education;
+          experiences = _safeDecodeStringifiedSet(jsonResponse['experience']) ??
+              experiences;
+          softSkills = _safeDecodeStringifiedSet(jsonResponse['soft_skills']) ??
+              softSkills;
+          languages = _safeDecodeList(jsonResponse['languages']) ?? languages;
+          interests = _safeDecodeList(jsonResponse['interests']) ?? interests;
+          certificates = jsonResponse['certificates'] ?? certificates;
+          skillsAndProficiency =
+              jsonResponse['skills_and_proficiency'] ?? skillsAndProficiency;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("CV personalized successfully.")),
         );
       } else {
-        print("❌ Failed to personalize CV: ${response.body}");
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Failed to personalize CV.")),
+          SnackBar(content: Text("Failed: ${response.statusCode}")),
         );
       }
     } catch (e) {
-      print("❌ Exception during CV personalization: $e");
+      print("❌ Personalization Error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error occurred.")),
+        const SnackBar(content: Text("Error during CV personalization.")),
       );
     } finally {
       setState(() => cvLoading = false);
@@ -1268,6 +1262,7 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
         ),
+        _buildPageIndicator(),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color.fromARGB(255, 37, 57, 138),
@@ -1283,7 +1278,6 @@ class _HomePageState extends State<HomePage> {
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
-        _buildPageIndicator(),
       ],
     );
   }

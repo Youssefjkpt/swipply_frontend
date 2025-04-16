@@ -132,6 +132,7 @@ class _SignUpState extends State<SignUp> {
         print("📦 Signup response body: ${response.body}");
 
         final jsonResponse = jsonDecode(response.body);
+        print("🧠 JSON: $jsonResponse");
 
         if (response.statusCode == 201) {
           await saveUserSession(
