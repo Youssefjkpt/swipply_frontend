@@ -213,8 +213,9 @@ class _HomePageState extends State<HomePage> {
           resume = jsonResponse['personalized_resume'] ?? resume;
           education =
               _safeDecodeStringifiedSet(jsonResponse['education']) ?? education;
-          experiences = _safeDecodeStringifiedSet(jsonResponse['experience']) ??
-              experiences;
+          experiences =
+              List<String>.from(jsonResponse['experience'] ?? experiences);
+
           softSkills = _safeDecodeStringifiedSet(jsonResponse['soft_skills']) ??
               softSkills;
           languages = _safeDecodeList(jsonResponse['languages']) ?? languages;
