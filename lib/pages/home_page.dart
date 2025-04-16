@@ -197,9 +197,12 @@ class _HomePageState extends State<HomePage> {
       setState(() => cvLoading = true);
 
       final response = await http.post(
-        Uri.parse('$BASE_URL_AUTH/api/personalize-cv'),
+        Uri.parse('$BASE_URL_AUTH/api/generate-personalized-cv'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'user_id': userId, 'job_id': jobId}),
+        body: json.encode({
+          'user_id': userId,
+          'job_id': jobId,
+        }),
       );
 
       if (response.statusCode == 200) {

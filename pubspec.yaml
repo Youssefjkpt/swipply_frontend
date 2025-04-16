@@ -49,6 +49,7 @@ dependencies:
   auto_scroll_slider: ^1.0.1
   url_launcher: ^6.3.0
   geocoding: ^3.0.0
+  firebase_core: ^2.27.0
   
 dev_dependencies:
   flutter_test:
