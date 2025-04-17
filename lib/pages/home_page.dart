@@ -189,6 +189,106 @@ class _HomePageState extends State<HomePage> {
     return str;
   }
 
+  bool get isCvComplete {
+    return fullName != null &&
+        address != null &&
+        email != null &&
+        phone != null &&
+        resume != null &&
+        education.isNotEmpty &&
+        languages.isNotEmpty &&
+        interests.isNotEmpty &&
+        softSkills.isNotEmpty;
+  }
+
+  Future<void> showCustomCVDialog() async {
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: const Color.fromARGB(255, 27, 27, 27),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            constraints: const BoxConstraints(minHeight: 200),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.warning_rounded,
+                    color: Color(0xFFFFC107), size: 40),
+                const SizedBox(height: 20),
+                const Text(
+                  "Complete your CV",
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "To apply for jobs or personalize your CV, please finish setting up your profile.",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFFCCCCCC),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF25398A),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => CV()),
+                          );
+                        },
+                        child: const Text("Go to CV",
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: const Color(0xFF2B2B2B),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text("Cancel",
+                            style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white70)),
+                      ),
+                    )
+                  ],
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _personalizeCv(String jobId) async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
@@ -413,7 +513,12 @@ class _HomePageState extends State<HomePage> {
                                   cardsCount: jobs.length,
                                   onSwipe: (int previousIndex, int? targetIndex,
                                       CardSwiperDirection direction) async {
-                                    //_triggerSwipeEffect(direction);
+                                    if (!isCvComplete) {
+                                      await showCustomCVDialog();
+                                      return false;
+                                    }
+
+                                    // ✅ allow swipe and continue
                                     if (direction == CardSwiperDirection.left) {
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
@@ -428,6 +533,7 @@ class _HomePageState extends State<HomePage> {
                                             ?.triggerSwapExternally();
                                       });
                                     }
+
                                     setState(() {
                                       _currentIndex =
                                           targetIndex ?? _currentIndex;
@@ -1414,7 +1520,35 @@ class _HomePageState extends State<HomePage> {
               colors: [Color(0xFF90EE90), Color(0xFF00B300)],
             ),
             size: 60,
-            onPressed: () {
+            onPressed: () async {
+              if (!isCvComplete) {
+                await showCupertinoDialog(
+                  context: context,
+                  builder: (_) => CupertinoAlertDialog(
+                    title: const Text("Incomplete CV"),
+                    content: const Text(
+                        "Please complete your CV before liking a job."),
+                    actions: [
+                      CupertinoDialogAction(
+                        child: const Text("Edit CV"),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => CV()),
+                          );
+                        },
+                      ),
+                      CupertinoDialogAction(
+                        child: const Text("Cancel"),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                );
+                return;
+              }
+
               likeBtnKey.currentState?.triggerSwapExternally();
               Future.delayed(const Duration(milliseconds: 150), () {
                 _controller.swipe(CardSwiperDirection.right);
