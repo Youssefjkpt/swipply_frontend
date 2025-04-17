@@ -206,28 +206,44 @@ class _HomePageState extends State<HomePage> {
       );
 
       if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
+        final cvRes = await http.get(Uri.parse(
+          '$BASE_URL_AUTH/api/personalized-cv?user_id=$userId&job_id=$jobId',
+        ));
 
-        setState(() {
-          // Replace current data with personalized data
-          resume = jsonResponse['personalized_resume'] ?? resume;
-          education =
-              _safeDecodeStringifiedSet(jsonResponse['education']) ?? education;
-          experiences =
-              List<String>.from(jsonResponse['experience'] ?? experiences);
+        if (cvRes.statusCode == 200) {
+          final personalizedData = json.decode(cvRes.body);
 
-          softSkills = _safeDecodeStringifiedSet(jsonResponse['soft_skills']) ??
-              softSkills;
-          languages = _safeDecodeList(jsonResponse['languages']) ?? languages;
-          interests = _safeDecodeList(jsonResponse['interests']) ?? interests;
-          certificates = jsonResponse['certificates'] ?? certificates;
-          skillsAndProficiency =
-              jsonResponse['skills_and_proficiency'] ?? skillsAndProficiency;
-        });
+          setState(() {
+            resume = personalizedData['personalized_resume'] ?? resume;
+            jobTitle = personalizedData['job_title'] ?? jobTitle;
+            fullName = personalizedData['full_name'] ?? fullName;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("CV personalized successfully.")),
-        );
+            education =
+                _safeDecodeStringifiedSet(personalizedData['education']) ??
+                    education;
+            experiences = List<String>.from(
+                personalizedData['experience'] ?? experiences);
+
+            softSkills =
+                _safeDecodeList(personalizedData['soft_skills']) ?? softSkills;
+            languages =
+                _safeDecodeList(personalizedData['languages']) ?? languages;
+            interests =
+                _safeDecodeList(personalizedData['interests']) ?? interests;
+
+            certificates = personalizedData['certificates'] ?? certificates;
+            skillsAndProficiency = personalizedData['skills_and_proficiency'] ??
+                skillsAndProficiency;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("CV personalized successfully.")),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to load personalized CV.")),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Failed: ${response.statusCode}")),
