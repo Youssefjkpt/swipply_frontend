@@ -197,7 +197,7 @@ class _HomePageState extends State<HomePage> {
       setState(() => cvLoading = true);
 
       final response = await http.post(
-        Uri.parse('$BASE_URL_AUTH/api/generate-personalized-cv'),
+        Uri.parse('$BASE_URL_AUTH/api/personalize-cv'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'user_id': userId,
