@@ -8,7 +8,7 @@
 
     <application
     android:name="androidx.multidex.MultiDexApplication"
-    android:label="swipply"
+    android:label="Swipply"
     android:icon="@mipmap/ic_launcher"
     android:allowBackup="true"
      android:screenOrientation="portrait"

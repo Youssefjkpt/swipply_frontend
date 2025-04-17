@@ -1086,7 +1086,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                             .toList(),
                       ),
                       const SizedBox(height: 15),
-                      SkillsSection(skills: skills),
+                      SkillsSection(skills: skills), const SizedBox(height: 15),
                       ContactInfoSection(
                         phoneNumber: phone ?? '',
                         address: address ?? '',
@@ -4366,46 +4366,43 @@ class _ContactInfoSectionState extends State<ContactInfoSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      child: Container(
-        decoration: BoxDecoration(
-          color: blue_gray,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Text(
-                  'Contact Information',
-                  style: TextStyle(
-                    color: white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+    return Container(
+      decoration: BoxDecoration(
+        color: blue_gray,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'Contact Information',
+                style: TextStyle(
+                  color: white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                 ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: _openEditModal,
-                  child: const Icon(Icons.edit, color: white_gray, size: 20),
-                ),
-              ],
-            ),
-            const SizedBox(height: 15),
-            Text(
-              'Phone: $phone',
-              style: const TextStyle(color: white_gray, fontSize: 15),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Address: $address',
-              style: const TextStyle(color: white_gray, fontSize: 15),
-            ),
-          ],
-        ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: _openEditModal,
+                child: const Icon(Icons.edit, color: white_gray, size: 20),
+              ),
+            ],
+          ),
+          const SizedBox(height: 15),
+          Text(
+            'Phone: $phone',
+            style: const TextStyle(color: white_gray, fontSize: 15),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Address: $address',
+            style: const TextStyle(color: white_gray, fontSize: 15),
+          ),
+        ],
       ),
     );
   }
