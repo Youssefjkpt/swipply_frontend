@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
+import 'package:swipply/pages/cv.dart';
 import 'package:swipply/pages/job_description.dart';
 import 'package:swipply/services/api_service.dart';
 import 'package:swipply/widgets/category_container.dart';
@@ -250,10 +251,7 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } catch (e) {
-      print("❌ Personalization Error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error during CV personalization.")),
-      );
+      //
     } finally {
       setState(() => cvLoading = false);
     }
@@ -1081,7 +1079,7 @@ class _HomePageState extends State<HomePage> {
                             height: 20,
                           ),
                           const Text(
-                            'Education',
+                            'Soft skills',
                             style: TextStyle(
                                 color: white,
                                 fontSize: 16,
@@ -1137,167 +1135,183 @@ class _HomePageState extends State<HomePage> {
                     SizedBox(
                       width: 10,
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (fullName != null)
-                          Padding(
-                            padding: const EdgeInsets.only(
-                                top: 35, bottom: 4, left: 20),
-                            child: Expanded(
-                              child: Text(
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                fullName!.toUpperCase(),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700,
-                                  color: black,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (fullName != null)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  top: 35, bottom: 4, left: 20, right: 20),
+                              child: Container(
+                                width: double.infinity,
+                                child: Text(
+                                  fullName!.toUpperCase(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: black,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        if (jobTitle != null)
+                          if (jobTitle != null)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  bottom: 5, left: 20, right: 20),
+                              child: Container(
+                                width: double.infinity,
+                                child: Text(
+                                  jobTitle!.toUpperCase(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: white_gray,
+                                  ),
+                                ),
+                              ),
+                            ),
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 5, left: 20),
-                            child: Expanded(
+                            padding: const EdgeInsets.only(left: 20),
+                            child: Container(
+                              width: 60,
+                              height: 4,
+                              color: Color.fromARGB(255, 37, 57, 138),
+                            ),
+                          ),
+                          SizedBox(
+                            height: 30,
+                          ),
+                          const Text(
+                            'Resume',
+                            style: TextStyle(
+                                color: Color.fromARGB(255, 37, 57, 138),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(
+                            height: 5,
+                          ),
+                          Container(
+                            width: MediaQuery.of(context).size.width * 0.5,
+                            height: 1.5,
+                            decoration: BoxDecoration(
+                                color: Color.fromARGB(255, 37, 57, 138)),
+                          ),
+                          const SizedBox(
+                            height: 10,
+                          ),
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.15,
+                            width: MediaQuery.of(context).size.width * 0.5,
+                            child: SingleChildScrollView(
                               child: Text(
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                jobTitle!.toUpperCase(),
-                                textAlign: TextAlign.center,
+                                (resume ?? 'No resume added yet.'),
                                 style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
                                   color: white_gray,
+                                  fontSize: 12,
                                 ),
                               ),
                             ),
                           ),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 20),
-                          child: Container(
-                            width: 60,
-                            height: 4,
-                            color: Color.fromARGB(255, 37, 57, 138),
+                          const SizedBox(
+                            height: 10,
                           ),
-                        ),
-                        SizedBox(
-                          height: 30,
-                        ),
-                        const Text(
-                          'Resume',
-                          style: TextStyle(
+                          const Text(
+                            'Experience',
+                            style: TextStyle(
                               color: Color.fromARGB(255, 37, 57, 138),
                               fontSize: 16,
-                              fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(
-                          height: 5,
-                        ),
-                        Container(
-                          width: MediaQuery.of(context).size.width * 0.5,
-                          height: 1.5,
-                          decoration: BoxDecoration(
-                              color: Color.fromARGB(255, 37, 57, 138)),
-                        ),
-                        const SizedBox(
-                          height: 10,
-                        ),
-                        SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.15,
-                          width: MediaQuery.of(context).size.width * 0.5,
-                          child: SingleChildScrollView(
-                            child: Text(
-                              (resume ?? 'No resume added yet.'),
-                              style: const TextStyle(
-                                color: white_gray,
-                                fontSize: 12,
-                              ),
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ),
-                        const SizedBox(
-                          height: 10,
-                        ),
-                        const Text(
-                          'Experience',
-                          style: TextStyle(
+                          const SizedBox(height: 5),
+                          Container(
+                            width: MediaQuery.of(context).size.width * 0.5,
+                            height: 1.5,
                             color: Color.fromARGB(255, 37, 57, 138),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
                           ),
-                        ),
-                        const SizedBox(height: 5),
-                        Container(
-                          width: MediaQuery.of(context).size.width * 0.5,
-                          height: 1.5,
-                          color: Color.fromARGB(255, 37, 57, 138),
-                        ),
-                        const SizedBox(height: 10),
-                        SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.25,
-                          width: MediaQuery.of(context).size.width * 0.5,
-                          child: experiences.isNotEmpty
-                              ? SingleChildScrollView(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: experiences.map((item) {
-                                      return Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 6),
-                                        child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text('• ',
-                                                style: TextStyle(
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.25,
+                            width: MediaQuery.of(context).size.width * 0.5,
+                            child: experiences.isNotEmpty
+                                ? SingleChildScrollView(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: experiences.map((item) {
+                                        return Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 6),
+                                          child: Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              const Text('• ',
+                                                  style: TextStyle(
+                                                      color: white_gray,
+                                                      fontSize: 12)),
+                                              Expanded(
+                                                child: Text(
+                                                  item,
+                                                  style: const TextStyle(
                                                     color: white_gray,
-                                                    fontSize: 12)),
-                                            Expanded(
-                                              child: Text(
-                                                item,
-                                                style: const TextStyle(
-                                                  color: white_gray,
-                                                  fontSize: 12,
+                                                    fontSize: 12,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    }).toList(),
+                                            ],
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  )
+                                : const Text(
+                                    'No experience added.',
+                                    style: TextStyle(
+                                        color: white_gray, fontSize: 12),
                                   ),
-                                )
-                              : const Text(
-                                  'No experience added.',
-                                  style: TextStyle(
-                                      color: white_gray, fontSize: 12),
-                                ),
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     )
                   ],
                 ),
         ),
         _buildPageIndicator(),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color.fromARGB(255, 37, 57, 138),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
+        PulseButton(
           onPressed: () {
             _personalizeCv(jobs[index]['job_id']);
           },
-          child: const Text(
-            'Personalize CV for this job',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          ),
         ),
+        Positioned(
+          bottom: 160,
+          right: 20,
+          child: GestureDetector(
+              onTap: () => Navigator.push(
+                  context, MaterialPageRoute(builder: (context) => CV())),
+              child: Container(
+                height: 60,
+                width: 60,
+                decoration: BoxDecoration(
+                    color: black_gray,
+                    borderRadius: BorderRadius.circular(100)),
+                child: Center(
+                  child: Icon(
+                    Icons.edit,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              )),
+        )
       ],
     );
   }
@@ -1537,6 +1551,102 @@ class _GradientSwapButtonState extends State<GradientSwapButton>
           ),
         );
       },
+    );
+  }
+}
+
+class PulseButton extends StatefulWidget {
+  final VoidCallback onPressed;
+  const PulseButton({super.key, required this.onPressed});
+
+  @override
+  State<PulseButton> createState() => _PulseButtonState();
+}
+
+class _PulseButtonState extends State<PulseButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    _pulse = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 80,
+      right: 20,
+      child: AnimatedBuilder(
+        animation: _pulse,
+        builder: (context, child) {
+          double value = _pulse.value;
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              // Soft aura
+              Container(
+                width: 60 + (value * 20), // smaller range
+                height: 60 + (value * 20),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF00C2C2).withOpacity(1 - value),
+                ),
+              ),
+
+              // Actual button
+              GestureDetector(
+                onTap: widget.onPressed,
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const RadialGradient(
+                      colors: [
+                        Color(0xFF00C2C2),
+                        Color(0xFF25398A), // dark tech blue
+                      ],
+                      center: Alignment.center,
+                      radius: 1.4,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Color(0xFF00C2C2).withOpacity(0.5),
+                        blurRadius: 16,
+                        spreadRadius: 2,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.auto_fix_high,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
