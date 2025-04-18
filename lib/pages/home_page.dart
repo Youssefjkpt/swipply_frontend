@@ -11,6 +11,7 @@ import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
 import 'package:swipply/pages/cv.dart';
 import 'package:swipply/pages/job_description.dart';
+import 'package:swipply/pages/subscriptions.dart';
 import 'package:swipply/services/api_service.dart';
 import 'package:swipply/widgets/category_container.dart';
 import 'package:http/http.dart' as http;
@@ -99,6 +100,35 @@ class _HomePageState extends State<HomePage> {
     } catch (_) {}
 
     return [];
+  }
+
+  Future<bool> canSwipeJob(String jobId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    final token = prefs.getString('token');
+
+    if (userId == null) return false;
+
+    final response = await http.post(
+      Uri.parse('$BASE_URL_AUTH/api/swipe-job'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: json.encode({
+        'user_id': userId,
+        'job_id': jobId,
+      }),
+    );
+    final data = json.decode(response.body);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      print("🟡 Swipe response: $data");
+      return data['success'] == true;
+    } else {
+      print("❌ Swipe failed: ${response.statusCode} - ${response.body}");
+      return false;
+    }
   }
 
   Future<Map<String, dynamic>?> fetchUserProfileOnly() async {
@@ -196,9 +226,129 @@ class _HomePageState extends State<HomePage> {
         phone != null &&
         resume != null &&
         education.isNotEmpty &&
-        languages.isNotEmpty &&
-        interests.isNotEmpty &&
-        softSkills.isNotEmpty;
+        languages.isNotEmpty;
+  }
+
+  final int dailySwipeLimit = 10;
+
+  Future<int> getLocalSwipeCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final storedDate = prefs.getString('swipe_date') ?? '';
+    if (storedDate != today) {
+      await prefs.setString('swipe_date', today);
+      await prefs.setInt('swipe_count', 0);
+      return 0;
+    }
+    return prefs.getInt('swipe_count') ?? 0;
+  }
+
+  Future<void> incrementLocalSwipeCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    int current = await getLocalSwipeCount();
+    await prefs.setInt('swipe_count', current + 1);
+  }
+
+  Future<bool> canSwipeLocally() async {
+    int current = await getLocalSwipeCount();
+    return current < dailySwipeLimit;
+  }
+
+  Future<void> showSwipeLimitReachedDialog(BuildContext context) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: const Color.fromARGB(255, 27, 27, 27),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            constraints: const BoxConstraints(minHeight: 200),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lock_outline,
+                    color: Color(0xFFFF4C4C), size: 40),
+                const SizedBox(height: 20),
+                const Text(
+                  "Daily Limit Reached",
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "You've reached your daily swipe limit.\nUpgrade your plan to unlock unlimited swipes.",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFFCCCCCC),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00C2C2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const FullSubscriptionPage(),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          "Upgrade Plan",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: const Color(0xFF2B2B2B),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          "Cancel",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> showCustomCVDialog() async {
@@ -345,6 +495,90 @@ class _HomePageState extends State<HomePage> {
             SnackBar(content: Text("Failed to load personalized CV.")),
           );
         }
+      } else if (response.statusCode == 403) {
+        await showDialog(
+          context: context,
+          barrierDismissible: true,
+          builder: (context) => Dialog(
+            backgroundColor: const Color.fromARGB(255, 27, 27, 27),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              constraints: const BoxConstraints(minHeight: 200),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.lock_outline,
+                      color: Color(0xFFFF4C4C), size: 40),
+                  const SizedBox(height: 20),
+                  const Text(
+                    "Upgrade to Unlock",
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "You’ve reached your daily limit for personalized CVs.\nUpgrade your plan to continue personalizing.",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFFCCCCCC),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF00C2C2),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        FullSubscriptionPage()));
+                          },
+                          child: const Text("Upgrade Plan",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            backgroundColor: const Color(0xFF2B2B2B),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text("Cancel",
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white70)),
+                        ),
+                      )
+                    ],
+                  )
+                ],
+              ),
+            ),
+          ),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Failed: ${response.statusCode}")),
@@ -516,6 +750,18 @@ class _HomePageState extends State<HomePage> {
                                     if (!isCvComplete) {
                                       await showCustomCVDialog();
                                       return false;
+                                    }
+                                    if (direction ==
+                                        CardSwiperDirection.right) {
+                                      final allowed = await canSwipeLocally();
+                                      if (!allowed) {
+                                        await showSwipeLimitReachedDialog(
+                                            context);
+
+                                        return false;
+                                      }
+
+                                      await incrementLocalSwipeCount();
                                     }
 
                                     // ✅ allow swipe and continue
@@ -1521,33 +1767,22 @@ class _HomePageState extends State<HomePage> {
             ),
             size: 60,
             onPressed: () async {
+              final currentJob = jobs[_currentIndex];
+              final jobId = currentJob['job_id'];
+
               if (!isCvComplete) {
-                await showCupertinoDialog(
-                  context: context,
-                  builder: (_) => CupertinoAlertDialog(
-                    title: const Text("Incomplete CV"),
-                    content: const Text(
-                        "Please complete your CV before liking a job."),
-                    actions: [
-                      CupertinoDialogAction(
-                        child: const Text("Edit CV"),
-                        onPressed: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => CV()),
-                          );
-                        },
-                      ),
-                      CupertinoDialogAction(
-                        child: const Text("Cancel"),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                );
+                await showCustomCVDialog();
+
                 return;
               }
+
+              final allowed = await canSwipeLocally();
+              if (!allowed) {
+                showSwipeLimitReachedDialog(context);
+                return;
+              }
+
+              await incrementLocalSwipeCount();
 
               likeBtnKey.currentState?.triggerSwapExternally();
               Future.delayed(const Duration(milliseconds: 150), () {
