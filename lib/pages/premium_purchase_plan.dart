@@ -95,7 +95,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                   if (isError)
                     Expanded(
                       child: Text(
-                        errorMessage!,
+                        errorMessage,
                         style: const TextStyle(
                           color: Colors.red,
                           fontSize: 14,

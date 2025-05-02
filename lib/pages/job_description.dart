@@ -1,10 +1,10 @@
+// ignore_for_file: unused_field
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:lorem_ipsum/lorem_ipsum.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/services/api_service.dart';
 import 'package:geocoding/geocoding.dart';
@@ -75,7 +75,6 @@ class _JobInformationsState extends State<JobInformations> {
   }
 
   final Completer<GoogleMapController> _mapController = Completer();
-  bool _isMapLoading = true;
   bool _expandedMap = false; // for single map on this page
   bool isLoading = true;
   Map<int, bool> _expandedMaps = {};
@@ -491,7 +490,6 @@ class _JobInformationsState extends State<JobInformations> {
                                       if (!_mapController.isCompleted) {
                                         _mapController.complete(controller);
                                       }
-                                      setState(() => _isMapLoading = false);
                                     },
                                     zoomGesturesEnabled: true,
                                     scrollGesturesEnabled: true,

@@ -1,3 +1,4 @@
+// ignore_for_file: unused_field
 import 'dart:convert';
 import 'dart:math';
 
@@ -94,7 +95,7 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
                   if (isError)
                     Expanded(
                       child: Text(
-                        errorMessage!,
+                        errorMessage,
                         style: const TextStyle(
                           color: Colors.red,
                           fontSize: 14,

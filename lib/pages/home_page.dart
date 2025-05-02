@@ -1,3 +1,4 @@
+// ignore_for_file: unused_field
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
@@ -11,6 +12,7 @@ import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
 import 'package:swipply/pages/cv.dart';
 import 'package:swipply/pages/job_description.dart';
+import 'package:swipply/pages/notification.dart';
 import 'package:swipply/pages/subscriptions.dart';
 import 'package:swipply/services/api_service.dart';
 import 'package:swipply/widgets/category_container.dart';
@@ -30,6 +32,81 @@ class _HomePageState extends State<HomePage> {
   String? fullName, address, email, phone;
   String? resume;
   bool cvLoading = false;
+  Widget _buildGodCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color colorStart,
+    required Color colorEnd,
+    required Color iconBg,
+  }) {
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.44,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          colors: [colorStart, colorEnd],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.07),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 40,
+            width: 40,
+            decoration: BoxDecoration(
+              color: iconBg,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: iconBg.withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: Colors.white, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black.withOpacity(0.6),
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black.withOpacity(0.85),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   List<String> experiences = [],
       education = [],
@@ -120,7 +197,6 @@ class _HomePageState extends State<HomePage> {
         'job_id': jobId,
       }),
     );
-    final data = json.decode(response.body);
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       print("🟡 Swipe response: $data");
@@ -403,7 +479,7 @@ class _HomePageState extends State<HomePage> {
                           Navigator.pop(context);
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => CV()),
+                            MaterialPageRoute(builder: (context) => const CV()),
                           );
                         },
                         child: const Text("Go to CV",
@@ -439,6 +515,35 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _autoRegisterAndApply(String jobId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    if (userId == null) return;
+
+    try {
+      final response = await http.post(
+        Uri.parse('$BASE_URL_AUTH/api/auto-register-apply'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'user_id': userId,
+          'job_id': jobId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Application sent successfully.")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed: ${response.statusCode}")),
+        );
+      }
+    } catch (e) {
+      print("❌ Error during auto-apply: $e");
+    }
+  }
+
   Future<void> _personalizeCv(String jobId) async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
@@ -470,17 +575,13 @@ class _HomePageState extends State<HomePage> {
             fullName = personalizedData['full_name'] ?? fullName;
 
             education =
-                _safeDecodeStringifiedSet(personalizedData['education']) ??
-                    education;
+                _safeDecodeStringifiedSet(personalizedData['education']);
             experiences = List<String>.from(
                 personalizedData['experience'] ?? experiences);
 
-            softSkills =
-                _safeDecodeList(personalizedData['soft_skills']) ?? softSkills;
-            languages =
-                _safeDecodeList(personalizedData['languages']) ?? languages;
-            interests =
-                _safeDecodeList(personalizedData['interests']) ?? interests;
+            softSkills = _safeDecodeList(personalizedData['soft_skills']);
+            languages = _safeDecodeList(personalizedData['languages']);
+            interests = _safeDecodeList(personalizedData['interests']);
 
             certificates = personalizedData['certificates'] ?? certificates;
             skillsAndProficiency = personalizedData['skills_and_proficiency'] ??
@@ -492,7 +593,7 @@ class _HomePageState extends State<HomePage> {
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Failed to load personalized CV.")),
+            const SnackBar(content: Text("Failed to load personalized CV.")),
           );
         }
       } else if (response.statusCode == 403) {
@@ -547,7 +648,7 @@ class _HomePageState extends State<HomePage> {
                                 context,
                                 MaterialPageRoute(
                                     builder: (context) =>
-                                        FullSubscriptionPage()));
+                                        const FullSubscriptionPage()));
                           },
                           child: const Text("Upgrade Plan",
                               style: TextStyle(
@@ -606,9 +707,10 @@ class _HomePageState extends State<HomePage> {
 
       try {
         setState(() {
-          final rawPath = userData['profile_picture'];
+          final rawPath =
+              userData['profile_photo_url']; // ✅ use the correct field
           if (rawPath != null && rawPath.toString().isNotEmpty) {
-            profileImageUrl = '$BASE_URL_AUTH$rawPath';
+            profileImageUrl = rawPath; // ✅ already a full URL
           } else {
             profileImageUrl = null;
           }
@@ -622,7 +724,10 @@ class _HomePageState extends State<HomePage> {
           print('Raw education field: ${empData['education']}');
 
           resume = empData['resume'];
-          education = _safeDecodeStringifiedSet(empData['education']);
+          education = empData['education'] is List
+              ? List<String>.from(empData['education'].map((e) => e.toString()))
+              : _safeDecodeStringifiedSet(empData['education']);
+
           experiences = _safeDecodeStringifiedSet(empData['experience']);
 
           languages = _safeDecodeList(empData['languages']);
@@ -632,6 +737,10 @@ class _HomePageState extends State<HomePage> {
           certificates = empData['certificates'] ?? [];
           skillsAndProficiency = empData['skills_and_proficiency'] ?? [];
         });
+        print("Education Raw Data: ${empData['education']}");
+        print("Fetched User Data: $userData");
+        print("Fetched Employee Data: $empData");
+
         print("Parsed Education: $education");
       } catch (e) {
         print('❌ Error during profile parsing: $e');
@@ -689,17 +798,23 @@ class _HomePageState extends State<HomePage> {
           ),
           centerTitle: false,
           actions: [
-            Container(
-              margin: const EdgeInsets.only(right: 15),
-              height: 40,
-              width: 40,
-              decoration: BoxDecoration(
-                color: white_gray,
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: const Icon(
-                Icons.notifications,
-                color: white,
+            GestureDetector(
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => ApplicationsInProgressPage())),
+              child: Container(
+                margin: const EdgeInsets.only(right: 15),
+                height: 40,
+                width: 40,
+                decoration: BoxDecoration(
+                  color: white_gray,
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: const Icon(
+                  Icons.notifications,
+                  color: white,
+                ),
               ),
             ),
             Container(
@@ -760,7 +875,9 @@ class _HomePageState extends State<HomePage> {
 
                                         return false;
                                       }
-
+                                      final jobId =
+                                          jobs[previousIndex]['job_id'];
+                                      await _autoRegisterAndApply(jobId);
                                       await incrementLocalSwipeCount();
                                     }
 
@@ -980,6 +1097,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildJobCard(int index) {
     bool isCurrentCard = index == _currentIndex;
+    final String salary = jobs[index]["salary"] ?? "Not specified";
 
     return Stack(
       children: [
@@ -1003,13 +1121,7 @@ class _HomePageState extends State<HomePage> {
                       gradient: const LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [
-                          white, Color.fromARGB(255, 201, 201, 201),
-                          white_gray,
-
-                          Color.fromARGB(255, 23, 23,
-                              23), // Black gradient only for the current card
-                        ],
+                        colors: [white, white],
                       ),
                     ),
                   ),
@@ -1023,209 +1135,365 @@ class _HomePageState extends State<HomePage> {
                       topLeft: Radius.circular(20),
                       topRight: Radius.circular(20),
                     ),
-                    child: Image.network(
-                      jobs[index]["company_background_url"] ?? '',
-                      fit: BoxFit.contain,
-                      width: double.infinity,
-                      errorBuilder: (context, error, stackTrace) =>
-                          Image.asset(welcome_img, fit: BoxFit.cover),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    child: Row(
+                    child: Stack(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
+                          constraints: BoxConstraints(
+                            minHeight: MediaQuery.of(context).size.height * 0.3,
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              jobs[index]["company_logo_url"] ?? '',
-                              height: 65,
-                              width: 65,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.image_not_supported,
-                                  size: 30),
-                            ),
+                          width: double.infinity,
+                          child: Image.network(
+                            jobs[index]["company_background_url"] ?? '',
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Image.asset(welcome_img, fit: BoxFit.cover),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                jobs[index]["title"] ?? "No Title",
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              const SizedBox(height: 5),
-                              Text(
-                                jobs[index]["company_name"] ?? "Unknown",
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  color: black_gray,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            if (index < jobs.length) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      JobInformations(job: jobs[index]),
-                                ),
-                              );
-                            }
-                          },
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          height: MediaQuery.of(context).size.height * 0.16,
                           child: Container(
-                            decoration: BoxDecoration(
-                                color: white,
-                                border: Border.all(color: black, width: 0.5),
-                                borderRadius: BorderRadius.circular(100)),
-                            child: const Padding(
-                              padding: const EdgeInsets.all(4),
-                              child: Icon(
-                                Icons.keyboard_arrow_up_rounded,
-                                color: black,
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [
+                                  Color.fromARGB(255, 255, 255, 255),
+                                  Color.fromARGB(200, 255, 255, 255),
+                                  Color.fromARGB(100, 255, 255, 255),
+                                  Colors.transparent,
+                                ],
                               ),
                             ),
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    child: Text(
-                      jobs[index]["description"] ?? "Unknown",
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: black_gray,
-                      ),
                     ),
                   ),
                   const SizedBox(height: 15),
                 ],
               ),
 
-              // Apply Gradient ONLY to the Current Card
-
               // Text overlay
-              Positioned(
-                bottom: 40,
-                left: 20,
-                right: 20,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                            child: SizedBox(
-                          width: 1,
-                        )),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: white,
-                            borderRadius: BorderRadius.circular(100),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 6,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  _showSecondAndThird(
-                                    jobs[index]["location"] ?? "Unknown",
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black87,
-                                    letterSpacing: 0.2,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Icon(
-                                Icons.location_on_rounded,
-                                color: Colors.black87,
-                                size: 18,
-                              ),
-                            ],
-                          ),
-                        )
-                      ],
+            ],
+          ),
+        ),
+        _buildPageIndicator(),
+        Positioned(
+          top: MediaQuery.of(context).size.height * 0.16,
+          left: 0,
+          right: 0,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      jobs[index]["company_logo_url"] ?? '',
+                      height: 65,
+                      width: 65,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          const Icon(Icons.image_not_supported, size: 30),
                     ),
-                    const SizedBox(height: 15),
-                    Wrap(
-                      spacing: 5,
-                      runSpacing: 8,
-                      children: [
-                        if (jobs[index]["category_chip"] != null &&
-                            jobs[index]["category_chip"] is List &&
-                            jobs[index]["category_chip"].isNotEmpty)
-                          ...jobs[index]["category_chip"]
-                              .take(5)
-                              .map<Widget>((chip) =>
-                                  CategoryChip(label: chip.toString()))
-                              .toList()
-                        else ...[
-                          CategoryChip(
-                              label:
-                                  jobs[index]["employment_type"] ?? "Unknown"),
-                          CategoryChip(
-                              label: jobs[index]["contract_type"] ?? "Unknown"),
-                        ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  jobs[index]["title"] ?? "No Title",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+                Text(
+                  jobs[index]["company_name"] ?? "Unknown",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
+                    color: Colors.black54,
+                  ),
+                ),
+                const SizedBox(
+                  height: 10,
+                ),
+                Align(
+                  alignment: Alignment.center,
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 10,
+                    runSpacing: 8,
+                    children: [
+                      if (jobs[index]["category_chip"] != null &&
+                          jobs[index]["category_chip"] is List &&
+                          jobs[index]["category_chip"].isNotEmpty)
+                        ...jobs[index]["category_chip"]
+                            .take(3)
+                            .map<Widget>(
+                                (chip) => CategoryChip(label: chip.toString()))
+                            .toList()
+                      else ...[
+                        CategoryChip(
+                            label: jobs[index]["employment_type"] ?? "Unknown"),
+                        CategoryChip(
+                            label: jobs[index]["contract_type"] ?? "Unknown"),
                       ],
-                    )
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildGodCard(
+                      icon: Icons.attach_money_rounded,
+                      title: 'Salaire',
+                      value: salary,
+                      colorStart: const Color(0xFFDCF8FF),
+                      colorEnd: const Color(0xFFEFF9FC),
+                      iconBg: const Color(0xFFB3E5FC),
+                    ),
+                    _buildGodCard(
+                      icon: Icons.schedule,
+                      title: 'Horaires',
+                      value: 'À définir',
+                      colorStart: const Color(0xFFE8EAF6),
+                      colorEnd: const Color(0xFFF1F2FA),
+                      iconBg: const Color(0xFFC5CAE9),
+                    ),
                   ],
+                ),
+                const SizedBox(height: 10),
+                const Row(
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.only(left: 15),
+                      child: Text(
+                        'Description',
+                        style: TextStyle(
+                            color: Color.fromARGB(255, 0, 0, 0),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15),
+                      ),
+                    ),
+                    Expanded(
+                        child: SizedBox(
+                      width: 1,
+                    ))
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: Text(
+                    jobs[index]["description"] ?? "Unknown",
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w400,
+                      height: 1.5,
+                      letterSpacing: 0.1,
+                      color: Colors.black.withOpacity(0.75),
+                    ),
+                  ),
+                ),
+                // GestureDetector(
+                //   onTap: () {
+                //     if (index < jobs.length) {
+                //       Navigator.push(
+                //         context,
+                //         MaterialPageRoute(
+                //           builder: (context) =>
+                //               JobInformations(job: jobs[index]),
+                //         ),
+                //       );
+                //     }
+                //   },
+                //   child: Container(
+                //     decoration: BoxDecoration(
+                //         color: white,
+                //         border: Border.all(color: black, width: 0.5),
+                //         borderRadius: BorderRadius.circular(100)),
+                //     child: const Padding(
+                //       padding: const EdgeInsets.all(4),
+                //       child: Icon(
+                //         Icons.keyboard_arrow_up_rounded,
+                //         color: black,
+                //       ),
+                //     ),
+                //   ),
+                // ),
+                // Row(
+                //   children: [
+                //     const Expanded(
+                //         child: SizedBox(
+                //       width: 1,
+                //     )),
+                //     // Container(
+                //     //   decoration: BoxDecoration(
+                //     //     color: white,
+                //     //     borderRadius: BorderRadius.circular(100),
+                //     //     boxShadow: [
+                //     //       BoxShadow(
+                //     //         color: Colors.black.withOpacity(0.05),
+                //     //         blurRadius: 6,
+                //     //         offset: const Offset(0, 3),
+                //     //       ),
+                //     //     ],
+                //     //   ),
+                //     //   padding: const EdgeInsets.symmetric(
+                //     //       horizontal: 16, vertical: 8),
+                //     //   child: Row(
+                //     //     mainAxisSize: MainAxisSize.min,
+                //     //     crossAxisAlignment: CrossAxisAlignment.center,
+                //     //     children: [
+                //     //       Flexible(
+                //     //         child: Text(
+                //     //           _showSecondAndThird(
+                //     //             jobs[index]["location"] ?? "Unknown",
+                //     //           ),
+                //     //           maxLines: 1,
+                //     //           overflow: TextOverflow.ellipsis,
+                //     //           style: const TextStyle(
+                //     //             fontSize: 13.5,
+                //     //             fontWeight: FontWeight.w500,
+                //     //             color: Colors.black87,
+                //     //             letterSpacing: 0.2,
+                //     //           ),
+                //     //         ),
+                //     //       ),
+                //     //       const SizedBox(width: 8),
+                //     //       const Icon(
+                //     //         Icons.location_on_rounded,
+                //     //         color: Colors.black87,
+                //     //         size: 18,
+                //     //       ),
+                //     //     ],
+                //     //   ),
+                //     // )
+                //   ],
+                // ),
+                const SizedBox(height: 15),
+              ],
+            ),
+          ),
+        ),
+        if (isCurrentCard)
+          if (isCurrentCard)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: MediaQuery.of(context).size.height * 0.15,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Color.fromARGB(255, 255, 255, 255), // solid white
+                      Color.fromARGB(
+                          240, 255, 255, 255), // slightly less opaque
+                      Color.fromARGB(220, 255, 255, 255), // even lighter
+                      Color.fromARGB(0, 255, 255, 255), // fully transparent
+                    ],
+                  ),
+                  borderRadius:
+                      BorderRadius.vertical(bottom: Radius.circular(20)),
+                ),
+              ),
+            ),
+      ],
+    );
+  }
+
+  Widget _buildInfoCard(
+      {required IconData icon, required String title, required String value}) {
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.44,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFF7F8FA),
+            Color(0xFFECEFF1),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                )
+              ],
+            ),
+            padding: const EdgeInsets.all(6),
+            child: Icon(icon, color: Colors.black87, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black54,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
                 ),
               ),
             ],
           ),
-        ),
-        _buildPageIndicator()
-      ],
+        ],
+      ),
     );
   }
 
@@ -1292,7 +1560,8 @@ class _HomePageState extends State<HomePage> {
                                 color: Colors.grey[800],
                                 shape: BoxShape.circle,
                               ),
-                              child: profileImageUrl != null
+                              child: profileImageUrl != null &&
+                                      profileImageUrl!.isNotEmpty
                                   ? Image.network(
                                       profileImageUrl!,
                                       fit: BoxFit.cover,
@@ -1307,10 +1576,12 @@ class _HomePageState extends State<HomePage> {
                                           ),
                                         );
                                       },
-                                      errorBuilder: (_, __, ___) => const Icon(
-                                          Icons.person,
-                                          color: Colors.white,
-                                          size: 34),
+                                      errorBuilder: (_, __, ___) {
+                                        print(
+                                            "❌ Error loading image: $profileImageUrl");
+                                        return const Icon(Icons.person,
+                                            color: Colors.white, size: 34);
+                                      },
                                     )
                                   : const Icon(Icons.person,
                                       color: Colors.white, size: 34),
@@ -1332,7 +1603,7 @@ class _HomePageState extends State<HomePage> {
                           Container(
                             width: MediaQuery.of(context).size.width * 0.28,
                             height: 1.5,
-                            decoration: BoxDecoration(color: white),
+                            decoration: const BoxDecoration(color: white),
                           ),
                           const SizedBox(
                             height: 10,
@@ -1370,7 +1641,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ],
                           ),
-                          SizedBox(
+                          const SizedBox(
                             height: 20,
                           ),
                           const Text(
@@ -1386,7 +1657,7 @@ class _HomePageState extends State<HomePage> {
                           Container(
                             width: MediaQuery.of(context).size.width * 0.28,
                             height: 1.5,
-                            decoration: BoxDecoration(color: white),
+                            decoration: const BoxDecoration(color: white),
                           ),
                           const SizedBox(
                             height: 10,
@@ -1427,7 +1698,7 @@ class _HomePageState extends State<HomePage> {
                                         TextStyle(color: white, fontSize: 12),
                                   ),
                                 ),
-                          SizedBox(
+                          const SizedBox(
                             height: 20,
                           ),
                           const Text(
@@ -1443,7 +1714,7 @@ class _HomePageState extends State<HomePage> {
                           Container(
                             width: MediaQuery.of(context).size.width * 0.28,
                             height: 1.5,
-                            decoration: BoxDecoration(color: white),
+                            decoration: const BoxDecoration(color: white),
                           ),
                           const SizedBox(
                             height: 10,
@@ -1484,7 +1755,7 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                     ),
-                    SizedBox(
+                    const SizedBox(
                       width: 10,
                     ),
                     Expanded(
@@ -1534,10 +1805,10 @@ class _HomePageState extends State<HomePage> {
                             child: Container(
                               width: 60,
                               height: 4,
-                              color: Color.fromARGB(255, 37, 57, 138),
+                              color: const Color.fromARGB(255, 37, 57, 138),
                             ),
                           ),
-                          SizedBox(
+                          const SizedBox(
                             height: 30,
                           ),
                           const Text(
@@ -1553,7 +1824,7 @@ class _HomePageState extends State<HomePage> {
                           Container(
                             width: MediaQuery.of(context).size.width * 0.5,
                             height: 1.5,
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                                 color: Color.fromARGB(255, 37, 57, 138)),
                           ),
                           const SizedBox(
@@ -1587,7 +1858,7 @@ class _HomePageState extends State<HomePage> {
                           Container(
                             width: MediaQuery.of(context).size.width * 0.5,
                             height: 1.5,
-                            color: Color.fromARGB(255, 37, 57, 138),
+                            color: const Color.fromARGB(255, 37, 57, 138),
                           ),
                           const SizedBox(height: 10),
                           SizedBox(
@@ -1648,14 +1919,14 @@ class _HomePageState extends State<HomePage> {
           right: 20,
           child: GestureDetector(
               onTap: () => Navigator.push(
-                  context, MaterialPageRoute(builder: (context) => CV())),
+                  context, MaterialPageRoute(builder: (context) => const CV())),
               child: Container(
                 height: 60,
                 width: 60,
                 decoration: BoxDecoration(
                     color: black_gray,
                     borderRadius: BorderRadius.circular(100)),
-                child: Center(
+                child: const Center(
                   child: Icon(
                     Icons.edit,
                     color: Colors.white,
@@ -1788,6 +2059,7 @@ class _HomePageState extends State<HomePage> {
               Future.delayed(const Duration(milliseconds: 150), () {
                 _controller.swipe(CardSwiperDirection.right);
               });
+              await _autoRegisterAndApply(jobId);
             },
           ),
         ],
@@ -1996,10 +2268,10 @@ class _PulseButtonState extends State<PulseButton>
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF00C2C2).withOpacity(0.5),
+                        color: const Color(0xFF00C2C2).withOpacity(0.5),
                         blurRadius: 16,
                         spreadRadius: 2,
-                        offset: Offset(0, 6),
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),

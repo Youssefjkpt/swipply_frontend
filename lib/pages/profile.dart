@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:lorem_ipsum/lorem_ipsum.dart';
 import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
@@ -13,7 +12,6 @@ import 'package:swipply/widgets/cv_chevker.dart';
 import 'package:swipply/widgets/like_container_profile.dart';
 import 'package:swipply/widgets/mini_subsciption_plans.dart';
 import 'package:swipply/widgets/subscription_profile_container.dart';
-import 'package:swipply/widgets/subscriptions_profile.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -602,7 +600,7 @@ class _ProfileState extends State<Profile> {
           : 'Mon nom',
     );
     final jobController = TextEditingController(
-      text: (_jobTitle != null && _jobTitle.trim().isNotEmpty) ? _jobTitle : '',
+      text: (_jobTitle.trim().isNotEmpty) ? _jobTitle : '',
     );
 
     showModalBottomSheet(

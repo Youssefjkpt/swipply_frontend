@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field
+
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
@@ -27,7 +29,6 @@ class _SignUpState extends State<SignUp> {
 
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
-  bool _isTermsAccepted = false;
   bool _isLoading = false;
   String? _errorMessage;
   String _passwordStrength = "";

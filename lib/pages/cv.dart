@@ -142,11 +142,34 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
   List<String> educations = [];
   String? phone;
   String? address;
-
+  String userFullName = '';
   String? userId;
   late List<String> languages;
   String _uploadedFileName = 'Upload a Doc/Docx/PDF';
   late AnimationController _checkmarkController;
+  Future<void> fetchUserData() async {
+    final id = await getUserId();
+    final token = await getAuthToken();
+
+    if (id == null || token == null) return;
+
+    final response = await http.get(
+      Uri.parse('$BASE_URL_AUTH/users/$id'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        userFullName = data['full_name'] ?? '';
+        userEmail = data['email'] ?? '';
+        phone = data['phone_number'] ?? '';
+        address = data['address'] ?? '';
+      });
+    }
+  }
 
   void fetchUserId() async {
     final id = await getUserId();
@@ -234,6 +257,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
       'certificates': certificates,
       'linkedin_url': null,
       'lettre_de_motivation': null,
+      'fullName': userFullName,
       'available_start_date': null,
     };
 
@@ -358,12 +382,14 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
 
       final file = File(result.files.single.path!);
       final fileName = result.files.single.name;
+      final userId = await getUserId(); // already declared in your code
 
       final request = http.MultipartRequest(
         'POST',
         Uri.parse('$BASE_URL_AUTH/api/parse-cv'),
       );
 
+      request.fields['user_id'] = userId ?? ''; // ⬅️ this is the fix
       request.files.add(
         await http.MultipartFile.fromPath('cv', file.path, filename: fileName),
       );
@@ -504,6 +530,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
     selectedLanguages = {};
     resumeController = TextEditingController();
     fetchUserId();
+    fetchUserData();
     _checkmarkController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),

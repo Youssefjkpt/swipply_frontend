@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
 import 'package:swipply/pages/job_description.dart';
