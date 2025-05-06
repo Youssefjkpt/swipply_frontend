@@ -1,6 +1,8 @@
 // ignore_for_file: unused_field
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -32,6 +34,31 @@ class _HomePageState extends State<HomePage> {
   String? fullName, address, email, phone;
   String? resume;
   bool cvLoading = false;
+  final GlobalKey bellKey = GlobalKey();
+
+  void _runFlyingAnimation(Offset start, Offset end) {
+    final overlay = Overlay.of(context, rootOverlay: false);
+    late OverlayEntry entry;
+
+    entry = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          AnimatedFlyingCircle(
+            start: start,
+            end: end,
+            onComplete: () {
+              Future.delayed(const Duration(seconds: 2), () {
+                entry.remove(); // ✅ delayed removal
+              });
+            },
+          ),
+        ],
+      ),
+    );
+
+    overlay.insert(entry);
+  }
+
   Widget _buildGodCard({
     required IconData icon,
     required String title,
@@ -42,7 +69,7 @@ class _HomePageState extends State<HomePage> {
   }) {
     return Container(
       width: MediaQuery.of(context).size.width * 0.44,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         gradient: LinearGradient(
@@ -62,8 +89,8 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            height: 40,
-            width: 40,
+            height: 35,
+            width: 35,
             decoration: BoxDecoration(
               color: iconBg,
               shape: BoxShape.circle,
@@ -75,9 +102,9 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            child: Icon(icon, color: Colors.white, size: 22),
+            child: Icon(icon, color: Colors.white, size: 20),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,7 +332,7 @@ class _HomePageState extends State<HomePage> {
         languages.isNotEmpty;
   }
 
-  final int dailySwipeLimit = 10;
+  final int dailySwipeLimit = 100;
 
   Future<int> getLocalSwipeCount() async {
     final prefs = await SharedPreferences.getInstance();
@@ -798,37 +825,16 @@ class _HomePageState extends State<HomePage> {
           ),
           centerTitle: false,
           actions: [
-            GestureDetector(
-              onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => ApplicationsInProgressPage())),
-              child: Container(
-                margin: const EdgeInsets.only(right: 15),
-                height: 40,
-                width: 40,
-                decoration: BoxDecoration(
-                  color: white_gray,
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                child: const Icon(
-                  Icons.notifications,
-                  color: white,
-                ),
+            RingingBellButton(bellKey: bellKey),
+            IconButton(
+              icon: const Icon(
+                CupertinoIcons.slider_horizontal_3,
+                color: Colors.white,
+                size: 26,
               ),
-            ),
-            Container(
-              margin: const EdgeInsets.only(right: 15),
-              height: 40,
-              width: 40,
-              decoration: BoxDecoration(
-                color: white_gray,
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: const Icon(
-                Icons.sort_rounded,
-                color: white,
-              ),
+              onPressed: () {
+                // Implement your filter functionality here
+              },
             ),
           ],
         ),
@@ -890,6 +896,22 @@ class _HomePageState extends State<HomePage> {
                                       });
                                     } else if (direction ==
                                         CardSwiperDirection.right) {
+                                      WidgetsBinding.instance
+                                          .addPostFrameCallback((_) {
+                                        final RenderBox cardBox = likeBtnKey
+                                            .currentContext!
+                                            .findRenderObject() as RenderBox;
+                                        final Offset start =
+                                            cardBox.localToGlobal(Offset.zero);
+
+                                        final RenderBox notifBox = bellKey
+                                            .currentContext!
+                                            .findRenderObject() as RenderBox;
+                                        final Offset end =
+                                            notifBox.localToGlobal(
+                                                const Offset(12, 12));
+                                        _runFlyingAnimation(start, end);
+                                      });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                         likeBtnKey.currentState
@@ -1095,90 +1117,105 @@ class _HomePageState extends State<HomePage> {
                   ));
   }
 
+  static Future<List<Map<String, dynamic>>> fetchAllJobs() async {
+    final response = await http.get(Uri.parse('$BASE_URL_AUTH/api/get-jobs'));
+
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
+      return data.map((e) => Map<String, dynamic>.from(e)).toList();
+    } else {
+      throw Exception('Failed to fetch jobs');
+    }
+  }
+
   Widget _buildJobCard(int index) {
     bool isCurrentCard = index == _currentIndex;
     final String salary = jobs[index]["salary"] ?? "Not specified";
+    final String contractType = jobs[index]["contract_type"] ?? "Non spécifié";
 
     return Stack(
       children: [
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Stack(
-            children: [
-              if (isCurrentCard)
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: MediaQuery.of(context).size.height * 0.35,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [white, white],
+        Center(
+          child: Container(
+            width: MediaQuery.of(context).size.width * 1,
+            decoration: BoxDecoration(
+              color: white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Stack(
+              children: [
+                if (isCurrentCard)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: MediaQuery.of(context).size.height * 0.35,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [white, white],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              // Job Image
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
-                    child: Stack(
-                      children: [
-                        Container(
-                          constraints: BoxConstraints(
-                            minHeight: MediaQuery.of(context).size.height * 0.3,
-                          ),
-                          width: double.infinity,
-                          child: Image.network(
-                            jobs[index]["company_background_url"] ?? '',
-                            fit: BoxFit.cover,
+                // Job Image
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                      ),
+                      child: Stack(
+                        children: [
+                          Container(
+                            constraints: BoxConstraints(
+                              minHeight:
+                                  MediaQuery.of(context).size.height * 0.3,
+                            ),
                             width: double.infinity,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Image.asset(welcome_img, fit: BoxFit.cover),
+                            child: Image.network(
+                              jobs[index]["company_background_url"] ?? '',
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Image.asset(welcome_img, fit: BoxFit.cover),
+                            ),
                           ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          height: MediaQuery.of(context).size.height * 0.16,
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                                colors: [
-                                  Color.fromARGB(255, 255, 255, 255),
-                                  Color.fromARGB(200, 255, 255, 255),
-                                  Color.fromARGB(100, 255, 255, 255),
-                                  Colors.transparent,
-                                ],
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            height: MediaQuery.of(context).size.height * 0.16,
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                  colors: [
+                                    Color.fromARGB(255, 255, 255, 255),
+                                    Color.fromARGB(200, 255, 255, 255),
+                                    Color.fromARGB(100, 255, 255, 255),
+                                    Colors.transparent,
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 15),
-                ],
-              ),
+                    const SizedBox(height: 15),
+                  ],
+                ),
 
-              // Text overlay
-            ],
+                // Text overlay
+              ],
+            ),
           ),
         ),
         _buildPageIndicator(),
@@ -1278,8 +1315,8 @@ class _HomePageState extends State<HomePage> {
                     ),
                     _buildGodCard(
                       icon: Icons.schedule,
-                      title: 'Horaires',
-                      value: 'À définir',
+                      title: 'Contrat',
+                      value: contractType,
                       colorStart: const Color(0xFFE8EAF6),
                       colorEnd: const Color(0xFFF1F2FA),
                       iconBg: const Color(0xFFC5CAE9),
@@ -1320,115 +1357,104 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                // GestureDetector(
-                //   onTap: () {
-                //     if (index < jobs.length) {
-                //       Navigator.push(
-                //         context,
-                //         MaterialPageRoute(
-                //           builder: (context) =>
-                //               JobInformations(job: jobs[index]),
-                //         ),
-                //       );
-                //     }
-                //   },
-                //   child: Container(
-                //     decoration: BoxDecoration(
-                //         color: white,
-                //         border: Border.all(color: black, width: 0.5),
-                //         borderRadius: BorderRadius.circular(100)),
-                //     child: const Padding(
-                //       padding: const EdgeInsets.all(4),
-                //       child: Icon(
-                //         Icons.keyboard_arrow_up_rounded,
-                //         color: black,
-                //       ),
-                //     ),
-                //   ),
-                // ),
-                // Row(
-                //   children: [
-                //     const Expanded(
-                //         child: SizedBox(
-                //       width: 1,
-                //     )),
-                //     // Container(
-                //     //   decoration: BoxDecoration(
-                //     //     color: white,
-                //     //     borderRadius: BorderRadius.circular(100),
-                //     //     boxShadow: [
-                //     //       BoxShadow(
-                //     //         color: Colors.black.withOpacity(0.05),
-                //     //         blurRadius: 6,
-                //     //         offset: const Offset(0, 3),
-                //     //       ),
-                //     //     ],
-                //     //   ),
-                //     //   padding: const EdgeInsets.symmetric(
-                //     //       horizontal: 16, vertical: 8),
-                //     //   child: Row(
-                //     //     mainAxisSize: MainAxisSize.min,
-                //     //     crossAxisAlignment: CrossAxisAlignment.center,
-                //     //     children: [
-                //     //       Flexible(
-                //     //         child: Text(
-                //     //           _showSecondAndThird(
-                //     //             jobs[index]["location"] ?? "Unknown",
-                //     //           ),
-                //     //           maxLines: 1,
-                //     //           overflow: TextOverflow.ellipsis,
-                //     //           style: const TextStyle(
-                //     //             fontSize: 13.5,
-                //     //             fontWeight: FontWeight.w500,
-                //     //             color: Colors.black87,
-                //     //             letterSpacing: 0.2,
-                //     //           ),
-                //     //         ),
-                //     //       ),
-                //     //       const SizedBox(width: 8),
-                //     //       const Icon(
-                //     //         Icons.location_on_rounded,
-                //     //         color: Colors.black87,
-                //     //         size: 18,
-                //     //       ),
-                //     //     ],
-                //     //   ),
-                //     // )
-                //   ],
-                // ),
                 const SizedBox(height: 15),
               ],
             ),
           ),
         ),
         if (isCurrentCard)
-          if (isCurrentCard)
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: MediaQuery.of(context).size.height * 0.15,
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Color.fromARGB(255, 255, 255, 255), // solid white
-                      Color.fromARGB(
-                          240, 255, 255, 255), // slightly less opaque
-                      Color.fromARGB(220, 255, 255, 255), // even lighter
-                      Color.fromARGB(0, 255, 255, 255), // fully transparent
-                    ],
-                  ),
-                  borderRadius:
-                      BorderRadius.vertical(bottom: Radius.circular(20)),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: MediaQuery.of(context).size.height * 0.15,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Color.fromARGB(255, 255, 255, 255), // solid white
+                    Color.fromARGB(240, 255, 255, 255), // slightly less opaque
+                    Color.fromARGB(220, 255, 255, 255), // even lighter
+                    Color.fromARGB(0, 255, 255, 255), // fully transparent
+                  ],
+                ),
+                borderRadius:
+                    BorderRadius.vertical(bottom: Radius.circular(20)),
+              ),
+            ),
+          ),
+        Positioned(
+          bottom: 20,
+          left: 0,
+          right: 0,
+          child: Listener(
+            onPointerDown: (_) =>
+                setState(() => _disableScrollForDetails = true),
+            onPointerUp: (_) =>
+                setState(() => _disableScrollForDetails = false),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                if (index < jobs.length) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => JobInformations(job: jobs[index]),
+                    ),
+                  );
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ShaderMask(
+                      shaderCallback: (Rect bounds) {
+                        return const LinearGradient(
+                          colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ).createShader(bounds);
+                      },
+                      blendMode: BlendMode.srcIn,
+                      child: const Text(
+                        'Voir les détails',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    ShaderMask(
+                      shaderCallback: (Rect bounds) {
+                        return const LinearGradient(
+                          colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ).createShader(bounds);
+                      },
+                      blendMode: BlendMode.srcIn,
+                      child: const Icon(
+                        CupertinoIcons.chevron_up,
+                        size: 20,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
+          ),
+        ),
       ],
     );
   }
+
+  bool _disableScrollForDetails = false;
 
   Widget _buildInfoCard(
       {required IconData icon, required String title, required String value}) {
@@ -2040,6 +2066,29 @@ class _HomePageState extends State<HomePage> {
             onPressed: () async {
               final currentJob = jobs[_currentIndex];
               final jobId = currentJob['job_id'];
+              void _runFlyingAnimation(Offset start, Offset end) {
+                final overlay = Overlay.of(context, rootOverlay: false);
+                late OverlayEntry entry;
+
+                entry = OverlayEntry(
+                  builder: (context) => Stack(
+                    children: [
+                      AnimatedFlyingCircle(
+                        start: start,
+                        end: end,
+                        onComplete: () {
+                          Future.delayed(const Duration(milliseconds: 1000),
+                              () {
+                            entry.remove(); // ✅ delayed removal
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                );
+
+                overlay.insert(entry);
+              }
 
               if (!isCvComplete) {
                 await showCustomCVDialog();
@@ -2289,5 +2338,159 @@ class _PulseButtonState extends State<PulseButton>
         },
       ),
     );
+  }
+}
+
+class RingingBellButton extends StatefulWidget {
+  final GlobalKey bellKey;
+  const RingingBellButton({required this.bellKey, Key? key}) : super(key: key);
+  @override
+  _RingingBellButtonState createState() => _RingingBellButtonState();
+}
+
+class _RingingBellButtonState extends State<RingingBellButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+  }
+
+  void _ringBell() {
+    try {
+      _controller.forward(from: 0).then((_) => _controller.reverse());
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ApplicationsInProgressPage()),
+      );
+    } catch (e, stack) {
+      print("❌ Ring bell error: $e\n$stack");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (_, child) {
+        return Transform.rotate(
+          angle:
+              0.5 * (1 - _controller.value) * sin(_controller.value * pi * 4),
+          child: child,
+        );
+      },
+      child: IconButton(
+        key: widget.bellKey,
+        icon: const Icon(CupertinoIcons.bell, color: Colors.white),
+        onPressed: _ringBell,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+}
+
+final GlobalKey _notificationKey = GlobalKey();
+
+class AnimatedFlyingCircle extends StatefulWidget {
+  final Offset start;
+  final Offset end;
+  final VoidCallback onComplete;
+
+  const AnimatedFlyingCircle({
+    required this.start,
+    required this.end,
+    required this.onComplete,
+  });
+
+  @override
+  _AnimatedFlyingCircleState createState() => _AnimatedFlyingCircleState();
+}
+
+class _AnimatedFlyingCircleState extends State<AnimatedFlyingCircle>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _curve;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..forward().whenComplete(widget.onComplete);
+
+    _curve = CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic);
+  }
+
+  Offset _calculateParabolicOffset(double t) {
+    final p0 = widget.start;
+    final p2 = widget.end.translate(10, -5); // small shift to right of icon
+
+    final control = Offset(
+      (p0.dx + p2.dx) / 2,
+      min(p0.dy, p2.dy) - 120,
+    );
+
+    final x = pow(1 - t, 2) * p0.dx +
+        2 * (1 - t) * t * control.dx +
+        pow(t, 2) * p2.dx;
+    final y = pow(1 - t, 2) * p0.dy +
+        2 * (1 - t) * t * control.dy +
+        pow(t, 2) * p2.dy;
+
+    return Offset(x.toDouble(), y.toDouble());
+  }
+
+  double _calculateScale(double t) {
+    return 1.0 - 0.7 * t; // from 1.0 to 0.3
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _curve,
+      builder: (_, __) {
+        final offset = _calculateParabolicOffset(_curve.value);
+        final scale = _calculateScale(_curve.value);
+
+        return Positioned(
+          left: offset.dx,
+          top: offset.dy,
+          child: Transform.scale(
+            scale: scale,
+            child: Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                color: Colors.cyanAccent,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.cyanAccent.withOpacity(0.7),
+                    blurRadius: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }

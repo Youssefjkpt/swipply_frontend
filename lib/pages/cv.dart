@@ -259,6 +259,8 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
       'lettre_de_motivation': null,
       'fullName': userFullName,
       'available_start_date': null,
+      'job_title': '', // required for backend insert
+      'job_id': '015125bd-f01c-450a-a67e-18f9023c41c0',
     };
 
     final body = {

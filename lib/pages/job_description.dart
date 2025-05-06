@@ -53,22 +53,18 @@ class _JobInformationsState extends State<JobInformations> {
 
     try {
       final List<Location> locations = await locationFromAddress(locationText);
-      if (locations.isNotEmpty) {
-        setState(() {
-          _jobLatLng =
-              LatLng(locations.first.latitude, locations.first.longitude);
-          _isGeocoding = false;
-        });
-      } else {
-        setState(() {
-          _jobLatLng = const LatLng(48.8566, 2.3522); // fallback
-          _isGeocoding = false;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _jobLatLng = locations.isNotEmpty
+            ? LatLng(locations.first.latitude, locations.first.longitude)
+            : const LatLng(48.8566, 2.3522);
+        _isGeocoding = false;
+      });
     } catch (e) {
       print("Geocoding error: $e");
+      if (!mounted) return;
       setState(() {
-        _jobLatLng = const LatLng(48.8566, 2.3522); // fallback
+        _jobLatLng = const LatLng(48.8566, 2.3522);
         _isGeocoding = false;
       });
     }
@@ -81,26 +77,25 @@ class _JobInformationsState extends State<JobInformations> {
   void _fetchJobs() async {
     try {
       final fetchedJobs = await ApiService.fetchAllJobs();
+      if (!mounted) return;
       setState(() {
         jobs = fetchedJobs;
         isLoading = false;
       });
 
-      // Initialize expanded maps
       for (int i = 0; i < fetchedJobs.length; i++) {
         _expandedMaps[i] = false;
       }
     } catch (e) {
       print("❌ Failed to fetch jobs: $e");
+      if (!mounted) return;
       setState(() => isLoading = false);
     }
   }
 
   @override
-  void initState() {
-    super.initState();
-    _fetchJobs();
-    _resolveLocation();
+  void dispose() {
+    super.dispose();
   }
 
   @override

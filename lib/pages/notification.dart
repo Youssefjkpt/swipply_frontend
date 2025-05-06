@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:swipply/env.dart';
 
 class ApplicationsInProgressPage extends StatefulWidget {
   @override
@@ -30,8 +32,11 @@ class _ApplicationsInProgressPageState
 
   Future<void> _fetchApplications() async {
     try {
-      final response = await http
-          .get(Uri.parse('http://YOUR_BACKEND/api/applications-in-progress'));
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+      final response = await http.get(Uri.parse(
+          '$BASE_URL_AUTH/api/applications-in-progress?user_id=$userId'));
+
       if (response.statusCode == 200) {
         final List<dynamic> apps = json.decode(response.body);
         final now = DateTime.now();

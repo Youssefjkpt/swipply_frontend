@@ -12,7 +12,7 @@ class MainLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     return CupertinoTabScaffold(
       tabBar: CupertinoTabBar(
-        activeColor: blue,
+        activeColor: white,
         inactiveColor: black_gray,
         backgroundColor: black,
         onTap: (index) {
@@ -74,7 +74,7 @@ class NavIcon extends StatelessWidget {
         return Icon(
           icon,
           size: isSelected ? 28 : 24,
-          color: isSelected ? blue : black_gray,
+          color: isSelected ? white : black_gray,
         );
       },
     );
