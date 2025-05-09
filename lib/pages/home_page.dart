@@ -35,6 +35,24 @@ class _HomePageState extends State<HomePage> {
   String? resume;
   bool cvLoading = false;
   final GlobalKey bellKey = GlobalKey();
+  bool showInterviewNotification = false;
+  String? interviewCompanyName;
+  String? interviewJobTitle;
+  void _triggerInterviewNotification(String companyName, String jobTitle) {
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      setState(() {
+        showInterviewNotification = true;
+        interviewCompanyName = companyName;
+        interviewJobTitle = jobTitle;
+      });
+
+      Future.delayed(const Duration(seconds: 14), () {
+        setState(() {
+          showInterviewNotification = false;
+        });
+      });
+    });
+  }
 
   void _runFlyingAnimation(Offset start, Offset end) {
     final overlay = Overlay.of(context, rootOverlay: false);
@@ -810,6 +828,11 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Find the index of the target job directly in the list
+    int targetIndex = jobs.indexWhere(
+        (job) => job['job_id'] == '065fbf77-b85d-4a2d-a0e6-7642a70f97ff');
+    print("✅ Target Job Index in List: $targetIndex");
+
     return Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
@@ -881,11 +904,32 @@ class _HomePageState extends State<HomePage> {
 
                                         return false;
                                       }
-                                      final jobId =
-                                          jobs[previousIndex]['job_id'];
-                                      await _autoRegisterAndApply(jobId);
-                                      await incrementLocalSwipeCount();
+                                      final job = jobs[previousIndex];
+                                      final jobId = job["job_id"] ?? "";
+
+                                      if (jobId ==
+                                          "065fbf77-b85d-4a2d-a0e6-7642a70f97ff") {
+                                        _triggerInterviewNotification(
+                                          job["company_name"] ??
+                                              "Unknown Company",
+                                          job["title"] ?? "Unknown Job",
+                                        ); // Find the index of the target job directly in the list
+                                        int targetIndex = jobs.indexWhere((job) =>
+                                            job['job_id'] ==
+                                            '065fbf77-b85d-4a2d-a0e6-7642a70f97ff');
+                                        print(
+                                            "✅ Target Job Index in List: $targetIndex");
+
+                                        print("🟢 Current Job ID: $jobId");
+                                        print(
+                                            "🟢 Target Job ID: 065fbf77-b85d-4a2d-a0e6-7642a70f97ff");
+                                      }
                                     }
+
+                                    setState(() {
+                                      _currentIndex =
+                                          targetIndex ?? _currentIndex;
+                                    });
 
                                     // ✅ allow swipe and continue
                                     if (direction == CardSwiperDirection.left) {
@@ -1111,7 +1155,105 @@ class _HomePageState extends State<HomePage> {
                         const SizedBox(
                           height: 20,
                         )
-                      ]),
+                      ]), // Notification Popup professionnel
+                      if (showInterviewNotification)
+                        Positioned(
+                          top: 10,
+                          left: 12,
+                          right: 12,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 400),
+                            curve: Curves.easeOut,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2A2A2A),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const SizedBox(width: 12),
+                                AnimatedScale(
+                                  scale: showInterviewNotification ? 1.1 : 1.0,
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.elasticOut,
+                                  child: const Icon(Icons.celebration,
+                                      color: Colors.greenAccent, size: 28),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        " Entretien confirmé !",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        "$interviewCompanyName - $interviewJobTitle",
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 14,
+                                          height: 1.3,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            ApplicationsInProgressPage(),
+                                      ),
+                                    );
+                                  },
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8),
+                                    minimumSize: const Size(10, 32),
+                                  ),
+                                  child: Row(
+                                    children: const [
+                                      Text(
+                                        "Détails",
+                                        style: TextStyle(
+                                          color: Colors.blueAccent,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Icon(Icons.chevron_right,
+                                          size: 18, color: Colors.blueAccent),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
                       _buildActionButtons(),
                     ],
                   ));
