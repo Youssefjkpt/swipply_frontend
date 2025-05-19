@@ -1,8 +1,4 @@
-// ignore_for_file: dead_code, avoid_print
-
 import 'dart:io';
-import 'dart:math';
-import 'dart:ui';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,8 +6,14 @@ import 'package:swipply/constants/themes.dart';
 import 'package:open_file/open_file.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
 import 'package:swipply/env.dart';
+import 'package:swipply/widgets/adress.dart';
+import 'package:swipply/widgets/check_mark_green_design.dart';
+import 'package:swipply/widgets/delete_icon.dart';
+import 'package:swipply/widgets/education_section.dart';
+import 'package:swipply/widgets/language_chips.dart';
+import 'package:swipply/widgets/loading_bars.dart';
+import 'package:swipply/widgets/wave_wipe_cv_name.dart';
 
 class InterestsSection extends StatefulWidget {
   final List<String> interests;
@@ -71,7 +73,7 @@ class _InterestsSectionState extends State<InterestsSection> {
           ),
           const SizedBox(height: 15),
 
-          // 🧠 Display bullet points
+          // Display bullet points
           ...List.generate(
             showAll
                 ? widget.interests.length
@@ -88,7 +90,9 @@ class _InterestsSectionState extends State<InterestsSection> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      widget.interests[index],
+                      widget.interests.isEmpty
+                          ? 'No interests added yet.'
+                          : widget.interests[index],
                       style: const TextStyle(
                         color: white_gray,
                         fontSize: 15,
@@ -144,6 +148,8 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
   String? address;
   String userFullName = '';
   String? userId;
+  String _jobTitle = '';
+
   late List<String> languages;
   String _uploadedFileName = 'Upload a Doc/Docx/PDF';
   late AnimationController _checkmarkController;
@@ -167,7 +173,30 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
         userEmail = data['email'] ?? '';
         phone = data['phone_number'] ?? '';
         address = data['address'] ?? '';
+        _jobTitle = data['job_title'] ?? '';
+        // ✅ Only use default text if no interests are saved
+        if (data['interests'] != null && data['interests'].isNotEmpty) {
+          selectedInterests = List<String>.from(data['interests']);
+        } else {
+          selectedInterests = ['No interests added yet.'];
+        }
       });
+      if (data['skillsAndProficiency'] != null &&
+          data['skillsAndProficiency'].isNotEmpty) {
+        skills = List<Map<String, dynamic>>.from(data['skillsAndProficiency']);
+      } else {
+        skills = [];
+      } // ✅ Fetch Soft Skills
+      if (data['softSkills'] != null && data['softSkills'].isNotEmpty) {
+        softSkills = List<String>.from(data['softSkills']);
+      } else {
+        softSkills = [];
+      } // ✅ Fetch Languages
+      if (data['languages'] != null && data['languages'].isNotEmpty) {
+        selectedLanguages = Set<String>.from(data['languages']);
+      } else {
+        selectedLanguages = {};
+      }
     }
   }
 
@@ -250,7 +279,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
       'education': educations,
       'availability': startDateText,
       'weeklyAvailability': weeklyAvailability,
-      'interests': selectedInterests,
+      'interests': selectedInterests.isEmpty ? null : selectedInterests,
       'softSkills': softSkills.toList(),
       'skillsAndProficiency': skills,
       'languages': selectedLanguages.toList(),
@@ -259,8 +288,8 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
       'lettre_de_motivation': null,
       'fullName': userFullName,
       'available_start_date': null,
-      'job_title': '', // required for backend insert
-      'job_id': '015125bd-f01c-450a-a67e-18f9023c41c0',
+      'job_title': _jobTitle, // required for backend insert
+      'job_id': '03601a9f-945e-4c1d-8126-bc1bc935579c',
     };
 
     final body = {
@@ -1972,54 +2001,6 @@ class _EditSkillsSheetState extends State<EditSkillsSheet> {
   }
 }
 
-class GradientProgressBar extends StatelessWidget {
-  final double value;
-
-  const GradientProgressBar({super.key, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 10,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(50),
-        color: black_gray,
-      ),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(50),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: value.clamp(0.0, 1.0),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            Colors.redAccent,
-                            Colors.deepOrangeAccent,
-                            Colors.orangeAccent,
-                            Colors.blueAccent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class SkillsSection extends StatefulWidget {
   final List<Map<String, dynamic>> skills;
   const SkillsSection({super.key, required this.skills});
@@ -2092,38 +2073,45 @@ class _SkillsSectionState extends State<SkillsSection> {
           ),
           const SizedBox(height: 20),
 
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: skills.map((skill) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: _levelToColor(skill['level']),
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.bolt,
-                      size: 16,
-                      color: black,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      skill['name'],
-                      style: const TextStyle(
-                          color: black,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
+          // Displaying Skills
+          if (skills.isEmpty)
+            const Text(
+              'No skills added yet.',
+              style: TextStyle(color: white_gray, fontSize: 15),
+            )
+          else
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: skills.map((skill) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: _levelToColor(skill['level']),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.bolt,
+                        size: 16,
+                        color: black,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        skill['name'],
+                        style: const TextStyle(
+                            color: black,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
 
           const SizedBox(height: 25),
 
@@ -2953,121 +2941,6 @@ class ToggleChip extends StatelessWidget {
   }
 }
 
-class EducationSection extends StatefulWidget {
-  final List<String> educations;
-
-  const EducationSection({super.key, required this.educations});
-
-  @override
-  State<EducationSection> createState() => _EducationSectionState();
-}
-
-class _EducationSectionState extends State<EducationSection> {
-  bool showAll = false;
-
-  void _openEditSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => EditEducationSheet(
-        educations: widget.educations, // ✅ correct usage
-
-        onSave: (updated) {
-          setState(() {
-            widget.educations.clear();
-            widget.educations.addAll(updated);
-          });
-        },
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      child: Container(
-        decoration: BoxDecoration(
-          color: blue_gray,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 🎓 Title row
-            Row(
-              children: [
-                const Text(
-                  'Education',
-                  style: TextStyle(
-                    color: white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: _openEditSheet,
-                  child: const Icon(Icons.edit, color: white_gray, size: 20),
-                ),
-              ],
-            ),
-            const SizedBox(height: 15),
-
-            // 📋 Education items
-            ...List.generate(
-              showAll
-                  ? widget.educations.length
-                  : (widget.educations.length > 3
-                      ? 3
-                      : widget.educations.length),
-              (index) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(top: 6),
-                      child: Icon(Icons.school, color: blue, size: 16),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        widget.educations[index],
-                        style: const TextStyle(
-                          color: white_gray,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // 🔁 Read more / less
-            if (widget.educations.length > 3)
-              GestureDetector(
-                onTap: () => setState(() => showAll = !showAll),
-                child: Text(
-                  showAll ? 'Read less' : 'Read more',
-                  style: const TextStyle(
-                    color: blue,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class EditExperienceSheet extends StatefulWidget {
   final List<String> experiences;
   final Function(List<String>) onSave;
@@ -3286,299 +3159,6 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
   }
 }
 
-class EditEducationSheet extends StatefulWidget {
-  final List<String> educations;
-  final Function(List<String>) onSave;
-
-  const EditEducationSheet({
-    super.key,
-    required this.educations,
-    required this.onSave,
-  });
-
-  @override
-  State<EditEducationSheet> createState() => _EditEducationSheetState();
-}
-
-class _EditEducationSheetState extends State<EditEducationSheet> {
-  late List<TextEditingController> controllers;
-  final ScrollController _scrollController = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    controllers =
-        widget.educations.map((e) => TextEditingController(text: e)).toList();
-  }
-
-  @override
-  void dispose() {
-    for (var controller in controllers) {
-      controller.dispose();
-    }
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _addExperience() {
-    setState(() {
-      controllers.add(TextEditingController());
-    });
-
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent + 80,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
-
-  void _removeExperience(int index) {
-    setState(() {
-      controllers.removeAt(index);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      minChildSize: 0.4,
-      maxChildSize: 0.95,
-      builder: (context, scrollController) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: blue_gray,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: ListView(
-            controller: _scrollController,
-            children: [
-              Center(
-                child: Container(
-                  width: 70,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: white_gray,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 15),
-              const Text(
-                'Edit Experiences',
-                style: TextStyle(
-                  color: white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // 🔁 Dynamic experience fields with delete icon
-              ...List.generate(controllers.length, (index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: controllers[index],
-                          maxLines: null,
-                          style: const TextStyle(color: white),
-                          decoration: InputDecoration(
-                            hintText: 'Experience ${index + 1}',
-                            hintStyle: const TextStyle(color: white_gray),
-                            filled: true,
-                            fillColor: black_gray,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          onChanged: (_) {
-                            setState(() {}); // Refresh live preview
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      DeleteIconButton(
-                        onPressed: () => _removeExperience(index),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-
-              // ➕ Add new button
-              TextButton.icon(
-                onPressed: _addExperience,
-                icon: const Icon(Icons.add, color: blue),
-                label: const Text(
-                  'Add Experience',
-                  style: TextStyle(color: blue),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // 🔍 Live Preview (optional)
-              if (controllers.any((c) => c.text.trim().isNotEmpty)) ...[
-                const Text(
-                  'Preview:',
-                  style: TextStyle(
-                      color: white, fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  decoration: BoxDecoration(
-                    color: black_gray,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.all(15),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: controllers
-                        .where((c) => c.text.trim().isNotEmpty)
-                        .map((c) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.circle,
-                                      color: blue, size: 6),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      c.text.trim(),
-                                      style: const TextStyle(
-                                        color: white_gray,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ))
-                        .toList(),
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 25),
-
-              // ✅ Save
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: () {
-                  final updated = controllers
-                      .map((c) => c.text.trim())
-                      .where((text) => text.isNotEmpty)
-                      .toList();
-                  widget.onSave(updated);
-                  Navigator.pop(context);
-                },
-                child: const Text(
-                  'Save',
-                  style: TextStyle(
-                    color: white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class DeleteIconButton extends StatefulWidget {
-  final VoidCallback onPressed;
-
-  const DeleteIconButton({super.key, required this.onPressed});
-
-  @override
-  State<DeleteIconButton> createState() => _DeleteIconButtonState();
-}
-
-class _DeleteIconButtonState extends State<DeleteIconButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 100),
-      lowerBound: 0.0,
-      upperBound: 0.1,
-    );
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.9).animate(_controller);
-  }
-
-  void _onTapDown(_) => _controller.forward();
-  void _onTapUp(_) => _controller.reverse();
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: _onTapDown,
-      onTapUp: _onTapUp,
-      onTapCancel: () => _controller.reverse(),
-      onTap: widget.onPressed,
-      child: ScaleTransition(
-        scale: _scaleAnim,
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [
-                Colors.redAccent.withOpacity(0.4),
-                Colors.red.withOpacity(0.2),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.red.withOpacity(0.3),
-                blurRadius: 6,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.delete_forever_rounded,
-            color: Colors.redAccent,
-            size: 20,
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-}
-
 class ExpandingResumeField extends StatefulWidget {
   final TextEditingController controller;
 
@@ -3661,178 +3241,6 @@ class _ExpandingResumeFieldState extends State<ExpandingResumeField> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class LanguageChipsSelector extends StatefulWidget {
-  final String searchText;
-  final Set<String> selectedLanguages; // ✅ Add this
-  final Function(Set<String>) onSelectionChanged; // ✅ Callback to parent
-
-  const LanguageChipsSelector({
-    super.key,
-    required this.searchText,
-    required this.selectedLanguages,
-    required this.onSelectionChanged,
-  });
-
-  @override
-  State<LanguageChipsSelector> createState() => _LanguageChipsSelectorState();
-}
-
-const List<String> allLanguages = [
-  'Albanais',
-  'Amharique',
-  'Arabe',
-  'Arménien',
-  'Azéri',
-  'Baloutche',
-  'Bengali',
-  'Berbère',
-  'Biélorusse',
-  'Bhojpouri',
-  'Bulgare',
-  'Birman',
-  'Catalan',
-  'Chewa',
-  'Chichewa',
-  'Chittagonien',
-  'Corse',
-  'Tchèque',
-  'Danois',
-  'Néerlandais',
-  'Anglais',
-  'Fidjien',
-  'Finnois',
-  'Français',
-  'Peul',
-  'Galicien',
-  'Géorgien',
-  'Allemand',
-  'Grec',
-  'Groenlandais',
-  'Gujarati',
-  'Créole haïtien',
-  'Haoussa',
-  'Hébreu',
-  'Hindi',
-  'Hmong',
-  'Hongrois',
-  'Igbo',
-  'Ilocano',
-  'Indonésien',
-  'Italien',
-  'Japonais',
-  'Javanais',
-  'Kabyle',
-  'Kannada',
-  'Kazakh',
-  'Khmer',
-  'Kinyarwanda',
-  'Coréen',
-  'Kurde',
-  'Laotien',
-  'Luxembourgeois',
-  'Madurais',
-  'Malais',
-  'Malayalam',
-  'Macédonien',
-  'Maori',
-  'Marathi',
-  'Mongol',
-  'Mossi',
-  'Népalais',
-  'Norvégien',
-  'Oromo',
-  'Pachto',
-  'Persan',
-  'Polonais',
-  'Portugais',
-  'Pendjabi',
-  'Quechua',
-  'Roumain',
-  'Russe',
-  'Samoan',
-  'Serbo-croate',
-  'Shona',
-  'Sindhi',
-  'Singhalais',
-  'Slovaque',
-  'Somali',
-  'Espagnol',
-  'Swahili',
-  'Suédois',
-  'Soundanais',
-  'Tagalog',
-  'Tamoul',
-  'Télougou',
-  'Thaï',
-  'Tigré',
-  'Tigrinya',
-  'Turc',
-  'Ukrainien',
-  'Ourdou',
-  'Ouzbek',
-  'Vietnamien',
-  'Wolof',
-  'Xhosa',
-  'Yiddish',
-  'Yoruba',
-  'Zoulou'
-];
-
-class _LanguageChipsSelectorState extends State<LanguageChipsSelector> {
-  late Set<String> localSelection;
-
-  @override
-  void initState() {
-    super.initState();
-    localSelection = {...widget.selectedLanguages}; // copy
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final filteredLanguages = allLanguages
-        .where((lang) =>
-            lang.toLowerCase().contains(widget.searchText.toLowerCase()))
-        .toList();
-
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: filteredLanguages.map((language) {
-        final isSelected = localSelection.contains(language);
-
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              if (selectedLanguages.contains(language)) {
-                selectedLanguages.remove(language);
-              } else {
-                selectedLanguages.add(language);
-              }
-              widget.onSelectionChanged(localSelection); // notify parent
-            });
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: isSelected ? blue : blue_gray,
-              borderRadius: BorderRadius.circular(100),
-              border:
-                  isSelected ? null : Border.all(color: white_gray, width: 1),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
-            child: Text(
-              language,
-              style: TextStyle(
-                color: isSelected ? black : white_gray,
-                fontSize: 15,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 }
@@ -3980,373 +3388,6 @@ class _LanguageDetailsSheetState extends State<_LanguageDetailsSheet> {
 
 final Set<String> softSkills = {};
 
-class AnimatedCheckMark extends StatefulWidget {
-  final double size;
-
-  const AnimatedCheckMark({super.key, this.size = 60});
-
-  @override
-  State<AnimatedCheckMark> createState() => _AnimatedCheckMarkState();
-}
-
-class _AnimatedCheckMarkState extends State<AnimatedCheckMark>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    )..forward();
-
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: widget.size,
-      height: widget.size,
-      child: CustomPaint(
-        painter: CheckMarkPainter(_animation),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-}
-
-class CheckMarkPainter extends CustomPainter {
-  final Animation<double> animation;
-
-  CheckMarkPainter(this.animation) : super(repaint: animation);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
-      ..color = Colors.greenAccent
-      ..strokeWidth = 5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final double progress = animation.value;
-
-    final double radius = (size.width / 2) - 6;
-    final Offset center = Offset(size.width / 2, size.height / 2);
-
-    // 1. Draw circular progress arc (0.0 to 0.6)
-    if (progress <= 0.6) {
-      final double sweepAngle = 2 * pi * (progress / 0.6);
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        -pi / 2,
-        sweepAngle,
-        false,
-        paint,
-      );
-    }
-
-    // 2. Draw checkmark after 0.6
-    if (progress > 0.6) {
-      // Draw full circle first
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        -pi / 2,
-        2 * pi,
-        false,
-        paint,
-      );
-
-      final double t = (progress - 0.6) / 0.4;
-      final Offset start = Offset(size.width * 0.28, size.height * 0.52);
-      final Offset mid = Offset(size.width * 0.45, size.height * 0.68);
-      final Offset end = Offset(size.width * 0.72, size.height * 0.38);
-
-      final Path path = Path();
-      if (t < 0.5) {
-        final Offset current = Offset.lerp(start, mid, t * 2)!;
-        path.moveTo(start.dx, start.dy);
-        path.lineTo(current.dx, current.dy);
-      } else {
-        final Offset current = Offset.lerp(mid, end, (t - 0.5) * 2)!;
-        path.moveTo(start.dx, start.dy);
-        path.lineTo(mid.dx, mid.dy);
-        path.lineTo(current.dx, current.dy);
-      }
-
-      canvas.drawPath(path, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CheckMarkPainter oldDelegate) => true;
-}
-
-class WaveWipeTextSwitcher extends StatefulWidget {
-  final String text;
-
-  const WaveWipeTextSwitcher({super.key, required this.text});
-
-  @override
-  State<WaveWipeTextSwitcher> createState() => _WaveWipeTextSwitcherState();
-}
-
-class _WaveWipeTextSwitcherState extends State<WaveWipeTextSwitcher>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  String _currentText = '';
-  String _previousText = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _currentText = widget.text;
-    _previousText = '';
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
-    _controller.forward(); // ✅ Trigger animation on first load
-  }
-
-  @override
-  void didUpdateWidget(covariant WaveWipeTextSwitcher oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.text != oldWidget.text) {
-      _previousText = _currentText;
-      _currentText = widget.text;
-      _controller.forward(from: 0); // ✅ Trigger animation on new upload
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width * 0.6;
-    const height = 24.0;
-
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, _) {
-        final progress = _animation.value;
-        final splitX = width * progress;
-
-        return SizedBox(
-          width: width,
-          height: height,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: ClipRect(
-                  clipper: _LeftClipper(x: splitX),
-                  child: Text(
-                    _previousText,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: white_gray,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: ClipRect(
-                  clipper: _RightClipper(x: splitX),
-                  child: Opacity(
-                    opacity: progress,
-                    child: Text(
-                      _currentText,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: white_gray,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-}
-
-class LoadingBars extends StatefulWidget {
-  const LoadingBars({super.key});
-
-  @override
-  State<LoadingBars> createState() => _LoadingBarsState();
-}
-
-class _LoadingBarsState extends State<LoadingBars>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  final int barCount = 4;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
-  }
-
-  double _barValue(double controllerValue, int index) {
-    final delay = index * 0.15;
-    final t = (controllerValue + delay) % 1.0;
-    return TweenSequence([
-      TweenSequenceItem(
-        tween: Tween(begin: 0.4, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeInOutCubic)),
-        weight: 50,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 0.4)
-            .chain(CurveTween(curve: Curves.easeInOutCubic)),
-        weight: 50,
-      ),
-    ]).transform(t);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 60,
-      height: 60,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(barCount, (i) {
-              final scaleY = _barValue(_controller.value, i);
-              return Transform.scale(
-                scaleY: scaleY,
-                child: Container(
-                  width: 6,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              );
-            }),
-          );
-        },
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-}
-
-class _LoadingBar extends AnimatedWidget {
-  const _LoadingBar({required Animation<double> animation})
-      : super(listenable: animation);
-
-  Animation<double> get animation => listenable as Animation<double>;
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform.scale(
-      scaleY: animation.value,
-      child: Container(
-        width: 6,
-        height: 30,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(4),
-        ),
-      ),
-    );
-  }
-}
-
-class _LeftClipper extends CustomClipper<Rect> {
-  final double x;
-  _LeftClipper({required this.x});
-
-  @override
-  Rect getClip(Size size) => Rect.fromLTWH(x, 0, size.width - x, size.height);
-
-  @override
-  bool shouldReclip(covariant _LeftClipper oldClipper) => oldClipper.x != x;
-}
-
-class _RightClipper extends CustomClipper<Rect> {
-  final double x;
-  _RightClipper({required this.x});
-
-  @override
-  Rect getClip(Size size) => Rect.fromLTWH(0, 0, x, size.height);
-
-  @override
-  bool shouldReclip(covariant _RightClipper oldClipper) => oldClipper.x != x;
-}
-
-class DashedBorderPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    const dashWidth = 14;
-    const dashSpace = 6;
-
-    final paint = Paint()
-      ..color = blue
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-
-    final RRect rRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      const Radius.circular(12),
-    );
-
-    final Path path = Path()..addRRect(rRect);
-    final PathMetrics pathMetrics = path.computeMetrics();
-    for (final PathMetric pathMetric in pathMetrics) {
-      double distance = 0.0;
-      while (distance < pathMetric.length) {
-        final Path extractPath = pathMetric.extractPath(
-          distance,
-          distance + dashWidth,
-        );
-        canvas.drawPath(extractPath, paint);
-        distance += dashWidth + dashSpace;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
-}
-
 class ContactInfoSection extends StatefulWidget {
   final String phoneNumber;
   final String address;
@@ -4422,151 +3463,13 @@ class _ContactInfoSectionState extends State<ContactInfoSection> {
             ],
           ),
           const SizedBox(height: 15),
-          Text(
-            'Phone: $phone',
-            style: const TextStyle(color: white_gray, fontSize: 15),
-          ),
+          Text('Phone: $phone',
+              style: const TextStyle(color: white_gray, fontSize: 15)),
           const SizedBox(height: 8),
-          Text(
-            'Address: $address',
-            style: const TextStyle(color: white_gray, fontSize: 15),
-          ),
+          Text('Address: $address',
+              style: const TextStyle(color: white_gray, fontSize: 15)),
         ],
       ),
-    );
-  }
-}
-
-class EditContactInfoSheet extends StatefulWidget {
-  final String initialPhone;
-  final String initialAddress;
-  final void Function(String phone, String address) onSave;
-
-  const EditContactInfoSheet({
-    super.key,
-    required this.initialPhone,
-    required this.initialAddress,
-    required this.onSave,
-  });
-
-  @override
-  State<EditContactInfoSheet> createState() => _EditContactInfoSheetState();
-}
-
-class _EditContactInfoSheetState extends State<EditContactInfoSheet> {
-  late TextEditingController phoneController;
-  late TextEditingController addressController;
-
-  @override
-  void initState() {
-    super.initState();
-    phoneController = TextEditingController(text: widget.initialPhone);
-    addressController = TextEditingController(text: widget.initialAddress);
-  }
-
-  @override
-  void dispose() {
-    phoneController.dispose();
-    addressController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.6,
-      maxChildSize: 0.9,
-      minChildSize: 0.4,
-      expand: false,
-      builder: (_, scrollController) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: blue_gray,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-          ),
-          child: ListView(
-            controller: scrollController,
-            children: [
-              Center(
-                child: Container(
-                  width: 70,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: white_gray,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Edit Contact Info',
-                style: TextStyle(
-                  color: white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: phoneController,
-                style: const TextStyle(color: white),
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number',
-                  labelStyle: TextStyle(color: white_gray),
-                  filled: true,
-                  fillColor: black_gray,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: addressController,
-                style: const TextStyle(color: white),
-                decoration: const InputDecoration(
-                  labelText: 'Address',
-                  labelStyle: TextStyle(color: white_gray),
-                  filled: true,
-                  fillColor: black_gray,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 25),
-              ElevatedButton(
-                onPressed: () {
-                  widget.onSave(
-                    phoneController.text.trim(),
-                    addressController.text.trim(),
-                  );
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text(
-                  'Save',
-                  style: TextStyle(
-                    color: white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

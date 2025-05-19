@@ -52,7 +52,12 @@ dependencies:
   firebase_core: ^2.27.0
   flutter_launcher_icons: ^0.13.1
   lucide_icons: ^0.257.0
+  flutter_typeahead: ^5.2.0
+  dropdown_search: ^6.0.2
+  country_picker: ^2.0.27
   
+
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

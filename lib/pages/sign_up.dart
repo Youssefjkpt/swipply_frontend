@@ -8,7 +8,7 @@ import 'package:swipply/constants/images.dart';
 import 'dart:convert';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
-import 'package:swipply/pages/cv.dart';
+import 'package:swipply/pages/gold_purchase_plan.dart';
 import 'package:swipply/pages/main_layout.dart';
 import 'package:swipply/pages/sign_in.dart';
 

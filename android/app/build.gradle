@@ -12,8 +12,7 @@ if (localPropertiesFile.exists()) {
     }
 }
 
-def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '2'
-def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.1'
+
 
 android {
     namespace "com.revoluxe.swipply"
@@ -34,8 +33,8 @@ android {
         applicationId "com.revoluxe.swipply"
         minSdkVersion 21
         targetSdkVersion 34
-        versionCode flutterVersionCode.toInteger()
-        versionName flutterVersionName
+          versionCode 4 // ✅ Manually set this to the next unused version code
+    versionName "1.2.0" // ✅ Manually set this to the next version name
         multiDexEnabled true
     }
 

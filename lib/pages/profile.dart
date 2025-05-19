@@ -704,11 +704,16 @@ class _ProfileState extends State<Profile> {
                           );
 
                           if (response.statusCode == 200) {
-                            setState(() {
-                              fullName = nameController.text;
-                              _jobTitle = jobController.text;
-                            });
-                            Navigator.pop(context);
+                            if (mounted) {
+                              setState(() {
+                                fullName = nameController.text;
+                                _jobTitle = jobController.text;
+                              });
+
+                              if (Navigator.canPop(context)) {
+                                Navigator.pop(context);
+                              }
+                            }
                           } else {
                             print("❌ Failed to update user: ${response.body}");
                           }

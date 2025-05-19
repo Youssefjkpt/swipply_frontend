@@ -202,7 +202,7 @@ class _ApplicationsInProgressPageState
   Widget _buildJobCard(Map<String, dynamic> app) {
     final job = app['JobListings'];
     final jobTitle = job?['title'] ?? 'Titre de l\'emploi';
-    final companyName = job?['company'] ?? 'Entreprise inconnue';
+    final companyName = job?['company'] ?? 'Nexora';
     final companyLogo = job?['company_logo_url'] ?? '';
     final location = job?['location'] ?? 'Lieu inconnu';
     final rawProgress = (app['progress_status'] ?? 0).toDouble().clamp(0, 100);
@@ -216,32 +216,56 @@ class _ApplicationsInProgressPageState
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: companyLogo.isNotEmpty
-                ? Image.network(companyLogo,
-                    width: 60, height: 60, fit: BoxFit.cover)
+                ? Image.network(
+                    companyLogo,
+                    width: 60,
+                    height: 60,
+                    fit: BoxFit.cover,
+                  )
                 : Container(width: 60, height: 60, color: Colors.grey[800]),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12), // Adjusted to be smaller
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(jobTitle,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold)),
+                Text(
+                  jobTitle,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis, // Prevents overflow
+                ),
+                const SizedBox(
+                    height: 4), // Reduced gap between title and company
+                Text(
+                  companyName,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis, // Prevents overflow
+                ),
                 const SizedBox(height: 4),
-                Text(companyName,
-                    style:
-                        const TextStyle(color: Colors.white70, fontSize: 14)),
-                const SizedBox(height: 4),
-                Text(location,
-                    style:
-                        const TextStyle(color: Colors.white54, fontSize: 13)),
+                Text(
+                  location,
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 13,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis, // Prevents overflow
+                ),
                 const SizedBox(height: 12),
                 LinearProgressIndicator(
                   value: progress,
@@ -253,9 +277,13 @@ class _ApplicationsInProgressPageState
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text('${(progress * 100).toStringAsFixed(0)}% complet',
-                    style:
-                        const TextStyle(color: Colors.white70, fontSize: 14)),
+                Text(
+                  '${(progress * 100).toStringAsFixed(0)}% complet',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
               ],
             ),
           ),
