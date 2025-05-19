@@ -55,6 +55,7 @@ dependencies:
   flutter_typeahead: ^5.2.0
   dropdown_search: ^6.0.2
   country_picker: ^2.0.27
+  flutter_libphonenumber: ^2.2.2
   
 
 
