@@ -7,6 +7,8 @@ import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
 import 'package:swipply/pages/job_applications_progress.dart';
+import 'package:swipply/pages/premium_purchase_plan.dart';
+import 'package:swipply/widgets/ai_auto_apply_notification_page.dart';
 
 class ApplicationsInProgressPage extends StatefulWidget {
   @override
@@ -141,6 +143,16 @@ class _ApplicationsInProgressPageState extends State<ApplicationsInProgressPage>
                   )
                 : Column(children: [
                     // Top container for summary or other content
+                    AIApplicationServiceCard(
+                      onActivate: () {
+                        // TODO: navigate to your AI-activation flow
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    SwipplyPremiumDetailsPage()));
+                      },
+                    ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
