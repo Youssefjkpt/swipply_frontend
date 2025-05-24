@@ -9,3 +9,4 @@ const arrow = 'assets/icons8-up-3-30.png';
 const mcdo_logo = 'assets/mcdo_logo.png';
 const swipply = 'assets/Swipply (3).png';
 const applying = 'assets/Animation - 1748036315050.json';
+const warning = 'assets/Animation - 1748074652183.json';
