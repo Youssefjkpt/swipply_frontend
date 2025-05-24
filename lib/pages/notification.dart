@@ -8,6 +8,7 @@ import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
 import 'package:swipply/pages/job_applications_progress.dart';
 import 'package:swipply/pages/premium_purchase_plan.dart';
+import 'package:swipply/pages/saved_jobs.dart';
 import 'package:swipply/widgets/ai_auto_apply_notification_page.dart';
 import 'package:swipply/widgets/backup_email.dart';
 
@@ -392,10 +393,130 @@ class _ApplicationsInProgressPageState extends State<ApplicationsInProgressPage>
                           ))
                         ],
                       ),
-                      WarningEmailBackupCard(warningLottieAsset: warning)
+                      WarningEmailBackupCard(warningLottieAsset: warning),
+
+                      OutOfLikesSaveCard(
+                          onSavePressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => SavedJobs()))),
+                      DidYouKnowPersonalizeCard()
                     ]),
                   ));
   } // Place this inside your build, replacing the static progress bar:
+}
+
+class DidYouKnowPersonalizeCard extends StatelessWidget {
+  const DidYouKnowPersonalizeCard({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: blue_gray,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: white_gray.withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.info_outline,
+            size: 28,
+            color: Colors.orangeAccent,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Text(
+                  'Saviez‑vous ?',
+                  style: TextStyle(
+                    color: white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Vous pouvez personnaliser votre CV pour n’importe quel poste souhaité. Notre IA s’occupe de tout.',
+                  style: TextStyle(
+                    color: white_gray,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Suggestion card when out of likes: invite user to save jobs for later.
+class OutOfLikesSaveCard extends StatelessWidget {
+  final VoidCallback onSavePressed;
+
+  const OutOfLikesSaveCard({
+    Key? key,
+    required this.onSavePressed,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: blue_gray, // use app's blue-gray background
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: white_gray.withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.lightbulb_outline,
+            size: 32,
+            color: Color(0xFF00FFAA), // neutral icon color
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Text(
+                  'Astuce',
+                  style: TextStyle(
+                    color: white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Plus de likes ? Enregistrez des offres pour y revenir et postuler plus tard.',
+                  style: TextStyle(
+                      color: white_gray,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w300),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+        ],
+      ),
+    );
+  }
 }
 
 class AnimatedSegmentedProgressBar extends StatefulWidget {

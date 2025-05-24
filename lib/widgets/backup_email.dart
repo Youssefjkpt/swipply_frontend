@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:swipply/constants/themes.dart';
 
 /// Warning card for email backup, matching dark theme with red accent.
 class WarningEmailBackupCard extends StatelessWidget {
@@ -18,7 +19,7 @@ class WarningEmailBackupCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.black,
+          color: black,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.redAccent, width: 1.5),
         ),
@@ -33,13 +34,27 @@ class WarningEmailBackupCard extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             const Expanded(
-              child: Text(
-                "Pensez à ajouter une adresse e-mail de secours pour ne rien manquer de vos notifications.",
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "E-mail de secours",
+                    style: TextStyle(
+                      color: white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    "Pensez à ajouter une adresse e-mail de secours pour ne rien manquer de vos notifications.",
+                    style: TextStyle(
+                      color: white_gray,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
