@@ -10,3 +10,4 @@ const blue_gray = Color(0xFF131720);
 const Color blendedBlue = Color.fromARGB(255, 65, 112, 255);
 const bluechip = Color(0xFFE0EBFF);
 const bluechiptext = Color(0xFF5366A7);
+const very_white_gray = Color(0xFFF6F5F8);
