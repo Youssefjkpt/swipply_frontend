@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -17,36 +18,33 @@ class SavedJobs extends StatefulWidget {
 class _SavedJobsState extends State<SavedJobs> {
   List<Map<String, dynamic>> _jobList = [];
   bool _isLoading = true;
+  Timer? _autoRefreshTimer;
 
-  Future<List<Map<String, dynamic>>> fetchSavedJobs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString('user_id');
-
-    if (userId == null)
-      throw Exception("User ID not found in SharedPreferences");
-
-    final savedJobsRes = await http.get(
-      Uri.parse('$BASE_URL_JOBS/api/saved-jobs?user_id=$userId'),
-    );
-
-    if (savedJobsRes.statusCode != 200) {
-      print("❌ saved-jobs failed: ${savedJobsRes.statusCode}");
-      print("Response body: ${savedJobsRes.body}");
-      return [];
-    }
-
-    final List<dynamic> data = json.decode(savedJobsRes.body);
-    return List<Map<String, dynamic>>.from(data);
+  @override
+  void initState() {
+    super.initState();
+    _startAutoRefresh();
+    _loadSavedJobs();
   }
 
-  Future<void> loadSavedJobs() async {
-    setState(() => _isLoading = true);
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
+  }
 
+  void _startAutoRefresh() {
+    // Refresh every 60 seconds
+    _autoRefreshTimer = Timer.periodic(
+      const Duration(seconds: 60),
+      (_) => _loadSavedJobs(),
+    );
+  }
+
+  Future<void> _loadSavedJobs() async {
+    setState(() => _isLoading = true);
     try {
-      final jobs = await fetchSavedJobs();
-      setState(() {
-        _jobList = jobs;
-      });
+      _jobList = await fetchSavedJobs();
     } catch (e) {
       print("❌ Error fetching saved jobs: $e");
     } finally {
@@ -54,103 +52,117 @@ class _SavedJobsState extends State<SavedJobs> {
     }
   }
 
-  @override
-  void initState() {
-    loadSavedJobs();
-    super.initState();
-    fetchSavedJobs().then((jobs) {
-      setState(() {
-        _jobList = jobs;
-        _isLoading = false;
-      });
-    }).catchError((e) {
-      print("❌ Error fetching saved jobs: $e");
-      setState(() => _isLoading = false);
-    });
+  Future<List<Map<String, dynamic>>> fetchSavedJobs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    if (userId == null) {
+      throw Exception("User ID not found in SharedPreferences");
+    }
+
+    final res = await http.get(
+      Uri.parse('$BASE_URL_AUTH/api/saved-jobs?user_id=$userId'),
+    );
+    if (res.statusCode != 200) {
+      print("❌ saved-jobs failed: ${res.statusCode}");
+      print("Response body: ${res.body}");
+      return [];
+    }
+    final List<dynamic> data = json.decode(res.body);
+    return List<Map<String, dynamic>>.from(data);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: black,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(height: MediaQuery.of(context).size.height * 0.06),
-          Padding(
-            padding: const EdgeInsets.only(left: 25, right: 25),
-            child: Text(
-              'You saved ${_jobList.length} Job${_jobList.length != 1 ? 's' : ''} 👍',
-              style: const TextStyle(
-                color: white,
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
+      body: RefreshIndicator(
+        color: blue,
+        onRefresh: _loadSavedJobs,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: MediaQuery.of(context).size.height * 0.06),
+            Padding(
+              padding: const EdgeInsets.only(left: 25, right: 25),
+              child: Text(
+                'You saved ${_jobList.length} Job${_jobList.length != 1 ? 's' : ''} 👍',
+                style: const TextStyle(
+                  color: white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.only(left: 25, right: 25),
-            child: const CategoryChipsBar(),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.only(left: 25, right: 25),
+              child: const CategoryChipsBar(),
+            ),
+            const SizedBox(height: 20),
 
-          // 🔥 THIS PART scrolls only the job cards:
-          Expanded(
-              child: Padding(
-            padding: const EdgeInsets.only(left: 10, right: 10),
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : RefreshIndicator(
-                    color: blue,
-                    onRefresh: loadSavedJobs,
-                    child: _jobList.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No saved jobs found!',
-                              style: TextStyle(color: white),
+            // 🔥 THIS PART scrolls only the job cards:
+            Expanded(
+                child: Padding(
+              padding: const EdgeInsets.only(left: 10, right: 10),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : RefreshIndicator(
+                      color: blue,
+                      onRefresh: _loadSavedJobs,
+                      child: _jobList.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No saved jobs found!',
+                                style: TextStyle(color: white),
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 20),
+                              itemCount: _jobList.length,
+                              itemBuilder: (context, index) {
+                                final job = _jobList[index];
+                                final savedAtRaw = job['saved_at'] as String? ??
+                                    job['scraped_at']
+                                        as String? // fallback if you still have scraped_at
+                                    ??
+                                    '';
+                                final savedAt = DateTime.tryParse(savedAtRaw) ??
+                                    DateTime.now();
+
+                                final now = DateTime.now();
+                                final diff = now.difference(savedAt);
+                                final timeAgo = diff.inHours < 24
+                                    ? '${diff.inHours} hours ago'
+                                    : '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
+
+                                return Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  child: JobCard(
+                                    title: job['title'] ?? 'UI Design',
+                                    company: job['company'] ?? 'Google',
+                                    salary: timeAgo,
+                                    location: job['location'] ?? '',
+                                    status: 'applied',
+                                    jobType: job['contract_type'] ?? '',
+                                    imagePath: job['company_logo_url']!,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => JobInformations(
+                                              job: job), // ✅ Pass job
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
                             ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.only(bottom: 20),
-                            itemCount: _jobList.length,
-                            itemBuilder: (context, index) {
-                              final job = _jobList[index];
-                              final scrapedAt =
-                                  DateTime.parse(job['scraped_at']);
-                              final now = DateTime.now();
-                              final duration = now.difference(scrapedAt);
-                              final timeAgo = duration.inHours < 24
-                                  ? '${duration.inHours} hours ago'
-                                  : '${duration.inDays} day${duration.inDays > 1 ? 's' : ''} ago';
-
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                                child: JobCard(
-                                  title: job['title'] ?? 'UI Design',
-                                  company: job['company'] ?? 'Google',
-                                  salary: timeAgo,
-                                  location: job['location'] ?? '',
-                                  status: 'applied',
-                                  jobType: job['contract_type'] ?? '',
-                                  imagePath: job['company_logo_url']!,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => JobInformations(
-                                            job: job), // ✅ Pass job
-                                      ),
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-          )),
-        ],
+                    ),
+            )),
+          ],
+        ),
       ),
     );
   }

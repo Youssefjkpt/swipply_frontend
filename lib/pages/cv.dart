@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'package:swipply/env.dart';
 import 'package:swipply/widgets/adress.dart';
 import 'package:swipply/widgets/check_mark_green_design.dart';
+import 'package:swipply/widgets/cv_chevker.dart';
 import 'package:swipply/widgets/delete_icon.dart';
 import 'package:swipply/widgets/education_section.dart';
 import 'package:swipply/widgets/language_chips.dart';
@@ -181,6 +182,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
           selectedInterests = ['No interests added yet.'];
         }
       });
+      resumeController?.text = data['personalized_resume'] ?? '';
       if (data['skillsAndProficiency'] != null &&
           data['skillsAndProficiency'].isNotEmpty) {
         skills = List<Map<String, dynamic>>.from(data['skillsAndProficiency']);
@@ -289,7 +291,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
       'fullName': userFullName,
       'available_start_date': null,
       'job_title': _jobTitle, // required for backend insert
-      'job_id': '03601a9f-945e-4c1d-8126-bc1bc935579c',
+      'job_id': '0e86aea3-1236-4a41-a13a-e249d2f24aea',
     };
 
     final body = {
@@ -861,7 +863,15 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (_) => const _LanguageDetailsSheet(),
+                      builder: (_) => // From parent:
+                          LanguageDetailsSheet(
+                        initialSelection: selectedLanguages,
+                        onSelectionChanged: (newSet) {
+                          setState(() {
+                            selectedLanguages = newSet;
+                          });
+                        },
+                      ),
                     );
                     setState(() {}); // 👈 Refresh to show new language list
                   },
@@ -904,7 +914,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                           ],
                         ),
                       ),
-                    ),
+                    ), //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                   ),
                 ),
                 const SizedBox(
@@ -3159,10 +3169,114 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
   }
 }
 
+String? resume;
+List<String> experience = [];
+List<String> education = [];
+List<String> languages = [];
+List<String> interests = [];
+List<String> softSkills = [];
+List<dynamic> certificates = [];
+List<dynamic> skillsAndProficiency = [];
+String? fullName;
+bool isCVIncomplete = false;
+List<String> missingFields = [];
+Map<String, dynamic>? weeklyAvailability;
+String? availability;
+String? sanitizeField(dynamic value) {
+  if (value == null) return null;
+  final str = value.toString().trim();
+  if (str.isEmpty || str == '{}' || str == 'null') return null;
+  return str;
+}
+
+// Future<void> fetchEmployeeData() async {
+//   final prefs = await SharedPreferences.getInstance();
+//   final userId = prefs.getString('user_id');
+
+//   if (userId == null) {
+//     print("❌ No user ID found");
+//     return;
+//   }
+
+//   try {
+//     final employeeResponse = await http.get(
+//       Uri.parse('$BASE_URL_AUTH/api/get-employee/$userId'),
+//     );
+
+//     final userResponse = await http.get(
+//       Uri.parse('$BASE_URL_AUTH/users/$userId'),
+//     );
+
+//     if (employeeResponse.statusCode == 200 &&
+//         userResponse.statusCode == 200) {
+//       final employeeData = jsonDecode(employeeResponse.body);
+//       final userData = jsonDecode(userResponse.body);
+
+//       setState(() {
+//         fullName = sanitizeField(userData['full_name']);
+//         resume = sanitizeField(employeeData['resume']);
+
+//         experience = (employeeData['experience'] as List?)
+//                 ?.map((e) => e.toString())
+//                 .toList() ??
+//             [];
+//         education = (employeeData['education'] as List?)
+//                 ?.map((e) => e.toString())
+//                 .toList() ??
+//             [];
+
+//         languages = (employeeData['languages'] as List?)
+//                 ?.map((e) => e.toString())
+//                 .toList() ??
+//             [];
+
+//         interests = (employeeData['interests'] as List?)
+//                 ?.map((e) => e.toString())
+//                 .toList() ??
+//             [];
+
+//         softSkills = (employeeData['soft_skills'] as List?)
+//                 ?.map((e) => e.toString())
+//                 .toList() ??
+//             [];
+
+//         certificates = employeeData['certificates'] ?? [];
+//         skillsAndProficiency = employeeData['skills_and_proficiency'] ?? [];
+
+//         weeklyAvailability = employeeData['weekly_availability'];
+//         availability = employeeData['availability'];
+//       });
+
+//       await CVChecker.updateCVStatus(employeeData);
+//       final status = await CVChecker.isCVIncomplete();
+//       final missing = await CVChecker.getMissingFields();
+
+//       setState(() {
+//         isCVIncomplete = status;
+//         missingFields = missing;
+//       });
+
+//       print("✅ Employee and user data loaded successfully");
+//     } else {
+//       print(
+//           "❌ Failed to fetch data: ${employeeResponse.body} | ${userResponse.body}");
+//     }
+//   } catch (e) {
+//     print("❌ Error fetching profile data: $e");
+//   }
+// }
+
 class ExpandingResumeField extends StatefulWidget {
   final TextEditingController controller;
 
-  const ExpandingResumeField({super.key, required this.controller});
+  /// Optional initial resume text from your fetchUserCV()
+  final String? initialResume;
+
+  const ExpandingResumeField({
+    super.key,
+    required this.controller,
+    this.initialResume,
+  });
 
   @override
   State<ExpandingResumeField> createState() => _ExpandingResumeFieldState();
@@ -3172,57 +3286,117 @@ class _ExpandingResumeFieldState extends State<ExpandingResumeField> {
   final int maxChars = 700;
   final _focusNode = FocusNode();
 
+  String? resume;
+  // other fields...
+
+  @override
+  void initState() {
+    super.initState();
+    fetchEmployeeData(); // ← load resume + all CV fields
+  }
+
   @override
   void dispose() {
     _focusNode.dispose();
     super.dispose();
   }
 
+  Future<void> fetchEmployeeData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    if (userId == null) return;
+
+    try {
+      final empRes =
+          await http.get(Uri.parse('$BASE_URL_AUTH/api/get-employee/$userId'));
+      final usrRes = await http.get(Uri.parse('$BASE_URL_AUTH/users/$userId'));
+      if (empRes.statusCode == 200 && usrRes.statusCode == 200) {
+        final emp = jsonDecode(empRes.body);
+        // final usr = jsonDecode(usrRes.body); // if you need fullName, etc.
+
+        final fetchedResume = sanitizeField(emp['resume']);
+        // parse other lists similarly...
+
+        setState(() {
+          resume = fetchedResume;
+          widget.controller.text = resume ?? '';
+          // e.g. experience = parseList(emp['experience']);
+          // education = parseList(emp['education']);
+          // languages = parseList(emp['languages']);
+          // interests = parseList(emp['interests']);
+          // softSkills = parseList(emp['soft_skills']);
+          // certificates = emp['certificates'] ?? [];
+          // skillsAndProficiency = emp['skills_and_proficiency'] ?? [];
+          // availability = sanitizeField(emp['availability']);
+          // weeklyAvailability = emp['weekly_availability'];
+        });
+
+        await CVChecker.updateCVStatus(emp);
+        final status = await CVChecker.isCVIncomplete();
+        final missing = await CVChecker.getMissingFields();
+        setState(() {
+          isCVIncomplete = status;
+          missingFields = missing;
+        });
+      }
+    } catch (e) {
+      print("❌ Error fetching profile data: $e");
+    }
+  }
+
+  String? sanitizeField(dynamic value) {
+    if (value == null) return null;
+    final str = value.toString().trim();
+    if (str.isEmpty || str == '{}' || str == 'null') return null;
+    return str;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isEmpty = (resume ?? '').isEmpty;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       decoration: BoxDecoration(
         color: blue_gray,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Stack(
         children: [
-          // 📝 TextField
           ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 70),
-            child: TextFormField(
-              controller: widget.controller, // ✅ use controller
-              focusNode: _focusNode,
-              maxLines: null,
-              maxLength: maxChars,
-              buildCounter: (_,
-                      {required currentLength,
-                      required isFocused,
-                      required maxLength}) =>
-                  const SizedBox.shrink(),
-              style: const TextStyle(color: white, fontSize: 15),
-              cursorColor: white,
-              decoration: const InputDecoration(
-                isCollapsed: true,
-                border: InputBorder.none,
-                hintText: 'Write a short resume or summary...',
-                hintStyle: TextStyle(
-                  fontSize: 15,
-                  color: white_gray,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: TextFormField(
+                controller: widget.controller,
+                focusNode: _focusNode,
+                maxLines: null,
+                maxLength: maxChars,
+                buildCounter: (_,
+                        {required currentLength,
+                        required isFocused,
+                        maxLength}) =>
+                    const SizedBox.shrink(),
+                style: const TextStyle(color: white_gray, fontSize: 15),
+                cursorColor: white,
+                decoration: InputDecoration(
+                  isCollapsed: true,
+                  border: InputBorder.none,
+                  hintText: isEmpty
+                      ? 'Écrivez un court résumé ou une synthèse…'
+                      : null,
+                  hintStyle: const TextStyle(fontSize: 15, color: white_gray),
                 ),
+                onChanged: (_) => setState(() {
+                  resume = widget.controller.text;
+                }),
               ),
-              onChanged: (_) {
-                setState(() {}); // ✅ To update character counter below
-              },
             ),
           ),
-
-          // 🔢 Custom character counter
           Positioned(
             right: 0,
-            bottom: -5,
+            bottom: 0,
             child: Padding(
               padding: const EdgeInsets.only(right: 4, bottom: 2),
               child: AnimatedDefaultTextStyle(
@@ -3235,7 +3409,8 @@ class _ExpandingResumeFieldState extends State<ExpandingResumeField> {
                   fontWeight: FontWeight.w500,
                 ),
                 child: Text(
-                    '${maxChars - widget.controller.text.length} characters left'),
+                  '${maxChars - widget.controller.text.length} caractères restants',
+                ),
               ),
             ),
           ),
@@ -3245,21 +3420,37 @@ class _ExpandingResumeFieldState extends State<ExpandingResumeField> {
   }
 }
 
-class _LanguageDetailsSheet extends StatefulWidget {
-  const _LanguageDetailsSheet({super.key});
+class LanguageDetailsSheet extends StatefulWidget {
+  final Set<String> initialSelection;
+  final ValueChanged<Set<String>> onSelectionChanged;
+
+  const LanguageDetailsSheet({
+    Key? key,
+    required this.initialSelection,
+    required this.onSelectionChanged,
+  }) : super(key: key);
 
   @override
-  State<_LanguageDetailsSheet> createState() => _LanguageDetailsSheetState();
+  State<LanguageDetailsSheet> createState() => _LanguageDetailsSheetState();
 }
 
-Set<String> tempSelectedLanguages =
-    Set.from(selectedLanguages); // Clone initial state
-
-class _LanguageDetailsSheetState extends State<_LanguageDetailsSheet> {
+class _LanguageDetailsSheetState extends State<LanguageDetailsSheet> {
   String _searchText = '';
+  late Set<String> localSelection;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with passed-in selection
+    localSelection = {...widget.initialSelection};
+  }
 
   @override
   Widget build(BuildContext context) {
+    final filtered = allLanguages
+        .where((lang) => lang.toLowerCase().contains(_searchText.toLowerCase()))
+        .toList();
+
     return DraggableScrollableSheet(
       initialChildSize: 0.4,
       minChildSize: 0.4,
@@ -3280,59 +3471,44 @@ class _LanguageDetailsSheetState extends State<_LanguageDetailsSheet> {
                   width: 80,
                   height: 7,
                   decoration: BoxDecoration(
-                      color: white_gray,
-                      borderRadius: BorderRadius.circular(100)),
+                    color: white_gray,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
               Row(
                 children: [
-                  // ❌ Cancel button
+                  // Cancel button
                   GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                      setState(() {}); // Close the bottom sheet
-                    },
-                    child: const Icon(
-                      Icons.close,
-                      color: white_gray,
-                    ),
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.close, color: white_gray),
                   ),
-
-                  const Expanded(child: SizedBox(width: 1)),
-
-                  // ✅ Confirm button
+                  const Spacer(),
+                  // Confirm button
                   GestureDetector(
                     onTap: () {
-                      Navigator.pop(context); // Close the sheet
-                      setState(() {}); // Refresh parent if needed
+                      widget.onSelectionChanged(localSelection);
+                      Navigator.pop(context);
                     },
-                    child: const Icon(
-                      Icons.check,
-                      color: white_gray,
-                    ),
+                    child: const Icon(Icons.check, color: white_gray),
                   ),
                 ],
               ),
-
+              const SizedBox(height: 16),
               const Center(
                 child: Text(
-                  'Languages Spoken',
+                  'Langues parlées',
                   style: TextStyle(
                       color: white, fontSize: 22, fontWeight: FontWeight.w600),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               const Text(
-                'Select languages you know to add them to your profile',
-                style: TextStyle(
-                  color: white_gray,
-                  fontSize: 16,
-                ),
+                'Sélectionnez vos langues pour mettre à jour votre profil',
+                style: TextStyle(color: white_gray, fontSize: 16),
               ),
-              const SizedBox(
-                height: 10,
-              ),
+              const SizedBox(height: 20),
               Container(
                 decoration: BoxDecoration(
                   color: black_gray,
@@ -3346,17 +3522,14 @@ class _LanguageDetailsSheetState extends State<_LanguageDetailsSheet> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextFormField(
-                        onChanged: (value) {
-                          setState(() {
-                            _searchText = value;
-                          });
-                        },
+                        onChanged: (value) =>
+                            setState(() => _searchText = value),
                         style: const TextStyle(color: white, fontSize: 16),
                         cursorColor: white_gray,
                         decoration: const InputDecoration(
                           isCollapsed: true,
                           border: InputBorder.none,
-                          hintText: 'Search languages',
+                          hintText: 'Rechercher une langue',
                           hintStyle: TextStyle(color: white_gray, fontSize: 16),
                         ),
                       ),
@@ -3364,20 +3537,40 @@ class _LanguageDetailsSheetState extends State<_LanguageDetailsSheet> {
                   ],
                 ),
               ),
-              const SizedBox(
-                height: 20,
-              ), //here there should be a wrap or something this is the default container
-              LanguageChipsSelector(
-                searchText: _searchText,
-                selectedLanguages: selectedLanguages,
-                onSelectionChanged: (updatedSelection) {
-                  setState(() {
-                    selectedLanguages = updatedSelection;
-                  });
-                },
-              )
-
-              // 🔥 Add more widgets below as needed...
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: filtered.map((language) {
+                  final selected = localSelection.contains(language);
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (selected)
+                          localSelection.remove(language);
+                        else
+                          localSelection.add(language);
+                      });
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: selected ? blue : blue_gray,
+                        borderRadius: BorderRadius.circular(100),
+                        border: selected
+                            ? null
+                            : Border.all(color: white_gray, width: 1),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 15, vertical: 6),
+                      child: Text(
+                        language,
+                        style: TextStyle(
+                            color: selected ? black : white_gray, fontSize: 15),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
             ],
           ),
         );
@@ -3385,8 +3578,6 @@ class _LanguageDetailsSheetState extends State<_LanguageDetailsSheet> {
     );
   }
 }
-
-final Set<String> softSkills = {};
 
 class ContactInfoSection extends StatefulWidget {
   final String phoneNumber;

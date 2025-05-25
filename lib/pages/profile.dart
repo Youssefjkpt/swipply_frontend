@@ -17,7 +17,8 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Profile extends StatefulWidget {
-  const Profile({super.key});
+  final ValueNotifier<int> currentTabIndex;
+  const Profile({super.key, required this.currentTabIndex});
 
   @override
   State<Profile> createState() => _ProfileState();
@@ -30,6 +31,40 @@ class _ProfileState extends State<Profile> {
     final str = value.toString().trim();
     if (str.isEmpty || str == '{}' || str == 'null') return null;
     return str;
+  }
+
+  bool _hasFetchedOnThisView = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Always fetch once on first appearance:
+    _fetchIfVisible();
+
+    // And listen for tab changes:
+    widget.currentTabIndex.addListener(_fetchIfVisible);
+    fetchEmployeeData();
+  }
+
+  @override
+  void dispose() {
+    widget.currentTabIndex.removeListener(_fetchIfVisible);
+    super.dispose();
+  }
+
+  void _fetchIfVisible() {
+    // If the current tab index is 2 (Profile), fetch data
+    // and reset the flag if needed.
+    if (widget.currentTabIndex.value == 2) {
+      // Optionally debounce so you don't hit the server repeatedly:
+      if (!_hasFetchedOnThisView) {
+        fetchEmployeeData();
+        _hasFetchedOnThisView = true;
+      }
+    } else {
+      // Reset when switching away, so returning will fetch again:
+      _hasFetchedOnThisView = false;
+    }
   }
 
   String? resume;
@@ -232,11 +267,6 @@ class _ProfileState extends State<Profile> {
     true,
     true
   ];
-  @override
-  void initState() {
-    super.initState();
-    fetchEmployeeData(); // always runs
-  }
 
   @override
   Widget build(BuildContext context) {

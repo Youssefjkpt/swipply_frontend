@@ -168,10 +168,9 @@ class _JobInformationsState extends State<JobInformations> {
                               child: Padding(
                                 padding: EdgeInsets.only(top: 10),
                                 child: IconButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      isSaved = !isSaved;
-                                    });
+                                  onPressed: () async {
+                                    setState(() => isSaved = !isSaved);
+                                    await saveJob(); // now actually invoke the API call
                                   },
                                   icon: Icon(
                                     isSaved
@@ -197,6 +196,7 @@ class _JobInformationsState extends State<JobInformations> {
                               fontSize: 26,
                               fontWeight: FontWeight.w600,
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                         const SizedBox(height: 5),
