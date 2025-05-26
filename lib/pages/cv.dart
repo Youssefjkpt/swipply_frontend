@@ -11,116 +11,90 @@ import 'package:swipply/widgets/adress.dart';
 import 'package:swipply/widgets/check_mark_green_design.dart';
 import 'package:swipply/widgets/cv_chevker.dart';
 import 'package:swipply/widgets/delete_icon.dart';
+import 'package:swipply/widgets/edit_education_sheet.dart';
 import 'package:swipply/widgets/education_section.dart';
 import 'package:swipply/widgets/language_chips.dart';
 import 'package:swipply/widgets/loading_bars.dart';
 import 'package:swipply/widgets/wave_wipe_cv_name.dart';
 
-class InterestsSection extends StatefulWidget {
+class InterestsSection extends StatelessWidget {
   final List<String> interests;
+  final bool showAll;
+  final VoidCallback onToggleShowAll;
+  final VoidCallback onEdit;
 
-  const InterestsSection({super.key, required this.interests});
-
-  @override
-  State<InterestsSection> createState() => _InterestsSectionState();
-}
-
-class _InterestsSectionState extends State<InterestsSection> {
-  bool showAll = false;
-
-  void _openEditSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => EditInterestsSheet(
-        interests: widget.interests,
-        onSave: (updated) {
-          setState(() {
-            widget.interests.addAll(updated);
-          });
-        },
-      ),
-    );
-  }
+  const InterestsSection({
+    Key? key,
+    required this.interests,
+    required this.showAll,
+    required this.onToggleShowAll,
+    required this.onEdit,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final count = interests.length;
+    final toShow = showAll ? interests : interests.take(3).toList();
+
     return Container(
       decoration: BoxDecoration(
         color: blue_gray,
         borderRadius: BorderRadius.circular(16),
       ),
       padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'Interests',
-                style: TextStyle(
-                  color: white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: _openEditSheet,
-                child: const Icon(Icons.edit, color: white_gray, size: 20),
-              ),
-            ],
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text(
+            'Interests',
+            style: TextStyle(
+              color: white,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          const SizedBox(height: 15),
-
-          // Display bullet points
-          ...List.generate(
-            showAll
-                ? widget.interests.length
-                : (widget.interests.length > 3 ? 3 : widget.interests.length),
-            (index) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 6),
-                    child: Icon(Icons.circle, color: blue, size: 6),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      widget.interests.isEmpty
-                          ? 'No interests added yet.'
-                          : widget.interests[index],
-                      style: const TextStyle(
-                        color: white_gray,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w400,
+          const Spacer(),
+          GestureDetector(
+            onTap: onEdit,
+            child: const Icon(Icons.edit, color: white_gray, size: 20),
+          ),
+        ]),
+        const SizedBox(height: 15),
+        if (count == 0)
+          const Text(
+            'No interests added yet.',
+            style: TextStyle(color: white_gray, fontSize: 15),
+          )
+        else
+          ...toShow.map((i) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 6),
+                        child: Icon(Icons.circle, color: blue, size: 6),
                       ),
-                    ),
-                  ),
-                ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                          child: Text(
+                        i,
+                        style: const TextStyle(color: white_gray, fontSize: 15),
+                      )),
+                    ]),
+              )),
+        if (count > 3)
+          GestureDetector(
+            onTap: onToggleShowAll,
+            child: Text(
+              showAll ? 'Read less' : 'Read more',
+              style: const TextStyle(
+                color: blue,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
-
-          // 🔁 Read More / Less
-          if (widget.interests.length > 3)
-            GestureDetector(
-              onTap: () => setState(() => showAll = !showAll),
-              child: Text(
-                showAll ? 'Read less' : 'Read more',
-                style: const TextStyle(
-                  color: blue,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-        ],
-      ),
+      ]),
     );
   }
 }
@@ -146,11 +120,12 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
   TextEditingController? resumeController;
   List<String> educations = [];
   String? phone;
+  List<String> softSkills = [];
   String? address;
   String userFullName = '';
   String? userId;
   String _jobTitle = '';
-
+  bool _showAllEdu = false;
   late List<String> languages;
   String _uploadedFileName = 'Upload a Doc/Docx/PDF';
   late AnimationController _checkmarkController;
@@ -202,12 +177,255 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
     }
   }
 
+  void _openEditInterestsSheet() async {
+    final updated = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => EditInterestsSheet(
+        initialInterests: selectedInterests,
+        onSave: (newList) => Navigator.pop(context, newList),
+      ),
+    );
+    if (updated != null) {
+      setState(() {
+        selectedInterests = updated;
+      });
+    }
+  }
+
+  Future<void> fetchEmployeeData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    if (userId == null) return;
+    final userResponse = await http.get(
+      Uri.parse('$BASE_URL_AUTH/users/$userId'),
+    );
+    final userData = jsonDecode(userResponse.body);
+    try {
+      final resp = await http.get(
+        Uri.parse('$BASE_URL_AUTH/api/get-employee/$userId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (resp.statusCode != 200) {
+        print('Failed to load employee: ${resp.statusCode}');
+        return;
+      }
+
+      final employeeData = jsonDecode(resp.body) as Map<String, dynamic>;
+
+      // 🔍 Normalize the `experience` field:
+      final rawExp = employeeData['experience'];
+      List<String> fetchedExperiences;
+
+      if (rawExp is String) {
+        final str = rawExp.trim();
+
+        if (str.startsWith('{') && str.endsWith('}')) {
+          // Postgres array literal: extract values between quotes
+          final matches = RegExp(r'"([^"]*)"').allMatches(str);
+          fetchedExperiences = matches.map((m) => m.group(1)!.trim()).toList();
+        } else {
+          // Fallback: newline‐separated
+          fetchedExperiences = str
+              .split('\n')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+      } else if (rawExp is List) {
+        fetchedExperiences = rawExp.map((e) => e.toString().trim()).toList();
+      } else {
+        fetchedExperiences = [];
+      }
+
+      final data = jsonDecode(resp.body) as Map<String, dynamic>;
+      final rawEdu = data['education'];
+      List<String> fetchedEducations;
+      if (rawEdu is String) {
+        final str = rawEdu.trim();
+        if (str.startsWith('{') && str.endsWith('}')) {
+          fetchedEducations = RegExp(r'"([^"]*)"')
+              .allMatches(str)
+              .map((m) => m.group(1)!.trim())
+              .toList();
+        } else {
+          fetchedEducations = str
+              .split('\n')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+      } else if (rawEdu is List) {
+        fetchedEducations = rawEdu.map((e) => e.toString().trim()).toList();
+      } else {
+        fetchedEducations = [];
+      }
+      final rawSkills = employeeData['skills_and_proficiency'];
+      List<Map<String, dynamic>> fetchedSkills;
+
+      if (rawSkills is String) {
+        final str = rawSkills.trim();
+        if (str.startsWith('{') && str.endsWith('}')) {
+          // array‐literal: extract each JSON‐ish fragment
+          final matches = RegExp(r'\{([^}]*)\}').allMatches(str);
+          fetchedSkills = matches.map((m) {
+            // each m.group(1) is like '"skill": "Dart", "proficiency": 0.8'
+            final inner = '{${m.group(1)}}';
+            return Map<String, dynamic>.from(jsonDecode(inner));
+          }).toList();
+        } else {
+          // fallback: newline separated JSON objects
+          fetchedSkills = str
+              .split('\n')
+              .map((line) => line.trim())
+              .where((line) => line.isNotEmpty)
+              .map((line) => Map<String, dynamic>.from(jsonDecode(line)))
+              .toList();
+        }
+      } else if (rawSkills is List) {
+        fetchedSkills =
+            rawSkills.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      } else {
+        fetchedSkills = [];
+      }
+      for (var skill in fetchedSkills) {
+        final raw = skill['proficiency'] ?? skill['level'] ?? 0;
+        skill['level'] =
+            (raw is num) ? raw.toDouble() : double.parse(raw.toString());
+      }
+// t
+
+      print('✅ parsedSkills: $fetchedSkills');
+      final rawInt = employeeData['interests'];
+      List<String> fetchedInterests;
+
+      if (rawInt is String) {
+        final str = rawInt.trim();
+        if (str.startsWith('{') && str.endsWith('}')) {
+          // Postgres array literal: extract values between quotes
+          fetchedInterests = RegExp(r'"([^"]*)"')
+              .allMatches(str)
+              .map((m) => m.group(1)!.trim())
+              .toList();
+        } else {
+          // Fallback: newline-separated
+          fetchedInterests = str
+              .split('\n')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+      } else if (rawInt is List) {
+        fetchedInterests = rawInt.map((e) => e.toString().trim()).toList();
+      } else {
+        fetchedInterests = [];
+      }
+      final rawSoft = employeeData['soft_skills'];
+      List<String> fetchedSoft;
+      if (rawSoft is String) {
+        final str = rawSoft.trim();
+        if (str.startsWith('{') && str.endsWith('}')) {
+          fetchedSoft = RegExp(r'"([^"]*)"')
+              .allMatches(str)
+              .map((m) => m.group(1)!.trim())
+              .toList();
+        } else {
+          fetchedSoft = str
+              .split('\n')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+      } else if (rawSoft is List) {
+        fetchedSoft = rawSoft.map((e) => e.toString().trim()).toList();
+      } else {
+        fetchedSoft = [];
+      }
+      print('✅ parsedSoftSkills: $fetchedSoft');
+      fullName = sanitizeField(userData['full_name']);
+      phone = sanitizeField(userData['phone_number']);
+      address = sanitizeField(userData['address']);
+      print('🔍 raw phone_number: ${userData['phone_number']}');
+      print('🔍 raw address:  ${userData['address']}');
+      print('✅ parsedEducations: $fetchedEducations');
+
+      setState(() {
+        experiences = fetchedExperiences;
+        educations = fetchedEducations;
+
+        // …and your other fields…
+        resume = sanitizeField(employeeData['resume']);
+        selectedInterests = fetchedInterests;
+        softSkills = fetchedSoft;
+        skills = fetchedSkills;
+        phone = sanitizeField(userData['phone_number']);
+        address = sanitizeField(userData['address']);
+        // etc.
+      });
+    } catch (e) {
+      print('Error fetching employee data: $e');
+    }
+  }
+
+  String? sanitizeField(dynamic value) {
+    if (value == null) return null;
+    final str = value.toString().trim();
+    if (str.isEmpty || str == '{}' || str == 'null') return null;
+    return str;
+  }
+
+  /// Helper to parse fields stored as either Postgres‐array literal or newline/string
+  List<String> _parsePossiblyArrayOrString(dynamic raw) {
+    if (raw is String) {
+      final str = raw.trim();
+      if (str.startsWith('{') && str.endsWith('}')) {
+        return RegExp(r'"([^"]*)"')
+            .allMatches(str)
+            .map((m) => m.group(1)!.trim())
+            .toList();
+      } else {
+        return str
+            .split('\n')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+    } else if (raw is List) {
+      return raw.map((e) => e.toString().trim()).toList();
+    }
+    return [];
+  }
+
   void fetchUserId() async {
     final id = await getUserId();
     setState(() {
       userId = id;
     });
     print("🟢 Logged-in user_id: $userId");
+  }
+
+  // 1) Drop the async/await
+  void _openEditSoftSkillsSheet() {
+    showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => EditSoftSkillsSheet(
+        initialSoftSkills: softSkills,
+        // onSave no longer pops
+        onSave: (newList) => setState(() {
+          softSkills = newList;
+        }),
+      ),
+    ).then((updated) {
+      // This .then will receive updated only if the sheet popped with a value.
+      if (updated != null) {
+        setState(() {
+          softSkills = updated;
+        });
+      }
+    });
   }
 
   String startDateText = 'Immediately';
@@ -271,7 +489,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
 
     final safePhone = phone?.trim();
     final safeAddress = address?.trim();
-
+    bool _showAllInterests = false;
     final data = {
       'email': userEmail,
       if (safePhone != null && safePhone.isNotEmpty) 'phone': safePhone,
@@ -337,8 +555,6 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('token');
   }
-
-  List<String> softSkills = [];
 
   UploadStatus _status = UploadStatus.idle;
   double _uploadProgress = 0;
@@ -564,6 +780,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
     resumeController = TextEditingController();
     fetchUserId();
     fetchUserData();
+    fetchEmployeeData();
     _checkmarkController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -575,11 +792,30 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
 // If it's a Set<String>
   }
 
+  bool _showAllInterests = false;
+  void _openEditEducationSheet() async {
+    final updated = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => EditEducationSheet(
+        onSave: (newList) {
+          Navigator.pop(context, newList);
+        },
+        educations: [],
+      ),
+    );
+    if (updated != null) {
+      setState(() {
+        educations = updated;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
-    print('🧠 experiences: ${parsedCVData?['experiences']}');
-    print('🧠 softSkills: ${parsedCVData?['softSkills']}');
+
     final width = MediaQuery.of(context).size.width;
     return Scaffold(
       backgroundColor: black,
@@ -981,19 +1217,15 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                             ),
                             const Spacer(),
                             GestureDetector(
-                              onTap: () {
-                                // TODO: Open bottom sheet or editable modal
-                                showModalBottomSheet(
+                              onTap: () async {
+                                await showModalBottomSheet(
                                   context: context,
                                   isScrollControlled: true,
                                   backgroundColor: Colors.transparent,
                                   builder: (_) => EditExperienceSheet(
-                                    experiences: experiences,
-                                    onSave: (updatedList) {
-                                      setState(() {
-                                        experiences = updatedList;
-                                      });
-                                    },
+                                    initialExperiences: experiences,
+                                    onSave: (updated) =>
+                                        setState(() => experiences = updated),
                                   ),
                                 );
                               },
@@ -1037,7 +1269,6 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                           ),
                         ),
 
-                        // 🔽 Read More
                         // 🔽 Read More / 🔼 Read Less toggle
                         if (experiences.length > 3)
                           GestureDetector(
@@ -1064,6 +1295,10 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                 ),
                 EducationSection(
                   educations: educations,
+                  showAll: _showAllEdu,
+                  onToggleShowAll: () =>
+                      setState(() => _showAllEdu = !_showAllEdu),
+                  onEdit: _openEditEducationSheet,
                 ),
                 const SizedBox(
                   height: 15,
@@ -1091,68 +1326,72 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                       // 🧠 Section Title
                       InterestsSection(
                         interests: selectedInterests,
+                        showAll: _showAllInterests,
+                        onToggleShowAll: () => setState(
+                            () => _showAllInterests = !_showAllInterests),
+                        onEdit: _openEditInterestsSheet,
                       ),
 
                       const SizedBox(height: 25),
-                      GestureDetector(
-                        onTap: () async {
-                          await showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.transparent,
-                            builder: (_) => EditSoftSkillsSheet(
-                              initialSoftSkills: softSkills,
-                              onSave: (updated) {
-                                setState(() {
-                                  softSkills = updated;
-                                });
-                              },
-                            ),
-                          );
 
-                          setState(() {}); // refresh UI with updated softSkills
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(15),
-                          decoration: BoxDecoration(
-                            color: blue_gray,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.extension, color: white_gray),
-                              SizedBox(width: 10),
-                              Text(
-                                'Select Soft Skills',
-                                style: TextStyle(color: white),
+                      // Soft Skills chips + edit
+                      Container(
+                        decoration: BoxDecoration(
+                          color: blue_gray,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              const Text(
+                                'Soft Skills',
+                                style: TextStyle(
+                                    color: white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600),
                               ),
-                            ],
-                          ),
+                              const Spacer(),
+                              GestureDetector(
+                                onTap: _openEditSoftSkillsSheet,
+                                child: const Icon(Icons.edit,
+                                    color: white_gray, size: 20),
+                              ),
+                            ]),
+                            const SizedBox(height: 15),
+                            if (softSkills.isEmpty)
+                              const Text(
+                                'No soft skills added yet.',
+                                style:
+                                    TextStyle(color: white_gray, fontSize: 15),
+                              )
+                            else
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                children: softSkills.map((skill) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: black_gray,
+                                      border: Border.all(color: white_gray),
+                                      borderRadius: BorderRadius.circular(100),
+                                    ),
+                                    child: Text(
+                                      skill,
+                                      style: const TextStyle(
+                                          color: white, fontSize: 14),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 15),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: softSkills
-                            .map((skill) => Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: black_gray,
-                                    border: Border.all(color: white_gray),
-                                    borderRadius: BorderRadius.circular(100),
-                                  ),
-                                  child: Text(
-                                    skill,
-                                    style: const TextStyle(
-                                      color: white,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ))
-                            .toList(),
-                      ),
+
                       const SizedBox(height: 15),
                       SkillsSection(skills: skills), const SizedBox(height: 15),
                       ContactInfoSection(
@@ -2110,12 +2349,17 @@ class _SkillsSectionState extends State<SkillsSection> {
                         color: black,
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        skill['name'],
-                        style: const TextStyle(
+                      Flexible(
+                        child: Text(
+                          skill['name'],
+                          style: const TextStyle(
                             color: black,
                             fontSize: 14,
-                            fontWeight: FontWeight.w600),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       ),
                     ],
                   ),
@@ -2184,151 +2428,170 @@ class _SkillsSectionState extends State<SkillsSection> {
 
 class EditSoftSkillsSheet extends StatefulWidget {
   final List<String> initialSoftSkills;
-  final void Function(List<String>) onSave;
+  final ValueChanged<List<String>> onSave;
 
   const EditSoftSkillsSheet({
-    super.key,
+    Key? key,
     required this.initialSoftSkills,
     required this.onSave,
-  });
+  }) : super(key: key);
 
   @override
-  State<EditSoftSkillsSheet> createState() => _EditSoftSkillsSheetState();
+  _EditSoftSkillsSheetState createState() => _EditSoftSkillsSheetState();
 }
 
 class _EditSoftSkillsSheetState extends State<EditSoftSkillsSheet> {
-  late Set<String> selected;
-
-  String searchText = '';
+  late Set<String> _selected;
+  String _searchText = '';
 
   @override
   void initState() {
     super.initState();
-    selected = Set.from(widget.initialSoftSkills);
+    _selected = Set.from(widget.initialSoftSkills);
   }
 
-  void toggleSkill(String skill) {
+  void _toggle(String skill) {
     setState(() {
-      if (selected.contains(skill)) {
-        selected.remove(skill);
-      } else {
-        selected.add(skill);
-      }
-
-      softSkills
-        ..clear()
-        ..addAll(selected);
+      if (_selected.contains(skill))
+        _selected.remove(skill);
+      else
+        _selected.add(skill);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final filtered = allSoftSkills
-        .where((s) => s.toLowerCase().contains(searchText.toLowerCase()))
+        .where((s) => s.toLowerCase().contains(_searchText.toLowerCase()))
         .toList();
 
-    return PopScope(
-      canPop: true,
-      onPopInvoked: (didPop) {
-        if (!didPop) return;
-        widget.onSave(selected.toList()); // Return selected soft skills
+    return WillPopScope(
+      onWillPop: () async {
+        widget.onSave(_selected.toList());
+        return true;
       },
       child: DraggableScrollableSheet(
         initialChildSize: 0.85,
         maxChildSize: 0.95,
         minChildSize: 0.6,
         expand: false,
-        builder: (_, controller) {
-          return Container(
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              color: blue_gray,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-            ),
-            child: ListView(
-              controller: controller,
-              children: [
-                Center(
-                  child: Container(
-                    width: 80,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: white_gray,
-                      borderRadius: BorderRadius.circular(100),
+        builder: (_, scroll) => Container(
+          padding: const EdgeInsets.all(20),
+          decoration: const BoxDecoration(
+            color: blue_gray,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          child: Column(
+            children: [
+              // handle
+              Center(
+                child: Container(
+                  width: 80,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: white_gray,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Select Your Soft Skills',
+                style: TextStyle(
+                    color: white, fontSize: 20, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 20),
+
+              // search
+              Container(
+                decoration: BoxDecoration(
+                  color: black_gray,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: white_gray),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        style: const TextStyle(color: white),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          isCollapsed: true,
+                          hintText: 'Search soft skills…',
+                          hintStyle: TextStyle(color: white_gray),
+                        ),
+                        onChanged: (v) => setState(() => _searchText = v),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // chips list
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scroll,
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 12,
+                    children: filtered.map((skill) {
+                      final sel = _selected.contains(skill);
+                      return GestureDetector(
+                        onTap: () => _toggle(skill),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: sel ? blue : black_gray,
+                            borderRadius: BorderRadius.circular(100),
+                            border: sel ? null : Border.all(color: white_gray),
+                          ),
+                          child: Text(
+                            skill,
+                            style: TextStyle(
+                                color: sel ? black : white_gray,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: () {
+                  widget.onSave(_selected.toList());
+                  Navigator.of(context).pop();
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: blue,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: const Center(
+                    child: Text(
+                      'Save',
+                      style: TextStyle(
+                          color: white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Select Your Soft Skills',
-                  style: TextStyle(
-                    color: white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // 🔍 Search input
-                Container(
-                  decoration: BoxDecoration(
-                    color: black_gray,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.search, color: white_gray),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          onChanged: (val) => setState(() => searchText = val),
-                          style: const TextStyle(color: white),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            isCollapsed: true,
-                            hintText: 'Search soft skills...',
-                            hintStyle: TextStyle(color: white_gray),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 12,
-                  children: filtered.map((skill) {
-                    final isSelected = selected.contains(skill);
-                    return GestureDetector(
-                      onTap: () => toggleSkill(skill),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isSelected ? blue : black_gray,
-                          borderRadius: BorderRadius.circular(100),
-                          border:
-                              isSelected ? null : Border.all(color: white_gray),
-                        ),
-                        child: Text(
-                          skill,
-                          style: TextStyle(
-                            color: isSelected ? black : white_gray,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          );
-        },
+              )
+              // Save
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -2691,12 +2954,12 @@ class _WeeklyAvailabilitySectionState extends State<WeeklyAvailabilitySection> {
 }
 
 class EditInterestsSheet extends StatefulWidget {
-  final List<String> interests;
-  final Function(List<String>) onSave;
+  final List<String> initialInterests;
+  final ValueChanged<List<String>> onSave;
 
   const EditInterestsSheet({
     super.key,
-    required this.interests,
+    required this.initialInterests,
     required this.onSave,
   });
 
@@ -2711,8 +2974,8 @@ class _EditInterestsSheetState extends State<EditInterestsSheet> {
   @override
   void initState() {
     super.initState();
-    controllers = widget.interests
-        .map((interest) => TextEditingController(text: interest))
+    controllers = widget.initialInterests
+        .map((i) => TextEditingController(text: i))
         .toList();
   }
 
@@ -2883,10 +3146,9 @@ class _EditInterestsSheetState extends State<EditInterestsSheet> {
                 onPressed: () {
                   final updated = controllers
                       .map((c) => c.text.trim())
-                      .where((text) => text.isNotEmpty)
+                      .where((s) => s.isNotEmpty)
                       .toList();
                   widget.onSave(updated);
-                  Navigator.pop(context);
                 },
                 child: const Text(
                   'Save',
@@ -2952,14 +3214,14 @@ class ToggleChip extends StatelessWidget {
 }
 
 class EditExperienceSheet extends StatefulWidget {
-  final List<String> experiences;
-  final Function(List<String>) onSave;
+  final List<String> initialExperiences;
+  final ValueChanged<List<String>> onSave;
 
   const EditExperienceSheet({
-    super.key,
-    required this.experiences,
+    Key? key,
+    required this.initialExperiences,
     required this.onSave,
-  });
+  }) : super(key: key);
 
   @override
   State<EditExperienceSheet> createState() => _EditExperienceSheetState();
@@ -2972,8 +3234,10 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
   @override
   void initState() {
     super.initState();
-    controllers =
-        widget.experiences.map((e) => TextEditingController(text: e)).toList();
+    // Initialize controllers from passed-in experiences
+    controllers = widget.initialExperiences
+        .map((e) => TextEditingController(text: e))
+        .toList();
   }
 
   @override
@@ -2989,7 +3253,7 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
     setState(() {
       controllers.add(TextEditingController());
     });
-
+    // Scroll to new field
     Future.delayed(const Duration(milliseconds: 300), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -3013,6 +3277,7 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
       initialChildSize: 0.7,
       minChildSize: 0.4,
       maxChildSize: 0.95,
+      expand: false,
       builder: (context, scrollController) {
         return Container(
           padding: const EdgeInsets.all(20),
@@ -3035,7 +3300,7 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
               ),
               const SizedBox(height: 15),
               const Text(
-                'Edit Experiences',
+                'Modifier vos expériences',
                 style: TextStyle(
                   color: white,
                   fontSize: 18,
@@ -3044,7 +3309,7 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
               ),
               const SizedBox(height: 20),
 
-              // 🔁 Dynamic experience fields with delete icon
+              // Dynamic experience fields
               ...List.generate(controllers.length, (index) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -3056,7 +3321,7 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
                           maxLines: null,
                           style: const TextStyle(color: white),
                           decoration: InputDecoration(
-                            hintText: 'Experience ${index + 1}',
+                            hintText: 'Expérience ${index + 1}',
                             hintStyle: const TextStyle(color: white_gray),
                             filled: true,
                             fillColor: black_gray,
@@ -3065,36 +3330,33 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
                               borderSide: BorderSide.none,
                             ),
                           ),
-                          onChanged: (_) {
-                            setState(() {}); // Refresh live preview
-                          },
+                          onChanged: (_) => setState(() {}),
                         ),
                       ),
                       const SizedBox(width: 10),
-                      DeleteIconButton(
-                        onPressed: () => _removeExperience(index),
+                      GestureDetector(
+                        onTap: () => _removeExperience(index),
+                        child: const Icon(Icons.delete, color: white_gray),
                       ),
                     ],
                   ),
                 );
               }),
 
-              // ➕ Add new button
+              // Add new
               TextButton.icon(
                 onPressed: _addExperience,
                 icon: const Icon(Icons.add, color: blue),
-                label: const Text(
-                  'Add Experience',
-                  style: TextStyle(color: blue),
-                ),
+                label: const Text('Ajouter une expérience',
+                    style: TextStyle(color: blue)),
               ),
 
               const SizedBox(height: 20),
 
-              // 🔍 Live Preview (optional)
+              // Preview
               if (controllers.any((c) => c.text.trim().isNotEmpty)) ...[
                 const Text(
-                  'Preview:',
+                  'Aperçu :',
                   style: TextStyle(
                       color: white, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
@@ -3109,25 +3371,24 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: controllers
                         .where((c) => c.text.trim().isNotEmpty)
-                        .map((c) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.circle,
-                                      color: blue, size: 6),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      c.text.trim(),
-                                      style: const TextStyle(
-                                        color: white_gray,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ))
+                        .map(
+                          (c) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.circle, color: blue, size: 6),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    c.text.trim(),
+                                    style: const TextStyle(
+                                        color: white_gray, fontSize: 14),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
                         .toList(),
                   ),
                 ),
@@ -3135,13 +3396,12 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
 
               const SizedBox(height: 25),
 
-              // ✅ Save
+              // Save
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: blue,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                      borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 onPressed: () {
@@ -3152,14 +3412,11 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
                   widget.onSave(updated);
                   Navigator.pop(context);
                 },
-                child: const Text(
-                  'Save',
-                  style: TextStyle(
-                    color: white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
+                child: const Text('Enregistrer',
+                    style: TextStyle(
+                        color: white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16)),
               ),
             ],
           ),
@@ -3604,6 +3861,18 @@ class _ContactInfoSectionState extends State<ContactInfoSection> {
     super.initState();
     phone = widget.phoneNumber;
     address = widget.address;
+  }
+
+  @override
+  void didUpdateWidget(covariant ContactInfoSection old) {
+    super.didUpdateWidget(old);
+    if (old.phoneNumber != widget.phoneNumber ||
+        old.address != widget.address) {
+      setState(() {
+        phone = widget.phoneNumber;
+        address = widget.address;
+      });
+    }
   }
 
   void _openEditModal() {
