@@ -534,10 +534,14 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
       Navigator.of(context).pop(); // Close loading
 
       if (response.statusCode == 200) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('cv_complete', true);
         showSuccessCheckPopup(); // ✅ Success animation
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) Navigator.of(context).pop();
       } else {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('cv_complete', false);
         showUploadPopup(context, errorMessage: "Error saving CV");
       }
     } catch (e) {
@@ -2753,20 +2757,86 @@ class _EditStartDateSheetState extends State<EditStartDateSheet> {
 }
 
 const List<String> allSoftSkills = [
-  'Communication', 'Teamwork', 'Adaptability', 'Problem-solving',
-  'Critical thinking', 'Time management', 'Work ethic', 'Creativity',
-  'Emotional intelligence', 'Leadership', 'Responsibility', 'Decision making',
-  'Conflict resolution', 'Flexibility', 'Organization', 'Empathy',
-  'Collaboration', 'Stress management', 'Multitasking', 'Self-motivation',
-  'Listening', 'Accountability', 'Persuasion', 'Negotiation',
-  'Patience', 'Confidence', 'Delegation', 'Initiative', 'Attention to detail',
-  'Public speaking', 'Positive attitude', 'Active learning',
+  'Communication',
+  'Teamwork',
+  'Adaptability',
+  'Problem-solving',
+  'Critical thinking',
+  'Time management',
+  'Work ethic',
+  'Creativity',
+  'Emotional intelligence',
+  'Leadership',
+  'Responsibility',
+  'Decision making',
+  'Conflict resolution',
+  'Flexibility',
+  'Organization',
+  'Empathy',
+  'Collaboration',
+  'Stress management',
+  'Multitasking',
+  'Self-motivation',
+  'Listening',
+  'Accountability',
+  'Persuasion',
+  'Negotiation',
+  'Patience',
+  'Confidence',
+  'Delegation',
+  'Initiative',
+  'Attention to detail',
+  'Public speaking',
+  'Positive attitude',
+  'Active learning',
   'Strategic thinking',
-  'Constructive feedback', 'Giving feedback', 'Coaching', 'Mentoring',
-  'Discipline', 'Cultural awareness', 'Resourcefulness', 'Integrity',
-  'Goal-setting', 'Self-awareness', 'Curiosity', 'Non-verbal communication',
-  'Humility', 'Respectfulness', 'Inclusivity', 'Receptiveness',
-  // 🔥 Add more to make it 100+ — this is already premium-tier.
+  'Constructive feedback',
+  'Giving feedback',
+  'Coaching',
+  'Mentoring',
+  'Discipline',
+  'Cultural awareness',
+  'Resourcefulness',
+  'Integrity',
+  'Goal-setting',
+  'Self-awareness',
+  'Curiosity',
+  'Non-verbal communication',
+  'Humility',
+  'Respectfulness',
+  'Inclusivity',
+  'Receptiveness',
+  'Mindfulness',
+  'Self-regulation',
+  'Stress tolerance',
+  'Analytical skills',
+  'Digital literacy',
+  'Networking',
+  'Facilitation',
+  'Service orientation',
+  'Relationship building',
+  'Diplomacy',
+  'Assertiveness',
+  'Boundary setting',
+  'Change management',
+  'Persuasive writing',
+  'Storytelling',
+  'Visioning',
+  'Influencing',
+  'Crisis management',
+  'Customer empathy',
+  'Ethical judgment',
+  'Risk assessment',
+  'Process improvement',
+  'Quality orientation',
+  'Global mindset',
+  'Social responsibility',
+  'Data-driven decision making',
+  'Resilience',
+  'Tolerance for ambiguity',
+  'Systems thinking',
+  'Design thinking',
+  'Problem identification',
 ];
 
 class AvailabilitySection extends StatefulWidget {

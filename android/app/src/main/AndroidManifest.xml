@@ -60,5 +60,8 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-    </application>
+    </application><uses-feature
+  android:glEsVersion="0x00020000"
+  android:required="true"/>
+
 </manifest>

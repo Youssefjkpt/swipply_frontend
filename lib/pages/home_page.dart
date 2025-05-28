@@ -280,6 +280,11 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<bool> _checkCvComplete() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('cv_complete') ?? false;
+  }
+
   List<String> _safeDecodeStringifiedSet(dynamic data) {
     if (data == null || data.toString().isEmpty) return [];
 
@@ -868,9 +873,10 @@ class _HomePageState extends State<HomePage> {
                                   cardsCount: jobs.length,
                                   onSwipe: (int previousIndex, int? targetIndex,
                                       CardSwiperDirection direction) async {
-                                    if (!isCvComplete) {
+                                    final cvOK = await _checkCvComplete();
+                                    if (!cvOK) {
                                       await showCustomCVDialog();
-                                      return false;
+                                      return false; // block the swipe immediately
                                     }
                                     if (direction ==
                                         CardSwiperDirection.right) {
@@ -1689,32 +1695,40 @@ class _HomePageState extends State<HomePage> {
                             height: 10,
                           ),
                           education.isNotEmpty
-                              ? Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: education.map((item) {
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 4, horizontal: 10),
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            '• ',
-                                            style: TextStyle(
-                                                color: white, fontSize: 12),
+                              ? ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxHeight:
+                                        MediaQuery.of(context).size.height *
+                                            0.1, // your desired cap
+                                  ),
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: education.map((item) {
+                                        return Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 4, horizontal: 10),
+                                          child: Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              const Text('• ',
+                                                  style: TextStyle(
+                                                      color: white,
+                                                      fontSize: 12)),
+                                              Expanded(
+                                                child: Text(item,
+                                                    style: const TextStyle(
+                                                        color: white,
+                                                        fontSize: 12)),
+                                              ),
+                                            ],
                                           ),
-                                          Expanded(
-                                            child: Text(
-                                              item,
-                                              style: const TextStyle(
-                                                  color: white, fontSize: 12),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  }).toList(),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
                                 )
                               : const Padding(
                                   padding: EdgeInsets.symmetric(horizontal: 10),

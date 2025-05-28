@@ -93,13 +93,60 @@ class _JobInformationsState extends State<JobInformations> {
     }
   }
 
+  Widget _buildMap() {
+    final height = _expandedMap ? 350.0 : 180.0;
+    if (_isGeocoding || _jobLatLng == null) {
+      return SizedBox(
+        height: height,
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: SizedBox(
+        height: height,
+        width: double.infinity,
+        child: GoogleMap(
+          initialCameraPosition: CameraPosition(
+            target: _jobLatLng!,
+            zoom: 12,
+          ),
+          onMapCreated: (controller) {
+            _mapController.complete(controller);
+          },
+          onCameraIdle: () => debugPrint('✅ camera idle at $_jobLatLng'),
+          markers: {
+            Marker(
+              markerId: const MarkerId("jobLocation"),
+              position: _jobLatLng!,
+              infoWindow: InfoWindow(
+                title: widget.job["company_name"] ?? "Company",
+                snippet: widget.job["location"] ?? "",
+              ),
+            ),
+          },
+          zoomGesturesEnabled: true,
+          scrollGesturesEnabled: true,
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     super.dispose();
   }
 
   @override
+  void initState() {
+    super.initState();
+    _resolveLocation();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    print("📍 Resolved “${widget.job["location"]}” to $_jobLatLng");
     final List<String> responsibilities = (widget.job["requirements"] is List)
         ? List<String>.from(widget.job["requirements"])
         : [];
@@ -188,15 +235,18 @@ class _JobInformationsState extends State<JobInformations> {
                           ],
                         ),
                         SizedBox(height: height * 0.04),
-                        Center(
-                          child: Text(
-                            widget.job["title"] ?? "Unknown",
-                            style: const TextStyle(
-                              color: white,
-                              fontSize: 26,
-                              fontWeight: FontWeight.w600,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Center(
+                            child: Text(
+                              widget.job["title"] ?? "Unknown",
+                              style: const TextStyle(
+                                color: white,
+                                fontSize: 26,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
                           ),
                         ),
                         const SizedBox(height: 5),

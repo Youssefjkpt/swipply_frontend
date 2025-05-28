@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "463526138738-9l42lnphflu37ogl0mmuu8ea3afb31kn.apps.googleusercontent.com",
+          "client_id": "463526138738-tauogto08nnf8k6onkinoe9ule7ng5o7.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.revoluxe.swipply",
-            "certificate_hash": "e33c4976cce9b989884b08fedf3dd3c54908c4c4"
+            "certificate_hash": "19d7584a88d8525ada748059dbe8c0c2ab7b55ac"
           }
         },
         {
@@ -39,10 +39,10 @@
               "client_type": 3
             },
             {
-              "client_id": "463526138738-cg9pr9enr77u0v463g5jvq2p9o3jl38s.apps.googleusercontent.com",
+              "client_id": "463526138738-k1pcbkdhiajjv89pa5q5i5r37fkgouml.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.youssef.swipply"
+                "bundle_id": "com.revoluxe.swipply"
               }
             }
           ]

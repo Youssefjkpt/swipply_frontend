@@ -8,9 +8,10 @@ import 'package:swipply/constants/images.dart';
 import 'dart:convert';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
-import 'package:swipply/pages/gold_purchase_plan.dart';
 import 'package:swipply/pages/main_layout.dart';
 import 'package:swipply/pages/sign_in.dart';
+import 'package:swipply/widgets/check_mark_green_design.dart';
+import 'package:swipply/widgets/loading.dart';
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
@@ -19,7 +20,7 @@ class SignUp extends StatefulWidget {
   _SignUpState createState() => _SignUpState();
 }
 
-class _SignUpState extends State<SignUp> {
+class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -82,7 +83,8 @@ class _SignUpState extends State<SignUp> {
           jsonResponse['user']['user_id'].toString(),
           jsonResponse['token'],
         );
-
+        showSuccessCheckPopup();
+        await Future.delayed(const Duration(seconds: 2));
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => MainLayout()),
@@ -138,7 +140,8 @@ class _SignUpState extends State<SignUp> {
         if (response.statusCode == 201) {
           await saveUserSession(
               jsonResponse['user_id'].toString(), jsonResponse['token'] ?? '');
-
+          showSuccessCheckPopup();
+          await Future.delayed(const Duration(seconds: 2));
           Navigator.pushReplacement(
               context, MaterialPageRoute(builder: (_) => MainLayout()));
         } else {
@@ -157,6 +160,50 @@ class _SignUpState extends State<SignUp> {
     }
   }
 
+  void showSuccessCheckPopup() {
+    _checkmarkController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) {
+        return Center(
+          child: Container(
+            width: 100,
+            height: 100,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: AnimatedBuilder(
+              animation: _checkmarkController,
+              builder: (_, __) => CustomPaint(
+                painter: CheckMarkPainter(_checkmarkController),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    // Start the animation after dialog is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkmarkController.forward(from: 0);
+    });
+
+    // Close the dialog after 3 seconds
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
+  late AnimationController _checkmarkController;
   void showLoadingPopup(BuildContext context) {
     showDialog(
       context: context,
