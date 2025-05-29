@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:open_file/open_file.dart';
 import 'package:http/http.dart' as http;
@@ -754,8 +756,12 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.warning_amber_rounded,
-                  color: Color(0xFFFFC107), size: 40),
+              Transform.scale(
+                scale: 1.5, // Increase the scale factor as needed
+                child: Lottie.asset(
+                  warningicon,
+                ),
+              ),
               const SizedBox(height: 20),
               const Text(
                 "Incomplete Fields",
@@ -773,17 +779,26 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00C2C2),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: MediaQuery.of(context).size.width,
+                    decoration: BoxDecoration(
+                        color: Color(0xFF00C2C2),
+                        borderRadius: BorderRadius.circular(12)),
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: const Text("OK",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ),
                 ),
-                onPressed: () => Navigator.pop(context),
-                child: const Text("OK",
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600)),
               )
             ],
           ),
@@ -1770,6 +1785,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                         context, incompleteFields.toList());
                     return;
                   }
+                  await saveCV();
                 },
                 child: Container(
                   width: width,
