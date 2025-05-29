@@ -62,6 +62,8 @@ class _ApplicationsInProgressPageState extends State<ApplicationsInProgressPage>
                   (app['application_status']?.toString() ?? ''),
             };
           }).toList();
+          print('Response body: ${resp.body}');
+
           isLoading = false;
         });
       } else {
@@ -75,10 +77,9 @@ class _ApplicationsInProgressPageState extends State<ApplicationsInProgressPage>
   @override
   Widget build(BuildContext context) {
     // 1) filter only initializing/pending jobs
-    final pending = _applications.where((app) {
-      final status = app['application_status'].toString().toLowerCase();
-      return status.contains('initial') || status.contains('pending');
-    }).toList();
+
+    final pending = _applications;
+
     final progresses = _applications
         .map((app) => (app['progress_status'] as int).clamp(0, 100))
         .toList();

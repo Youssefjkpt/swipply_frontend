@@ -567,6 +567,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
   List<Map<String, dynamic>> certificates = [];
   String userEmail = '';
   String userPhone = '';
+  final Set<String> incompleteFields = {};
 
   String? selectedFileName = 'Upload a Doc/Docx/PDF';
   Map<String, List<String>> weeklyAvailability = {};
@@ -739,6 +740,126 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> showIncompleteFieldsDialog(
+      BuildContext context, List<String> fields) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        backgroundColor: const Color.fromARGB(255, 27, 27, 27),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          constraints: const BoxConstraints(minHeight: 200),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.warning_amber_rounded,
+                  color: Color(0xFFFFC107), size: 40),
+              const SizedBox(height: 20),
+              const Text(
+                "Incomplete Fields",
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "Please complete the following fields:\n\n${fields.join(', ')}",
+                style: const TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00C2C2),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text("OK",
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w600)),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> showMissingFieldsDialog(
+      BuildContext context, Set<String> fields) async {
+    final String formattedFields = missingFields.map((f) => "• $f").join('\n');
+
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: const Color.fromARGB(255, 27, 27, 27),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            constraints: const BoxConstraints(minHeight: 200),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.warning_amber_rounded,
+                    color: Color(0xFFFFC107), size: 40),
+                const SizedBox(height: 20),
+                const Text(
+                  "CV Incomplete",
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Please fill in the following fields before saving:\n\n$formattedFields",
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFFCCCCCC),
+                  ),
+                  textAlign: TextAlign.left,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      backgroundColor: const Color(0xFF2B2B2B),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      "OK",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   List<Map<String, String>> parsedExperiences = [];
 
   bool _showCheckPopup = false;
@@ -806,7 +927,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
         onSave: (newList) {
           Navigator.pop(context, newList);
         },
-        educations: [],
+        educations: educations,
       ),
     );
     if (updated != null) {
@@ -1302,7 +1423,23 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                   showAll: _showAllEdu,
                   onToggleShowAll: () =>
                       setState(() => _showAllEdu = !_showAllEdu),
-                  onEdit: _openEditEducationSheet,
+                  onEdit: () async {
+                    final updated = await showModalBottomSheet<List<String>>(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => EditEducationSheet(
+                        educations: educations,
+                        onSave: (_) {}, // not used anymore
+                      ),
+                    );
+
+                    if (updated != null) {
+                      setState(() {
+                        educations = updated;
+                      });
+                    }
+                  },
                 ),
                 const SizedBox(
                   height: 15,
@@ -1610,7 +1747,29 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
               padding: const EdgeInsets.only(left: 30, right: 30, bottom: 20),
               child: GestureDetector(
                 onTap: () async {
-                  await saveCV();
+                  final Set<String> incompleteFields = {};
+
+                  incompleteFields.clear();
+
+                  if (selectedLanguages.isEmpty)
+                    incompleteFields.add("Languages");
+                  if ((resumeController?.text.trim().isEmpty ?? true))
+                    incompleteFields.add("Resume");
+                  if (experiences.isEmpty) incompleteFields.add("Experience");
+                  if (educations.isEmpty) incompleteFields.add("Education");
+                  if (selectedInterests.isEmpty)
+                    incompleteFields.add("Interests");
+                  if (softSkills.isEmpty) incompleteFields.add("Soft Skills");
+                  if ((phone?.trim().isEmpty ?? true))
+                    incompleteFields.add("Phone Number");
+                  if ((address?.trim().isEmpty ?? true))
+                    incompleteFields.add("Address");
+
+                  if (incompleteFields.isNotEmpty) {
+                    await showIncompleteFieldsDialog(
+                        context, incompleteFields.toList());
+                    return;
+                  }
                 },
                 child: Container(
                   width: width,

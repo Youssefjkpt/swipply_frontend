@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipply/constants/images.dart';
 import 'dart:convert';
@@ -33,6 +34,13 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
   bool _isLoading = false;
   String? _errorMessage;
   String _passwordStrength = "";
+  String? _emailError;
+  String? _passwordError;
+  String? _confirmPasswordError;
+  String? _serverError;
+  void _togglePasswordVisibility() {
+    setState(() => _isPasswordVisible = !_isPasswordVisible);
+  }
 
   Future<void> saveUserSession(String userId, String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -50,114 +58,190 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
     print("Users in Database: ${response.body}");
   }
 
-  Future<void> _signUpWithGoogle() async {
+  String? _validateEmail(String value) {
+    final emailRx = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (value.trim().isEmpty) return 'Email requis';
+    if (!emailRx.hasMatch(value)) return 'Email invalide';
+    return null;
+  }
+
+  String? _validatePassword(String value) {
+    if (value.trim().isEmpty) return 'Mot de passe requis';
+    if (value.length < 6) return 'Minimum 6 caractères';
+    return null;
+  }
+
+  /* --------------------------------------------------------------------------
+ * 1.  SIGN-UP  (email / password)
+ * --------------------------------------------------------------------------*/
+  Future<void> _signUp() async {
+    //-- local validation ------------------------------------------------------
+    setState(() {
+      _errorMessage = null;
+      _emailError = _validateEmail(_emailController.text);
+      _passwordError = _validatePassword(_passwordController.text);
+      _confirmPasswordError =
+          (_passwordController.text != _confirmPasswordController.text)
+              ? 'Les mots de passe ne correspondent pas'
+              : null;
+      _isLoading = true;
+    });
+
+    if (_emailError != null ||
+        _passwordError != null ||
+        _confirmPasswordError != null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    /* ---- server request --------------------------------------------------- */
+    showLoadingPopup(context);
+
+    final body = jsonEncode({
+      'full_name': _nameController.text.trim(),
+      'email': _emailController.text.trim(),
+      'phone_number': '0000000000',
+      'password': _passwordController.text.trim(),
+    });
+
     try {
-      showLoadingPopup(context);
-
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        clientId:
-            '463526138738-v3ejoh5jdfd4pr1e90s58mksbak9cbdf.apps.googleusercontent.com',
+      final res = await http.post(
+        Uri.parse('$BASE_URL_AUTH/api/signup'),
+        headers: {'Content-Type': 'application/json'},
+        body: body,
       );
-
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      if (googleUser == null) {
-        hideLoadingPopup(context);
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      final response = await http.post(
-        Uri.parse('$BASE_URL_JOBS/auth/google'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"token": googleAuth.idToken}),
-      );
-
-      final jsonResponse = jsonDecode(response.body);
-
       hideLoadingPopup(context);
 
-      if (response.statusCode == 200) {
-        await saveUserSession(
-          jsonResponse['user']['user_id'].toString(),
-          jsonResponse['token'],
-        );
+      final data = jsonDecode(res.body);
+
+      if (res.statusCode == 201 && data?['token'] != null) {
+        await saveUserSession(data['user_id'].toString(), data['token']);
+
         showSuccessCheckPopup();
         await Future.delayed(const Duration(seconds: 2));
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => MainLayout()),
         );
       } else {
-        setState(() {
-          _errorMessage = jsonResponse["error"] ?? "Google Sign-In Failed";
-        });
+        showErrorDialog(
+          context,
+          'Erreur',
+          data?['error'] ?? 'Une erreur est survenue. Veuillez réessayer.',
+        );
       }
     } catch (e) {
       hideLoadingPopup(context);
-      setState(() {
-        _errorMessage = "Error during Google Sign-In";
-      });
+      showErrorDialog(
+        context,
+        'Erreur réseau',
+        'Veuillez vérifier votre connexion internet et réessayer.',
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _signUp() async {
-    if (_formKey.currentState!.validate()) {
-      if (_passwordController.text.trim() !=
-          _confirmPasswordController.text.trim()) {
-        setState(() {
-          _errorMessage = "Les mots de passe ne correspondent pas.";
-        });
+/* --------------------------------------------------------------------------
+ * 2.  SIGN-UP  WITH  GOOGLE
+ * --------------------------------------------------------------------------*/
+  Future<void> _signUpWithGoogle() async {
+    try {
+      showLoadingPopup(context);
+
+      final googleUser = await GoogleSignIn(
+        clientId:
+            '463526138738-v3ejoh5jdfd4pr1e90s58mksbak9cbdf.apps.googleusercontent.com',
+      ).signIn();
+
+      if (googleUser == null) {
+        hideLoadingPopup(context); // user aborted
         return;
       }
-      showLoadingPopup(context);
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
 
-      final requestBody = jsonEncode({
-        "full_name": _nameController.text.trim(),
-        "email": _emailController.text.trim(),
-        "phone_number": "0000000000",
-        "password": _passwordController.text.trim(),
-      });
+      final googleAuth = await googleUser.authentication;
 
-      try {
-        var response = await http.post(
-          Uri.parse('$BASE_URL_AUTH/api/signup'),
-          headers: {"Content-Type": "application/json"},
-          body: requestBody,
+      final res = await http.post(
+        Uri.parse('$BASE_URL_JOBS/auth/google'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'token': googleAuth.idToken}),
+      );
+
+      hideLoadingPopup(context);
+      final data = jsonDecode(res.body);
+
+      if (res.statusCode == 200 && data?['token'] != null) {
+        await saveUserSession(
+            data['user']['user_id'].toString(), data['token']);
+
+        showSuccessCheckPopup();
+        await Future.delayed(const Duration(seconds: 2));
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => MainLayout()),
         );
-
-        print("📦 Signup response status: ${response.statusCode}");
-        print("📦 Signup response body: ${response.body}");
-
-        final jsonResponse = jsonDecode(response.body);
-        print("🧠 JSON: $jsonResponse");
-
-        if (response.statusCode == 201) {
-          await saveUserSession(
-              jsonResponse['user_id'].toString(), jsonResponse['token'] ?? '');
-          showSuccessCheckPopup();
-          await Future.delayed(const Duration(seconds: 2));
-          Navigator.pushReplacement(
-              context, MaterialPageRoute(builder: (_) => MainLayout()));
-        } else {
-          setState(() {
-            _errorMessage = jsonResponse["error"] ?? "Erreur inconnue.";
-          });
-        }
-      } catch (e) {
-        print("❌ Signup error (exception): $e");
-        setState(() {
-          _errorMessage = "Erreur de connexion au serveur.";
-        });
+      } else {
+        showErrorDialog(
+          context,
+          'Erreur',
+          data?['error'] ??
+              "Échec de l'inscription avec Google. Veuillez réessayer.",
+        );
       }
-
-      setState(() => _isLoading = false);
+    } catch (e) {
+      hideLoadingPopup(context);
+      final isNetwork = e.toString().contains('SocketException');
+      showErrorDialog(
+        context,
+        'Erreur réseau',
+        isNetwork
+            ? "Veuillez vérifier votre connexion internet et réessayer."
+            : "Échec de l'inscription avec Google. Veuillez réessayer.",
+      );
     }
+  }
+
+  void showErrorDialog(BuildContext context, String title, [String? message]) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: blue_gray,
+        title: Row(
+          children: [
+            Transform.scale(
+              scale: 1.5, // Increase the scale factor as needed
+              child: Lottie.asset(
+                warningicon,
+              ),
+            ),
+            SizedBox(
+              width: 10,
+            ),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold, color: white),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message ?? 'Une erreur est survenue. Veuillez réessayer.',
+          style: const TextStyle(fontSize: 16, color: white),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Fermer", style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      ),
+    );
   }
 
   void showSuccessCheckPopup() {
@@ -279,19 +363,34 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
                       const SizedBox(height: 15),
                       _buildInputField("Adresse e-mail", "Entrez votre e-mail",
                           _emailController),
+                      if (_emailError != null) // <-- NEW
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            _emailError!,
+                            style: const TextStyle(
+                                color: Colors.red, fontSize: 13),
+                          ),
+                        ),
                       const SizedBox(height: 15),
                       _buildPasswordField(
                         "Mot de passe",
                         "Entrez votre mot de passe",
                         _passwordController,
                         _isPasswordVisible,
-                        () {
-                          setState(() {
-                            _isPasswordVisible = !_isPasswordVisible;
-                          });
-                        },
+                        () => setState(
+                            () => _isPasswordVisible = !_isPasswordVisible),
                         _checkPasswordStrength,
                       ),
+                      if (_passwordError != null) // <-- NEW
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            _passwordError!,
+                            style: const TextStyle(
+                                color: Colors.red, fontSize: 13),
+                          ),
+                        ),
                       // Padding(
                       //   padding: const EdgeInsets.only(top: 5),
                       //   child: Text(
@@ -320,6 +419,15 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
                         },
                         null,
                       ),
+                      if (_confirmPasswordError != null) // <-- NEW
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            _confirmPasswordError!,
+                            style: const TextStyle(
+                                color: Colors.red, fontSize: 13),
+                          ),
+                        ),
 
                       // Row(
                       //   children: [

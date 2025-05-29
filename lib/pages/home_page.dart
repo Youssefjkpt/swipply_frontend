@@ -884,13 +884,18 @@ class _HomePageState extends State<HomePage> {
                                       if (!allowed) {
                                         await showSwipeLimitReachedDialog(
                                             context);
-
-                                        return false;
+                                        return false; // ⛔️ block swipe before it happens
                                       }
+
+                                      // ✅ Swipe now, handle backend after
                                       final jobId =
                                           jobs[previousIndex]['job_id'];
-                                      await _autoRegisterAndApply(jobId);
-                                      await incrementLocalSwipeCount();
+
+                                      // Run post-swipe logic asynchronously
+                                      Future.microtask(() async {
+                                        await _autoRegisterAndApply(jobId);
+                                        await incrementLocalSwipeCount();
+                                      });
                                     }
 
                                     // ✅ allow swipe and continue

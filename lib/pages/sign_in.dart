@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:swipply/constants/images.dart';
@@ -73,22 +74,25 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
       _emailError = _validateEmail(_emailController.text);
       _passwordError = _validatePassword(_passwordController.text);
       _serverError = null;
+      _isLoading = true;
     });
 
-    if (_emailError == null && _passwordError == null) {
-      showLoadingPopup(context);
+    if (_emailError != null || _passwordError != null) {
+      setState(() => _isLoading = false);
+      return;
+    }
 
+    try {
+      showLoadingPopup(context);
       final result = await ApiService.signIn(
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
-
       hideLoadingPopup(context);
 
       if (result is Map<String, dynamic> && result.containsKey("token")) {
         final userId = result['user']['user_id'].toString();
         final token = result['token'];
-
         await saveUserSession(userId, token);
 
         if (!mounted) return;
@@ -100,12 +104,60 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
           context,
           MaterialPageRoute(builder: (_) => MainLayout()),
         );
-      } else if (result is String) {
-        setState(() => _serverError = result);
       } else {
-        setState(() => _serverError = "Erreur inattendue. Veuillez réessayer.");
+        final errorMessage = result is String
+            ? result
+            : "Une erreur est survenue. Veuillez réessayer.";
+        showErrorDialog(context, errorMessage);
       }
+    } catch (e) {
+      hideLoadingPopup(context);
+      showErrorDialog(
+          context, "Erreur réseau. Vérifiez votre connexion et réessayez.");
+    } finally {
+      setState(() => _isLoading = false);
     }
+  }
+
+  void showErrorDialog(BuildContext context, String title, [String? message]) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: blue_gray,
+        title: Row(
+          children: [
+            Transform.scale(
+              scale: 1.5, // Increase the scale factor as needed
+              child: Lottie.asset(
+                warningicon,
+              ),
+            ),
+            SizedBox(
+              width: 10,
+            ),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold, color: white),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message ?? 'Une erreur est survenue. Veuillez réessayer.',
+          style: const TextStyle(fontSize: 16, color: white),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Fermer", style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      ),
+    );
   }
 
   String? _validateEmail(String email) {
@@ -125,7 +177,6 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
   Future<void> _signInWithGoogle() async {
     try {
       showLoadingPopup(context);
-
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
       if (googleUser == null) {
@@ -156,18 +207,19 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
 
         showSuccessCheckPopup();
         await Future.delayed(const Duration(seconds: 2));
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => MainLayout()),
         );
       } else {
-        setState(() {});
+        showErrorDialog(
+            context, "Échec de l’authentification Google. Veuillez réessayer.");
       }
-    } catch (e, stack) {
+    } catch (e) {
       hideLoadingPopup(context);
-      print("🔥 Error in Google Sign-In: $e");
-      print("📌 StackTrace: $stack");
-      setState(() {});
+      showErrorDialog(context,
+          "Erreur réseau lors de la connexion Google. Vérifiez votre connexion et réessayez.");
     }
   }
 
@@ -423,7 +475,56 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
   }
 
   Widget _buildPasswordField() {
-    return _buildInputField(
-        "Enter your password", _passwordController, _passwordError);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+                color: _passwordError == null ? gray : Colors.red, width: 2),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _passwordController,
+                    style: const TextStyle(color: white, fontSize: 16),
+                    cursorColor: blue,
+                    obscureText: !_isPasswordVisible,
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    decoration: const InputDecoration(
+                      hintText: "Enter your password",
+                      hintStyle: TextStyle(color: gray, fontSize: 16),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: _togglePasswordVisibility,
+                  child: Icon(
+                    _isPasswordVisible
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                    color: gray,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_passwordError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: Text(
+              _passwordError!,
+              style: const TextStyle(color: Colors.red, fontSize: 14),
+            ),
+          ),
+      ],
+    );
   }
 }

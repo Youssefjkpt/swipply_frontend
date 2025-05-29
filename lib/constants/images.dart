@@ -10,3 +10,4 @@ const mcdo_logo = 'assets/mcdo_logo.png';
 const swipply = 'assets/Swipply (3).png';
 const applying = 'assets/Animation - 1748036315050.json';
 const warning = 'assets/Animation - 1748074652183.json';
+const warningicon = 'assets/Animation - 1748488885285.json';

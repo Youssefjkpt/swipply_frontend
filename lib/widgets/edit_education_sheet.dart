@@ -87,7 +87,7 @@ class _EditEducationSheetState extends State<EditEducationSheet> {
               ),
               const SizedBox(height: 15),
               const Text(
-                'Edit Experiences',
+                'Edit Education',
                 style: TextStyle(
                   color: white,
                   fontSize: 18,
@@ -108,7 +108,7 @@ class _EditEducationSheetState extends State<EditEducationSheet> {
                           maxLines: null,
                           style: const TextStyle(color: white),
                           decoration: InputDecoration(
-                            hintText: 'Experience ${index + 1}',
+                            hintText: 'Education ${index + 1}',
                             hintStyle: const TextStyle(color: white_gray),
                             filled: true,
                             fillColor: black_gray,
@@ -136,7 +136,7 @@ class _EditEducationSheetState extends State<EditEducationSheet> {
                 onPressed: _addExperience,
                 icon: const Icon(Icons.add, color: blue),
                 label: const Text(
-                  'Add Experience',
+                  'Add Education',
                   style: TextStyle(color: blue),
                 ),
               ),
@@ -201,8 +201,7 @@ class _EditEducationSheetState extends State<EditEducationSheet> {
                       .map((c) => c.text.trim())
                       .where((text) => text.isNotEmpty)
                       .toList();
-                  widget.onSave(updated);
-                  Navigator.pop(context);
+                  Navigator.pop(context, updated);
                 },
                 child: const Text(
                   'Save',

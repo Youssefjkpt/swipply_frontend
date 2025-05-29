@@ -73,6 +73,27 @@ class ApiService {
     }
   }
 
+  Future<dynamic> signUp(String name, String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$BASE_URL_AUTH/api/signup'),
+        body: {
+          'name': name,
+          'email': email,
+          'password': password,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        return 'Échec de l’inscription. Veuillez réessayer.';
+      }
+    } catch (e) {
+      return 'Erreur réseau. Vérifiez votre connexion.';
+    }
+  }
+
   static Future<dynamic> getUsers() async {
     final response = await http.get(Uri.parse('$baseUrlAuth/users'));
     return _handleResponse(response);

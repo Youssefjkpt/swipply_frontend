@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "C:/Users/test/Desktop/swipply/linux"
+    "cmake.sourceDirectory": "C:/Users/test/Desktop/swipply/linux",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }
