@@ -226,10 +226,8 @@ class _HomePageState extends State<HomePage> {
     );
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      print("🟡 Swipe response: $data");
       return data['success'] == true;
     } else {
-      print("❌ Swipe failed: ${response.statusCode} - ${response.body}");
       return false;
     }
   }
@@ -312,9 +310,7 @@ class _HomePageState extends State<HomePage> {
       } else if (data is List) {
         return List<String>.from(data.map((e) => e.toString()));
       }
-    } catch (e) {
-      print('❌ Decode error: $e');
-    }
+    } catch (e) {}
 
     return [];
   }
@@ -381,7 +377,7 @@ class _HomePageState extends State<HomePage> {
                     color: Color(0xFFFF4C4C), size: 40),
                 const SizedBox(height: 20),
                 const Text(
-                  "Daily Limit Reached",
+                  "Limite quotidienne atteinte",
                   style: TextStyle(
                     fontSize: 20,
                     color: Colors.white,
@@ -391,7 +387,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  "You've reached your daily swipe limit.\nUpgrade your plan to unlock unlimited swipes.",
+                  "Vous avez atteint votre quota quotidien de swipes.\nAméliorez votre offre pour bénéficier de swipes illimités.",
                   style: TextStyle(
                     fontSize: 14,
                     color: Color(0xFFCCCCCC),
@@ -421,7 +417,7 @@ class _HomePageState extends State<HomePage> {
                           );
                         },
                         child: const Text(
-                          "Upgrade Plan",
+                          "Améliorer l'offre",
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -441,7 +437,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         onPressed: () => Navigator.pop(context),
                         child: const Text(
-                          "Cancel",
+                          "Annuler",
                           style: TextStyle(
                             fontWeight: FontWeight.w500,
                             color: Colors.white70,
@@ -478,7 +474,7 @@ class _HomePageState extends State<HomePage> {
                     color: Color(0xFFFFC107), size: 40),
                 const SizedBox(height: 20),
                 const Text(
-                  "Complete your CV",
+                  "Complétez votre CV",
                   style: TextStyle(
                     fontSize: 20,
                     color: Colors.white,
@@ -488,7 +484,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  "To apply for jobs or personalize your CV, please finish setting up your profile.",
+                  "Pour postuler ou personnaliser votre CV, veuillez terminer la configuration de votre profil.",
                   style: TextStyle(
                     fontSize: 14,
                     color: Color(0xFFCCCCCC),
@@ -514,7 +510,7 @@ class _HomePageState extends State<HomePage> {
                             MaterialPageRoute(builder: (context) => const CV()),
                           );
                         },
-                        child: const Text("Go to CV",
+                        child: const Text("Aller au CV",
                             style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white)),
@@ -531,7 +527,7 @@ class _HomePageState extends State<HomePage> {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         onPressed: () => Navigator.pop(context),
-                        child: const Text("Cancel",
+                        child: const Text("Annuler",
                             style: TextStyle(
                                 fontWeight: FontWeight.w500,
                                 color: Colors.white70)),
@@ -571,9 +567,7 @@ class _HomePageState extends State<HomePage> {
           SnackBar(content: Text("Failed: ${response.statusCode}")),
         );
       }
-    } catch (e) {
-      print("❌ Error during auto-apply: $e");
-    }
+    } catch (e) {}
   }
 
   Future<void> _personalizeCv(String jobId) async {
@@ -646,7 +640,7 @@ class _HomePageState extends State<HomePage> {
                       color: Color(0xFFFF4C4C), size: 40),
                   const SizedBox(height: 20),
                   const Text(
-                    "Upgrade to Unlock",
+                    "Upgrade pour débloquer",
                     style: TextStyle(
                       fontSize: 20,
                       color: Colors.white,
@@ -656,7 +650,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    "You’ve reached your daily limit for personalized CVs.\nUpgrade your plan to continue personalizing.",
+                    "Limite quotidienne atteinte pour les CV personnalisés.\nUpgrade pour continuer la personnalisation.",
                     style: TextStyle(
                       fontSize: 14,
                       color: Color(0xFFCCCCCC),
@@ -682,7 +676,7 @@ class _HomePageState extends State<HomePage> {
                                     builder: (context) =>
                                         const FullSubscriptionPage()));
                           },
-                          child: const Text("Upgrade Plan",
+                          child: const Text("Améliorer l'offre",
                               style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white)),
@@ -699,7 +693,7 @@ class _HomePageState extends State<HomePage> {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           onPressed: () => Navigator.pop(context),
-                          child: const Text("Cancel",
+                          child: const Text("Annuler",
                               style: TextStyle(
                                   fontWeight: FontWeight.w500,
                                   color: Colors.white70)),
@@ -753,7 +747,6 @@ class _HomePageState extends State<HomePage> {
           address = userData['address'];
           email = userData['email'];
           phone = userData['phone_number'];
-          print('Raw education field: ${empData['education']}');
 
           resume = empData['resume'];
           education = empData['education'] is List
@@ -769,13 +762,7 @@ class _HomePageState extends State<HomePage> {
           certificates = empData['certificates'] ?? [];
           skillsAndProficiency = empData['skills_and_proficiency'] ?? [];
         });
-        print("Education Raw Data: ${empData['education']}");
-        print("Fetched User Data: $userData");
-        print("Fetched Employee Data: $empData");
-
-        print("Parsed Education: $education");
       } catch (e) {
-        print('❌ Error during profile parsing: $e');
       } finally {
         if (mounted) {
           setState(() {
@@ -783,9 +770,7 @@ class _HomePageState extends State<HomePage> {
           });
         }
       }
-    } else {
-      print("❌ Error fetching profile: ${userRes.body} | ${empRes.body}");
-    }
+    } else {}
   }
 
   void _fetchJobs() async {
@@ -801,7 +786,6 @@ class _HomePageState extends State<HomePage> {
         _expandedMaps[i] = false;
       }
     } catch (e) {
-      print("❌ Failed to fetch jobs: $e");
       setState(() => isLoading = false);
     }
   }
@@ -848,7 +832,7 @@ class _HomePageState extends State<HomePage> {
             ? const Center(child: CircularProgressIndicator())
             : jobs.isEmpty
                 ? const Center(
-                    child: Text("No jobs found.",
+                    child: Text("Aucune offre trouvée.",
                         style: TextStyle(color: Colors.white)))
                 : Stack(
                     children: [
@@ -1141,7 +1125,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildJobCard(int index) {
     bool isCurrentCard = index == _currentIndex;
-    final String salary = jobs[index]["salary"] ?? "Not specified";
+    final String salary = jobs[index]["salary"] ?? "Non précisé";
     final String contractType = jobs[index]["contract_type"] ?? "Non spécifié";
 
     return Stack(
@@ -1265,7 +1249,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  jobs[index]["title"] ?? "No Title",
+                  jobs[index]["title"] ?? "Titre indisponible",
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -1275,7 +1259,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 Text(
-                  jobs[index]["company_name"] ?? "Unknown",
+                  jobs[index]["company_name"] ?? "Inconnu ",
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -1305,9 +1289,9 @@ class _HomePageState extends State<HomePage> {
                             .toList()
                       else ...[
                         CategoryChip(
-                            label: jobs[index]["employment_type"] ?? "Unknown"),
+                            label: jobs[index]["employment_type"] ?? "Inconnu"),
                         CategoryChip(
-                            label: jobs[index]["contract_type"] ?? "Unknown"),
+                            label: jobs[index]["contract_type"] ?? "Inconnu"),
                       ],
                     ],
                   ),
@@ -1356,7 +1340,7 @@ class _HomePageState extends State<HomePage> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: Text(
-                    jobs[index]["description"] ?? "Unknown",
+                    jobs[index]["description"] ?? "Inconnu",
                     maxLines: 4,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -1614,8 +1598,6 @@ class _HomePageState extends State<HomePage> {
                                         );
                                       },
                                       errorBuilder: (_, __, ___) {
-                                        print(
-                                            "❌ Error loading image: $profileImageUrl");
                                         return const Icon(Icons.person,
                                             color: Colors.white, size: 34);
                                       },
@@ -1652,7 +1634,7 @@ class _HomePageState extends State<HomePage> {
                               const SizedBox(width: 5),
                               Expanded(
                                 child: Text(
-                                  phone ?? 'No phone',
+                                  phone ?? 'Aucun téléphone',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
@@ -1669,7 +1651,7 @@ class _HomePageState extends State<HomePage> {
                               const SizedBox(width: 5),
                               Expanded(
                                 child: Text(
-                                  email ?? 'No email',
+                                  email ?? 'Aucun e-mail',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
@@ -1682,7 +1664,7 @@ class _HomePageState extends State<HomePage> {
                             height: 20,
                           ),
                           const Text(
-                            'Education',
+                            'Formation',
                             style: TextStyle(
                                 color: white,
                                 fontSize: 16,
@@ -2395,9 +2377,7 @@ class _RingingBellButtonState extends State<RingingBellButton>
         context,
         MaterialPageRoute(builder: (context) => ApplicationsInProgressPage()),
       );
-    } catch (e, stack) {
-      print("❌ Ring bell error: $e\n$stack");
-    }
+    } catch (e, stack) {}
   }
 
   @override

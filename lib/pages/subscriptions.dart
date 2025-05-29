@@ -16,32 +16,36 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
 
   final List<Map<String, String>> features = [
     {
-      "title": "Preference job selection",
-      "description": "Choose job categories you prefer seeing first.",
+      "title": "Préférence de type d'emploi",
+      "description":
+          "Choisissez les catégories d'emploi que vous souhaitez voir en priorité.",
     },
     {
-      "title": "Filter by salary",
-      "description": "Only see jobs above your desired pay.",
+      "title": "Filtrer par salaire",
+      "description":
+          "Consultez uniquement les offres au-dessus de la rémunération souhaitée.",
     },
     {
-      "title": "1h AI auto-apply / day",
-      "description": "Let AI apply to jobs for 1 hour daily.",
+      "title": "Candidature automatique IA 1h/jour",
+      "description":
+          "Laissez l'IA postuler automatiquement pendant 1 heure chaque jour.",
     },
     {
-      "title": "Rewind likes/jobs",
-      "description": "Undo mistaken swipes.",
+      "title": "Annuler likes/offres",
+      "description": "Rétablissez les swipes effectués par erreur.",
     },
     {
-      "title": "Priority applications",
-      "description": "Your profile will be ranked higher to recruiters.",
+      "title": "Candidatures prioritaires",
+      "description": "Votre profil sera mieux classé auprès des recruteurs.",
     },
     {
-      "title": "No ads",
-      "description": "Enjoy a clean, uninterrupted experience.",
+      "title": "Aucune publicité",
+      "description": "Profitez d'une expérience fluide, sans interruption.",
     },
     {
-      "title": "Top job picks",
-      "description": "See the best matching jobs for your profile.",
+      "title": "Meilleures offres pour vous",
+      "description":
+          "Découvrez les emplois correspondant le mieux à votre profil.",
     },
   ];
 
@@ -74,9 +78,9 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
   ];
 
   final Map<String, List<int>> featureSections = {
-    "Basics": [0, 1],
-    "Enhance Your Experience": [2, 3],
-    "Go Pro": [4, 5, 6],
+    "Essentiels": [0, 1],
+    "Améliorez votre expérience": [2, 3],
+    "Passez Pro": [4, 5, 6],
   };
 
   Widget buildSection(String title, List<int> indexes, List<bool> included) {
@@ -182,7 +186,7 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
     } else {
       icon = Icons.workspace_premium;
       iconColor = Colors.white;
-      label = "FREE";
+      label = "GRATUIT";
     }
 
     return Padding(
@@ -208,20 +212,21 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
                 ],
               ),
               GestureDetector(
-                onTap: label == "FREE"
+                onTap: label == "GRATUIT"
                     ? null
                     : () {
                         if (label == "GOLD") {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) => SwipplyGoldDetailsPage()),
+                                builder: (_) => const SwipplyGoldDetailsPage()),
                           );
                         } else if (label == "PREMIUM") {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) => SwipplyPremiumDetailsPage()),
+                                builder: (_) =>
+                                    const SwipplyPremiumDetailsPage()),
                           );
                         }
                       },
@@ -233,7 +238,7 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: Text(
-                    label == "FREE" ? "Current Plan" : "Upgrade",
+                    label == "GRATUIT" ? "Offre actuelle" : "Mettre à niveau",
                     style: const TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.w800,
@@ -257,7 +262,7 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
 
   LinearGradient getButtonGradient(int index) {
     if (index == 0) {
-      return LinearGradient(colors: [blue_gray, black_gray]);
+      return const LinearGradient(colors: [blue_gray, black_gray]);
     } else if (index == 1) {
       return const LinearGradient(
           colors: [Color(0xFFFEEEC6), Color(0xFFFFD97D)]);
@@ -269,11 +274,11 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
 
   void navigateToPlan() {
     if (_currentPage == 1) {
-      Navigator.push(
-          context, MaterialPageRoute(builder: (_) => SwipplyGoldDetailsPage()));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const SwipplyGoldDetailsPage()));
     } else if (_currentPage == 2) {
       Navigator.push(context,
-          MaterialPageRoute(builder: (_) => SwipplyPremiumDetailsPage()));
+          MaterialPageRoute(builder: (_) => const SwipplyPremiumDetailsPage()));
     }
   }
 
@@ -289,25 +294,25 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(
+                const SizedBox(
                   width: 15,
                 ),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
-                  child: Icon(
+                  child: const Icon(
                     Icons.close,
                     color: white,
                     size: 30,
                   ),
                 ),
-                Expanded(
+                const Expanded(
                     child: SizedBox(
                   width: 1,
                 )),
-                Padding(
-                  padding: const EdgeInsets.only(right: 45),
-                  child: const Text(
-                    "My Subscriptions",
+                const Padding(
+                  padding: EdgeInsets.only(right: 45),
+                  child: Text(
+                    "Mes abonnements",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -315,7 +320,7 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
                     ),
                   ),
                 ),
-                Expanded(
+                const Expanded(
                     child: SizedBox(
                   width: 1,
                 )),
@@ -381,7 +386,7 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              ["FREE", "GOLD", "PREMIUM"][index],
+                              ["GRATUIT", "GOLD", "PREMIUM"][index],
                               style: TextStyle(
                                 color: index == 0 ? Colors.black : Colors.white,
                                 fontSize: 11,
@@ -448,10 +453,10 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
                 child: Center(
                   child: Text(
                     _currentPage == 0
-                        ? "Activated"
+                        ? "Activé"
                         : _currentPage == 1
-                            ? "Activate for 4.99€ / month"
-                            : "Activate for 9.99€ / month",
+                            ? "Activer pour 4.99€ / month"
+                            : "Activer pour 9.99€ / month",
                     style: TextStyle(
                       color: _currentPage == 0 ? Colors.white : Colors.black,
                       fontWeight: FontWeight.bold,

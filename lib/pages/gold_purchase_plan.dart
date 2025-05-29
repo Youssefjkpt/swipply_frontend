@@ -117,30 +117,32 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
     return prefs.getString('auth_token');
   }
 
-  final List<String> planLabels = ["1 Week", "1 Month", "6 Months"];
+  final List<String> planLabels = ["1 semaine", "1 mois", "6 mois"];
   final List<double> planPrices = [8.99, 39.96, 99.76];
-  final List<String> planBadges = ["Popular", "", "Best Value"];
-  final List<String> planSubtexts = ["8.99 €/wk", "7.99 €/wk", "5.99 €/wk"];
-  final List<String> savings = ["", "Save 40%", "Save 76%"];
+  final List<String> planBadges = ["Populaire", "", "Meilleure offre"];
+  final List<String> planSubtexts = ["8.99 €/sem", "7.99 €/sem", "5.99 €/sem"];
+  final List<String> savings = ["", "Écon. 40%", "Écon. 76%"];
 
   final List<Map<String, String>> features = [
     {
-      "title": "Preference job selection",
-      "description": "Choose job types that match your skills and interests."
-    },
-    {
-      "title": "Filter by salary",
+      "title": "Préférence de type d'emploi",
       "description":
-          "Set salary thresholds and discover jobs that meet your expectations."
+          "Choisissez les types d'emploi correspondant à vos compétences et intérêts.",
     },
     {
-      "title": "1h AI auto-apply / day",
-      "description": "Automatically apply to top job matches using advanced AI."
-    },
-    {
-      "title": "Rewind likes/jobs",
+      "title": "Filtrer par salaire",
       "description":
-          "Go back and review previous job opportunities or liked roles."
+          "Fixez un seuil salarial et découvrez les offres qui répondent à vos attentes.",
+    },
+    {
+      "title": "Candidature automatique IA 1h/jour",
+      "description":
+          "Postulez automatiquement aux meilleures offres grâce à l'IA avancée.",
+    },
+    {
+      "title": "Annuler likes/offres",
+      "description":
+          "Revenez en arrière pour revoir les opportunités ou offres aimées.",
     },
   ];
 
@@ -211,7 +213,7 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
                 border: Border.all(color: white_gray, width: 1.4),
               ),
               child: const Text(
-                "Included with Swipply Gold",
+                "Inclus avec Swipply Gold",
                 style: TextStyle(
                   color: white_gray,
                   fontSize: 14,
@@ -327,7 +329,7 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
-                    "Instantly Unlock Premium features with Swipply Gold.",
+                    "Débloquez instantanément les fonctionnalités Premium avec Swipply Gold.",
                     style: TextStyle(
                       fontSize: 23,
                       fontWeight: FontWeight.w700,
@@ -339,7 +341,7 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
-                    "Select a plan",
+                    "Sélectionnez une offre",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -461,7 +463,7 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
                     height: 10,
                   ),
                   Text(
-                    "By tapping Continue, you will be charged. This is a one-time payment. No renewal.",
+                    "En appuyant sur Continuer, vous serez facturé. Paiement unique, sans renouvellement.",
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.white70,
@@ -469,9 +471,10 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
                   ),
                   SizedBox(height: 6),
                   Text(
-                    "Terms & Conditions | Privacy Policy",
+                    "Conditions générales | Politique de confidentialité",
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
+                      letterSpacing: 0.1,
                       color: Colors.white54,
                       decoration: TextDecoration.underline,
                     ),
@@ -508,11 +511,12 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
 
                     if (!launched) {
                       showUploadPopup(context,
-                          errorMessage: "❌ Couldn't open Stripe link.");
+                          errorMessage:
+                              "❌ Impossible d’ouvrir le lien Stripe.");
                     }
                   } else {
                     showUploadPopup(context,
-                        errorMessage: "❌ Stripe Error: ${response.body}");
+                        errorMessage: "❌ Erreur Stripe: ${response.body}");
                   }
                 } catch (e) {
                   Navigator.of(context).pop(); // Remove loading

@@ -161,16 +161,17 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
   }
 
   String? _validateEmail(String email) {
-    if (email.isEmpty) return "Please enter your email";
+    if (email.isEmpty) return "Veuillez saisir votre e-mail";
     final emailRegex =
         RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
-    if (!emailRegex.hasMatch(email)) return "Enter a valid email";
+    if (!emailRegex.hasMatch(email)) return "Entrez un e-mail valide";
     return null;
   }
 
   String? _validatePassword(String password) {
-    if (password.isEmpty) return "Please enter your password";
-    if (password.length < 6) return "Password must be at least 6 characters";
+    if (password.isEmpty) return "Veuillez saisir votre mot de passe";
+    if (password.length < 6)
+      return "Le mot de passe doit comporter au moins 6 caractères";
     return null;
   }
 
@@ -283,13 +284,13 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
 
                 // Welcome Text
                 const Text(
-                  'Welcome Back 👋',
+                  'Bon retour 👋',
                   style: TextStyle(
                       fontSize: 28, color: white, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  "Let's log in. Apply to jobs!",
+                  "Connectez-vous et postulez à des offres !",
                   style: TextStyle(
                       fontSize: 18, color: gray, fontWeight: FontWeight.w500),
                 ),
@@ -297,7 +298,7 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
 
                 // Email Input
                 const Text(
-                  'Email Address',
+                  'Adresse e-mail',
                   style: TextStyle(
                       fontSize: 17, color: white, fontWeight: FontWeight.w600),
                 ),
@@ -307,7 +308,7 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
 
                 // Password Input
                 const Text(
-                  'Password',
+                  'Mot de passe',
                   style: TextStyle(
                       fontSize: 17, color: white, fontWeight: FontWeight.w600),
                 ),
@@ -320,7 +321,7 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
                 const Align(
                   alignment: Alignment.centerRight,
                   child: Text(
-                    'Forgot Password?',
+                    'Mot de passe oublié ?',
                     style: TextStyle(
                         color: blue, fontSize: 16, fontWeight: FontWeight.w500),
                   ),
@@ -351,7 +352,7 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
                       child: _isLoading
                           ? const CircularProgressIndicator(color: white)
                           : const Text(
-                              'Sign In',
+                              'Se connecter',
                               style: TextStyle(
                                   color: white,
                                   fontSize: 20,
@@ -366,13 +367,13 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Don't have an account? ",
+                    const Text("Vous n'avez pas de compte? ",
                         style: TextStyle(color: white, fontSize: 16)),
                     GestureDetector(
                       onTap: () => Navigator.push(context,
                           MaterialPageRoute(builder: (_) => const SignUp())),
                       child: const Text(
-                        "Register",
+                        "S'inscrire",
                         style: TextStyle(
                             color: blue,
                             fontSize: 16,
@@ -497,7 +498,7 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
                     enableSuggestions: false,
                     autocorrect: false,
                     decoration: const InputDecoration(
-                      hintText: "Enter your password",
+                      hintText: "Entrez votre mot de passe",
                       hintStyle: TextStyle(color: gray, fontSize: 16),
                       border: InputBorder.none,
                     ),

@@ -121,7 +121,7 @@ class _JobInformationsState extends State<JobInformations> {
               markerId: const MarkerId("jobLocation"),
               position: _jobLatLng!,
               infoWindow: InfoWindow(
-                title: widget.job["company_name"] ?? "Company",
+                title: widget.job["company_name"] ?? "Entreprise",
                 snippet: widget.job["location"] ?? "",
               ),
             ),
@@ -239,7 +239,7 @@ class _JobInformationsState extends State<JobInformations> {
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Center(
                             child: Text(
-                              widget.job["title"] ?? "Unknown",
+                              widget.job["title"] ?? "Inconnu",
                               style: const TextStyle(
                                 color: white,
                                 fontSize: 26,
@@ -251,7 +251,7 @@ class _JobInformationsState extends State<JobInformations> {
                         ),
                         const SizedBox(height: 5),
                         Text(
-                          widget.job["company_name"] ?? "Unknown",
+                          widget.job["company_name"] ?? "Inconnu",
                           style: const TextStyle(
                             color: white,
                             fontSize: 18,
@@ -324,7 +324,7 @@ class _JobInformationsState extends State<JobInformations> {
                         GestureDetector(
                           onTap: () => setState(() => selectedTab = 1),
                           child: Text(
-                            'Summary',
+                            'Résumé',
                             style: TextStyle(
                               color: selectedTab == 1 ? blue : white_gray,
                               fontSize: 17,
@@ -336,7 +336,7 @@ class _JobInformationsState extends State<JobInformations> {
                         GestureDetector(
                           onTap: () => setState(() => selectedTab = 2),
                           child: Text(
-                            'About',
+                            'À propos',
                             style: TextStyle(
                               color: selectedTab == 2 ? blue : white_gray,
                               fontSize: 17,
@@ -348,7 +348,7 @@ class _JobInformationsState extends State<JobInformations> {
                         GestureDetector(
                           onTap: () => setState(() => selectedTab = 3),
                           child: Text(
-                            'Activity',
+                            'Activité',
                             style: TextStyle(
                               color: selectedTab == 3 ? blue : white_gray,
                               fontSize: 17,
@@ -431,7 +431,7 @@ class _JobInformationsState extends State<JobInformations> {
                             });
                           },
                           child: Text(
-                            isExpanded ? 'Read less' : 'Read more',
+                            isExpanded ? 'Réduire' : 'Voir plus',
                             style: const TextStyle(
                               color: blue,
                               fontWeight: FontWeight.w500,
@@ -442,7 +442,7 @@ class _JobInformationsState extends State<JobInformations> {
                         if (responsibilities.isNotEmpty) ...[
                           const SizedBox(height: 30),
                           const Text(
-                            'Responsibilities',
+                            'Responsabilités',
                             style: TextStyle(
                               color: white,
                               fontSize: 18,
@@ -489,7 +489,7 @@ class _JobInformationsState extends State<JobInformations> {
                                 });
                               },
                               child: Text(
-                                showAll ? 'See less' : 'Read more',
+                                showAll ? 'Voir moins' : 'Voir plus',
                                 style: const TextStyle(
                                   color: blue,
                                   fontSize: 16,
@@ -500,7 +500,7 @@ class _JobInformationsState extends State<JobInformations> {
                         ],
                         const SizedBox(height: 30),
                         const Text(
-                          'Job Location',
+                          'Lieu du poste',
                           style: TextStyle(
                             color: white,
                             fontSize: 18,

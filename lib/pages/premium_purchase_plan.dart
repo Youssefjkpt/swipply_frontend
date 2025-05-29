@@ -20,11 +20,15 @@ class SwipplyPremiumDetailsPage extends StatefulWidget {
 class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
   int selectedPlanIndex = 1;
 
-  final List<String> planLabels = ["1 Week", "1 Month", "6 Months"];
+  final List<String> planLabels = ["1 semaine", "1 mois", "6 mois"];
   final List<double> planPrices = [12.99, 49.99, 119.99];
-  final List<String> planBadges = ["Popular", "", "Best Value"];
-  final List<String> planSubtexts = ["12.99 €/wk", "11.49 €/wk", "7.99 €/wk"];
-  final List<String> savings = ["", "Save 25%", "Save 55%"];
+  final List<String> planBadges = ["Populaire", "", "Meilleure offre"];
+  final List<String> planSubtexts = [
+    "12,99 €/sem.",
+    "11,49 €/sem.",
+    "7,99 €/sem."
+  ];
+  final List<String> savings = ["", "Écon. 25 %", "Écon. 55 %"];
   final List<String> stripePriceIds = [
     "price_1RAnPeCKzHpBcr4fcNh5YkBs", // 1 Week
     "price_1RAxKMCKzHpBcr4fuHhvhxZG", // 1 Month
@@ -119,20 +123,23 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
 
   final List<Map<String, String>> features = [
     {
-      "title": "Unlimited auto-apply",
-      "description": "Let our AI apply for jobs non-stop to boost your chances."
+      "title": "Candidature automatique illimitée",
+      "description":
+          "Laissez notre IA postuler sans interruption pour maximiser vos chances.",
     },
     {
-      "title": "Priority job recommendations",
-      "description": "Get top-tier job suggestions before others."
+      "title": "Recommandations d'emploi prioritaires",
+      "description": "Recevez les meilleures offres avant tout le monde.",
     },
     {
-      "title": "Verified profile badge",
-      "description": "Stand out to recruiters with a premium badge."
+      "title": "Badge de profil vérifié",
+      "description":
+          "Distinguez-vous auprès des recruteurs grâce à un badge premium.",
     },
     {
-      "title": "Direct recruiter messaging",
-      "description": "Message recruiters directly and get noticed faster."
+      "title": "Messagerie directe recruteur",
+      "description":
+          "Contactez directement les recruteurs et soyez repéré plus vite.",
     },
   ];
 
@@ -203,7 +210,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                 border: Border.all(color: Colors.cyanAccent, width: 1.4),
               ),
               child: const Text(
-                "Included with Swipply Premium",
+                "Inclus avec Swipply Premium",
                 style: TextStyle(
                   color: Colors.cyanAccent,
                   fontSize: 14,
@@ -281,7 +288,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
-                    "Maximize your job hunt with Swipply Premium.",
+                    "Optimisez votre recherche d'emploi avec Swipply Premium.",
                     style: TextStyle(
                       fontSize: 23,
                       fontWeight: FontWeight.w700,
@@ -293,7 +300,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
-                    "Select a plan",
+                    "Sélectionnez une offre",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -407,7 +414,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                 children: [
                   SizedBox(height: 10),
                   Text(
-                    "By tapping Continue, you will be charged. This is a one-time payment. No renewal.",
+                    "En appuyant sur Continuer, vous serez débité. Paiement unique, sans renouvellement.",
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.white70,
@@ -415,9 +422,10 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                   ),
                   SizedBox(height: 6),
                   Text(
-                    "Terms & Conditions | Privacy Policy",
+                    "Conditions générales | Politique de confidentialité",
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
+                      letterSpacing: 0.1,
                       color: Colors.white54,
                       decoration: TextDecoration.underline,
                     ),
@@ -454,11 +462,12 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
 
                     if (!launched) {
                       showUploadPopup(context,
-                          errorMessage: "❌ Couldn't open Stripe link.");
+                          errorMessage:
+                              "❌ Impossible d’ouvrir le lien Stripe.");
                     }
                   } else {
                     showUploadPopup(context,
-                        errorMessage: "❌ Stripe Error: ${response.body}");
+                        errorMessage: "❌ Erreur Stripe: ${response.body}");
                   }
                 } catch (e) {
                   Navigator.of(context).pop(); // Dismiss loading popup
@@ -477,7 +486,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                 ),
                 child: Center(
                   child: Text(
-                    "Continue for ${planPrices[selectedPlanIndex].toStringAsFixed(2)} € total",
+                    "Continuer pour ${planPrices[selectedPlanIndex].toStringAsFixed(2)} € au total",
                     style: const TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.bold,

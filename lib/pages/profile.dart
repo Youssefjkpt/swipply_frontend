@@ -231,13 +231,13 @@ class _ProfileState extends State<Profile> {
   }
 
   final List<String> features = [
-    "Preference job selection",
-    "Filter by salary",
-    "1h AI auto-apply / day",
-    "Rewind likes/jobs",
-    "Priority applications",
-    "No ads",
-    "Top job picks",
+    "Préférence de type d'emploi",
+    "Filtrer par salaire",
+    "Candidature automatique IA: 1h/jour",
+    "Annuler likes/offres",
+    "Candidatures prioritaires",
+    "Aucune publicité",
+    "Meilleures offres pour vous",
   ];
 
   final List<bool> includedInFree = [
@@ -292,7 +292,7 @@ class _ProfileState extends State<Profile> {
                             backgroundColor: blue_gray,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20)),
-                            title: const Text("Missing Fields",
+                            title: const Text("Champs manquants",
                                 style: TextStyle(
                                     color: white, fontWeight: FontWeight.bold)),
                             content: Column(
@@ -315,7 +315,7 @@ class _ProfileState extends State<Profile> {
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context),
-                                child: const Text("Close",
+                                child: const Text("Fermer",
                                     style: TextStyle(color: Colors.white)),
                               )
                             ],
@@ -337,7 +337,7 @@ class _ProfileState extends State<Profile> {
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
-                          "Your CV is incomplete. Tap to view missing sections.",
+                          "Votre CV est incomplet. Touchez pour voir les sections manquantes.",
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -364,7 +364,7 @@ class _ProfileState extends State<Profile> {
                     GestureDetector(
                       onTap: _showEditBottomSheet,
                       child: const Text(
-                        'Edit',
+                        'Modifier',
                         style: TextStyle(
                           color: white_gray,
                           fontSize: 15,
@@ -473,7 +473,7 @@ class _ProfileState extends State<Profile> {
                 const Row(
                   children: [
                     Text(
-                      'Resume',
+                      'CV',
                       style: TextStyle(
                         color: white,
                         fontSize: 17,
@@ -485,7 +485,7 @@ class _ProfileState extends State<Profile> {
                       width: 1,
                     )),
                     Text(
-                      'Make a resume',
+                      'Créer un CV',
                       style:
                           TextStyle(color: Color.fromARGB(217, 36, 120, 255)),
                     )
@@ -599,7 +599,8 @@ class _ProfileState extends State<Profile> {
                             right: MediaQuery.of(context).size.width * 0.05,
                           ),
                           child: Text(
-                            sanitizeField(resume) ?? 'No resume added yet.',
+                            sanitizeField(resume) ??
+                                'Aucun CV ajouté pour le moment.',
                             style: const TextStyle(
                               color: white_gray,
                               fontSize: 12,
@@ -663,7 +664,7 @@ class _ProfileState extends State<Profile> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text("Edit Profile",
+                          const Text("Modifier le profil",
                               style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
@@ -681,7 +682,7 @@ class _ProfileState extends State<Profile> {
                         style:
                             const TextStyle(color: Colors.white, fontSize: 16),
                         decoration: InputDecoration(
-                          labelText: "Name",
+                          labelText: "Nom",
                           labelStyle:
                               const TextStyle(color: white_gray, fontSize: 14),
                           enabledBorder: OutlineInputBorder(
@@ -702,7 +703,7 @@ class _ProfileState extends State<Profile> {
                         style:
                             const TextStyle(color: Colors.white, fontSize: 16),
                         decoration: InputDecoration(
-                          labelText: "Job Title",
+                          labelText: "Intitulé de poste",
                           labelStyle:
                               const TextStyle(color: white_gray, fontSize: 14),
                           enabledBorder: OutlineInputBorder(
@@ -765,7 +766,7 @@ class _ProfileState extends State<Profile> {
                             ],
                           ),
                           child: const Center(
-                            child: Text("Save",
+                            child: Text("Enregistrer",
                                 style: TextStyle(
                                     color: black,
                                     fontWeight: FontWeight.w700,

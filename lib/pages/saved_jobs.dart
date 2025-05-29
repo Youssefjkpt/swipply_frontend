@@ -85,7 +85,7 @@ class _SavedJobsState extends State<SavedJobs> {
             Padding(
               padding: const EdgeInsets.only(left: 25, right: 25),
               child: Text(
-                'You saved ${_jobList.length} Job${_jobList.length != 1 ? 's' : ''} 👍',
+                'Vous avez enregistré ${_jobList.length} offre ${_jobList.length != 1 ? 's' : ''} 👍',
                 style: const TextStyle(
                   color: white,
                   fontSize: 22,
@@ -112,7 +112,7 @@ class _SavedJobsState extends State<SavedJobs> {
                       child: _jobList.isEmpty
                           ? const Center(
                               child: Text(
-                                'No saved jobs found!',
+                                'Aucune offre enregistrée !',
                                 style: TextStyle(color: white),
                               ),
                             )
@@ -132,8 +132,8 @@ class _SavedJobsState extends State<SavedJobs> {
                                 final now = DateTime.now();
                                 final diff = now.difference(savedAt);
                                 final timeAgo = diff.inHours < 24
-                                    ? '${diff.inHours} hours ago'
-                                    : '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
+                                    ? 'il y a ${diff.inHours} h'
+                                    : 'il y a  ${diff.inDays} jour ${diff.inDays > 1 ? 's' : ''}';
 
                                 return Padding(
                                   padding:
@@ -324,11 +324,11 @@ class JobCard extends StatelessWidget {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'applied':
+      case 'postulé':
         return Colors.green;
-      case 'closed':
+      case 'fermé':
         return Colors.red;
-      case 'pending':
+      case 'en attente':
         return Colors.blue;
       default:
         return white_gray;
@@ -337,11 +337,11 @@ class JobCard extends StatelessWidget {
 
   Color _getTintedWhite(String status) {
     switch (status.toLowerCase()) {
-      case 'applied':
+      case 'postulé':
         return const Color.fromARGB(255, 215, 255, 217).withOpacity(1);
-      case 'closed':
+      case 'fermé':
         return Color.fromARGB(255, 255, 221, 219).withOpacity(1);
-      case 'pending':
+      case 'en attente':
         return const Color.fromARGB(255, 211, 235, 255).withOpacity(1);
       default:
         return white.withOpacity(0.08);
@@ -358,16 +358,16 @@ class CategoryChipsBar extends StatefulWidget {
 
 class _CategoryChipsBarState extends State<CategoryChipsBar> {
   final List<String> categories = [
-    'All',
+    'Tout',
     'Design',
-    'Development',
+    'Développement',
     'Marketing',
-    'Sales',
+    'Ventes',
     'Finance',
-    'Product',
-    'HR',
-    'Legal',
-    'Support',
+    'Produit',
+    'RH',
+    'Juridique',
+    'Support'
   ];
 
   int selectedIndex = 0;
