@@ -559,13 +559,13 @@ class _HomePageState extends State<HomePage> {
       );
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Application sent successfully.")),
-        );
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   const SnackBar(content: Text("Application sent successfully.")),
+        // );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed: ${response.statusCode}")),
-        );
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   SnackBar(content: Text("Failed: ${response.statusCode}")),
+        // );
       }
     } catch (e) {}
   }
@@ -614,13 +614,13 @@ class _HomePageState extends State<HomePage> {
                 skillsAndProficiency;
           });
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("CV personalized successfully.")),
-          );
+          // ScaffoldMessenger.of(context).showSnackBar(
+          //   const SnackBar(content: Text("CV personalized successfully.")),
+          // );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Failed to load personalized CV.")),
-          );
+          // ScaffoldMessenger.of(context).showSnackBar(
+          //   const SnackBar(content: Text("Failed to load personalized CV.")),
+          // );
         }
       } else if (response.statusCode == 403) {
         await showDialog(
@@ -707,9 +707,9 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed: ${response.statusCode}")),
-        );
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   SnackBar(content: Text("Failed: ${response.statusCode}")),
+        // );
       }
     } catch (e) {
       //
@@ -1610,7 +1610,7 @@ class _HomePageState extends State<HomePage> {
                             height: 20,
                           ),
                           const Text(
-                            'Contact',
+                            'Coordonnées',
                             style: TextStyle(
                                 color: white,
                                 fontSize: 16,
@@ -1720,7 +1720,7 @@ class _HomePageState extends State<HomePage> {
                               : const Padding(
                                   padding: EdgeInsets.symmetric(horizontal: 10),
                                   child: Text(
-                                    'No education data',
+                                    ' Aucune formation',
                                     style:
                                         TextStyle(color: white, fontSize: 12),
                                   ),
@@ -1782,7 +1782,7 @@ class _HomePageState extends State<HomePage> {
                               : const Padding(
                                   padding: EdgeInsets.symmetric(horizontal: 10),
                                   child: Text(
-                                    'No skills entered',
+                                    'Aucune compétence',
                                     style:
                                         TextStyle(color: white, fontSize: 12),
                                   ),
@@ -1847,7 +1847,7 @@ class _HomePageState extends State<HomePage> {
                             height: 30,
                           ),
                           const Text(
-                            'Resume',
+                            'Résumé',
                             style: TextStyle(
                                 color: Color.fromARGB(255, 37, 57, 138),
                                 fontSize: 16,
@@ -1870,7 +1870,7 @@ class _HomePageState extends State<HomePage> {
                             width: MediaQuery.of(context).size.width * 0.5,
                             child: SingleChildScrollView(
                               child: Text(
-                                (resume ?? 'No resume added yet.'),
+                                (resume ?? 'Aucun résumé ajouté'),
                                 style: const TextStyle(
                                   color: white_gray,
                                   fontSize: 12,
@@ -1882,7 +1882,7 @@ class _HomePageState extends State<HomePage> {
                             height: 10,
                           ),
                           const Text(
-                            'Experience',
+                            'Expérience',
                             style: TextStyle(
                               color: Color.fromARGB(255, 37, 57, 138),
                               fontSize: 16,
@@ -1932,7 +1932,7 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                   )
                                 : const Text(
-                                    'No experience added.',
+                                    'Aucune expérience',
                                     style: TextStyle(
                                         color: white_gray, fontSize: 12),
                                   ),

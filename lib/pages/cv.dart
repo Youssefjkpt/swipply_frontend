@@ -47,7 +47,7 @@ class InterestsSection extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           const Text(
-            'Interests',
+            'Intérêts',
             style: TextStyle(
               color: white,
               fontSize: 18,
@@ -63,7 +63,7 @@ class InterestsSection extends StatelessWidget {
         const SizedBox(height: 15),
         if (count == 0)
           const Text(
-            'No interests added yet.',
+            'Aucun intérêt ajouté',
             style: TextStyle(color: white_gray, fontSize: 15),
           )
         else
@@ -88,7 +88,7 @@ class InterestsSection extends StatelessWidget {
           GestureDetector(
             onTap: onToggleShowAll,
             child: Text(
-              showAll ? 'Read less' : 'Read more',
+              showAll ? 'Voir moins' : 'Voir plus',
               style: const TextStyle(
                 color: blue,
                 fontSize: 15,
@@ -129,7 +129,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
   String _jobTitle = '';
   bool _showAllEdu = false;
   late List<String> languages;
-  String _uploadedFileName = 'Upload a Doc/Docx/PDF';
+  String _uploadedFileName = 'Importer un Doc/Docx/PDF';
   late AnimationController _checkmarkController;
   Future<void> fetchUserData() async {
     final id = await getUserId();
@@ -156,7 +156,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
         if (data['interests'] != null && data['interests'].isNotEmpty) {
           selectedInterests = List<String>.from(data['interests']);
         } else {
-          selectedInterests = ['No interests added yet.'];
+          selectedInterests = ['Aucun intérêt ajouté'];
         }
       });
       resumeController?.text = data['personalized_resume'] ?? '';
@@ -430,7 +430,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
     });
   }
 
-  String startDateText = 'Immediately';
+  String startDateText = 'Immédiatement';
   List<String> interests = [];
   void showSuccessCheckPopup() {
     _checkmarkController = AnimationController(
@@ -483,7 +483,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
         await getAuthToken(); // no need to assign globally if you only use it inside
 
     if (userId == null || token == null) {
-      showUploadPopup(context, errorMessage: "Missing user ID or token");
+      showUploadPopup(context, errorMessage: "ID ou jeton manquant");
       return;
     }
 
@@ -544,11 +544,11 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
       } else {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('cv_complete', false);
-        showUploadPopup(context, errorMessage: "Error saving CV");
+        showUploadPopup(context, errorMessage: "Erreur d’enregistrement");
       }
     } catch (e) {
       Navigator.of(context).pop();
-      showUploadPopup(context, errorMessage: "Error: ${e.toString()}");
+      showUploadPopup(context, errorMessage: "Erreur: ${e.toString()}");
     }
   }
 
@@ -571,7 +571,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
   String userPhone = '';
   final Set<String> incompleteFields = {};
 
-  String? selectedFileName = 'Upload a Doc/Docx/PDF';
+  String? selectedFileName = 'Importer un Doc/Docx/PDF';
   Map<String, List<String>> weeklyAvailability = {};
   List<String> selectedInterests = [];
   void showUploadPopup(BuildContext context, {String? errorMessage}) {
@@ -724,7 +724,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
           Navigator.of(context).pop(); // Close loading
           showUploadPopup(
             context,
-            errorMessage: "Error parsing CV",
+            errorMessage: "	Erreur d’analyse",
           );
           Navigator.of(context).pop();
         }
@@ -735,7 +735,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
         Navigator.of(context).pop(); // Close loading
         showUploadPopup(
           context,
-          errorMessage: "Error parsing CV. Please try again.",
+          errorMessage: "Échec analyse du CV. Réessayez.",
         );
         Navigator.of(context).pop();
       }
@@ -764,7 +764,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
               ),
               const SizedBox(height: 20),
               const Text(
-                "Incomplete Fields",
+                "	Champs incomplets",
                 style: TextStyle(
                   fontSize: 20,
                   color: Colors.white,
@@ -774,7 +774,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
               ),
               const SizedBox(height: 12),
               Text(
-                "Please complete the following fields:\n\n${fields.join(', ')}",
+                "Complétez les champs suivants:\n\n${fields.join(', ')}",
                 style: const TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
                 textAlign: TextAlign.center,
               ),
@@ -829,7 +829,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                     color: Color(0xFFFFC107), size: 40),
                 const SizedBox(height: 20),
                 const Text(
-                  "CV Incomplete",
+                  "	CV incomplet",
                   style: TextStyle(
                     fontSize: 20,
                     color: Colors.white,
@@ -839,7 +839,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "Please fill in the following fields before saving:\n\n$formattedFields",
+                  "Remplissez ces champs avant de sauvegarder:\n\n$formattedFields",
                   style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFFCCCCCC),
@@ -910,7 +910,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
       }
     });
 
-    return parts.isEmpty ? 'No availability selected' : parts.join("  •  ");
+    return parts.isEmpty ? 'Aucune dispo choisie' : parts.join("  •  ");
   }
 
   @override
@@ -1003,7 +1003,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                       const Padding(
                         padding: EdgeInsets.only(right: 37),
                         child: Text(
-                          'Apply',
+                          'Postuler',
                           style: TextStyle(
                               color: white,
                               fontSize: 18,
@@ -1026,7 +1026,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                   child: Row(
                     children: [
                       Text(
-                        'Resume or CV',
+                        'CV ou Résumé',
                         textAlign: TextAlign.start,
                         style: TextStyle(
                             color: white,
@@ -1065,7 +1065,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                                   right:
                                       MediaQuery.of(context).size.width * 0.14),
                               child: const Text(
-                                "Upload your CV or resume and use it when you apply for jobs",
+                                "Importez votre CV puis utilisez-le pour vos candidatures",
                                 style: TextStyle(
                                     color: white_gray,
                                     fontSize: 14,
@@ -1152,7 +1152,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                                         color: Colors.red),
                                     const SizedBox(width: 6),
                                     const Text(
-                                      "Error while uploading",
+                                      "Erreur lors de l'envoi",
                                       style: TextStyle(
                                           color: Colors.red,
                                           fontWeight: FontWeight.w600),
@@ -1188,7 +1188,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                                     children: [
                                       Expanded(child: SizedBox(width: 1)),
                                       Text(
-                                        'Upload',
+                                        'Importer',
                                         style: TextStyle(
                                             color: white,
                                             fontSize: 16,
@@ -1217,7 +1217,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                     Padding(
                       padding: EdgeInsets.only(left: 15),
                       child: Text(
-                        'Languages I Know',
+                        'Mes langues',
                         style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 17,
@@ -1269,7 +1269,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                             Expanded(
                               child: Text(
                                 selectedLanguages.isEmpty
-                                    ? 'No language selected'
+                                    ? 'Aucune langue'
                                     : selectedLanguages.join(', '),
                                 style: const TextStyle(
                                   color: white,
@@ -1301,7 +1301,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                     Padding(
                       padding: EdgeInsets.only(left: 15),
                       child: Text(
-                        'Resume',
+                        'Résumé',
                         style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 17,
@@ -1348,7 +1348,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                         Row(
                           children: [
                             const Text(
-                              'Experience',
+                              'Expérience',
                               style: TextStyle(
                                 color: white,
                                 fontSize: 18,
@@ -1418,7 +1418,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                               });
                             },
                             child: Text(
-                              showAll ? 'Read less' : 'Read more',
+                              showAll ? 'Voir moins' : 'Voir plus',
                               style: const TextStyle(
                                 color: blue,
                                 fontSize: 15,
@@ -1518,7 +1518,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                             const SizedBox(height: 15),
                             if (softSkills.isEmpty)
                               const Text(
-                                'No soft skills added yet.',
+                                'Aucune compétence douce',
                                 style:
                                     TextStyle(color: white_gray, fontSize: 15),
                               )
@@ -1574,7 +1574,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                             Row(
                               children: [
                                 const Text(
-                                  'Certificates',
+                                  'Certificats',
                                   style: TextStyle(
                                     color: white,
                                     fontSize: 18,
@@ -1592,7 +1592,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                             const SizedBox(height: 15),
                             if (certificates.isEmpty)
                               const Text(
-                                'No certificates added yet.',
+                                'Aucun certificat ajouté',
                                 style: TextStyle(color: white_gray),
                               )
                             else
@@ -1618,7 +1618,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                                             const SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
-                                                cert['title'] ?? 'Untitled',
+                                                cert['title'] ?? 'Sans titre',
                                                 style: const TextStyle(
                                                   color: white,
                                                   fontWeight: FontWeight.w600,
@@ -1663,7 +1663,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                                                         size: 14, color: black),
                                                     SizedBox(width: 4),
                                                     Text(
-                                                      'Verified',
+                                                      'Vérifié',
                                                       style: TextStyle(
                                                         color: black,
                                                         fontSize: 12,
@@ -1678,13 +1678,13 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                                         ),
                                         const SizedBox(height: 6),
                                         Text(
-                                          cert['issuer'] ?? 'Unknown issuer',
+                                          cert['issuer'] ?? 'Émetteur inconnu',
                                           style: const TextStyle(
                                               color: white_gray, fontSize: 14),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          cert['date'] ?? 'No date',
+                                          cert['date'] ?? 'Sans date',
                                           style: const TextStyle(
                                               color: white_gray, fontSize: 13),
                                         ),
@@ -1711,7 +1711,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                                       Icon(Icons.add, color: white),
                                       SizedBox(width: 6),
                                       Text(
-                                        'Add Certificate',
+                                        '	Ajouter un certificat',
                                         style: TextStyle(
                                           color: white,
                                           fontWeight: FontWeight.w600,
@@ -1767,18 +1767,19 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                   incompleteFields.clear();
 
                   if (selectedLanguages.isEmpty)
-                    incompleteFields.add("Languages");
+                    incompleteFields.add("Langues");
                   if ((resumeController?.text.trim().isEmpty ?? true))
-                    incompleteFields.add("Resume");
-                  if (experiences.isEmpty) incompleteFields.add("Experience");
-                  if (educations.isEmpty) incompleteFields.add("Education");
+                    incompleteFields.add("Résumé");
+                  if (experiences.isEmpty) incompleteFields.add("Expérience");
+                  if (educations.isEmpty) incompleteFields.add("Formation");
                   if (selectedInterests.isEmpty)
-                    incompleteFields.add("Interests");
-                  if (softSkills.isEmpty) incompleteFields.add("Soft Skills");
+                    incompleteFields.add("Intérêts");
+                  if (softSkills.isEmpty)
+                    incompleteFields.add("Compétences douces");
                   if ((phone?.trim().isEmpty ?? true))
-                    incompleteFields.add("Phone Number");
+                    incompleteFields.add("N° de téléphone");
                   if ((address?.trim().isEmpty ?? true))
-                    incompleteFields.add("Address");
+                    incompleteFields.add("Adresse");
 
                   if (incompleteFields.isNotEmpty) {
                     await showIncompleteFieldsDialog(
@@ -1797,7 +1798,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   child: const Center(
                     child: Text(
-                      'Save',
+                      'Enregistrer',
                       style: TextStyle(
                         color: white,
                         fontSize: 17,
@@ -1853,7 +1854,7 @@ class CertificatesSection extends StatelessWidget {
             Row(
               children: [
                 const Text(
-                  'Certificates',
+                  'Certificats',
                   style: TextStyle(
                     color: white,
                     fontSize: 18,
@@ -1870,7 +1871,7 @@ class CertificatesSection extends StatelessWidget {
             const SizedBox(height: 15),
             if (certificates.isEmpty)
               const Text(
-                'No certificates added yet.',
+                'Aucun certificat ajouté',
                 style: TextStyle(color: white_gray),
               )
             else
@@ -1894,7 +1895,7 @@ class CertificatesSection extends StatelessWidget {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                cert['title'] ?? 'Untitled',
+                                cert['title'] ?? 'Sans titre',
                                 style: const TextStyle(
                                   color: white,
                                   fontWeight: FontWeight.w600,
@@ -1920,7 +1921,7 @@ class CertificatesSection extends StatelessWidget {
                                         size: 14, color: black),
                                     SizedBox(width: 4),
                                     Text(
-                                      'Verified',
+                                      'Vérifié',
                                       style: TextStyle(
                                         color: black,
                                         fontSize: 12,
@@ -1934,13 +1935,13 @@ class CertificatesSection extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          cert['issuer'] ?? 'Unknown issuer',
+                          cert['issuer'] ?? 'Émetteur inconnu',
                           style:
                               const TextStyle(color: white_gray, fontSize: 14),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          cert['date'] ?? 'No date',
+                          cert['date'] ?? 'Sans date',
                           style:
                               const TextStyle(color: white_gray, fontSize: 13),
                         ),
@@ -2055,19 +2056,20 @@ class _EditCertificatesSheetState extends State<EditCertificatesSheet> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Add a New Certificate',
+                'Ajouter un certificat',
                 style: TextStyle(
                     color: white, fontSize: 20, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 20),
-              _buildTextField(_titleController, 'Certificate Title'),
+              _buildTextField(_titleController, 'Titre du certificat'),
               const SizedBox(height: 12),
-              _buildTextField(_issuerController, 'Issuer (e.g. Coursera)'),
+              _buildTextField(_issuerController, 'Émetteur (ex. Coursera)'),
               const SizedBox(height: 12),
-              _buildTextField(_dateController, 'Date (Optional)', hint: '2024'),
+              _buildTextField(_dateController, 'Date (facultatif)',
+                  hint: '2024'),
               const SizedBox(height: 12),
-              _buildTextField(_tagController, 'Tag (Optional)',
-                  hint: 'e.g. UI/UX'),
+              _buildTextField(_tagController, 'Tag (facultatif)',
+                  hint: 'ex. UI/UX'),
               const SizedBox(height: 12),
               GestureDetector(
                 onTap: _pickFile,
@@ -2086,7 +2088,7 @@ class _EditCertificatesSheetState extends State<EditCertificatesSheet> {
                       Text(
                         selectedFile != null
                             ? selectedFile!.name
-                            : 'Upload PDF/Image',
+                            : 'Importer PDF/Image',
                         style: const TextStyle(
                             color: white, fontWeight: FontWeight.w500),
                       ),
@@ -2100,7 +2102,7 @@ class _EditCertificatesSheetState extends State<EditCertificatesSheet> {
                 value: verified,
                 onChanged: (val) => setState(() => verified = val),
                 title: const Text(
-                  'Verified Certificate (Coursera, Google etc)',
+                  'Certificat vérifié (Coursera, Google etc)',
                   style: TextStyle(color: white, fontSize: 14),
                 ),
               ),
@@ -2114,7 +2116,7 @@ class _EditCertificatesSheetState extends State<EditCertificatesSheet> {
                   ),
                 ),
                 onPressed: _addCertificate,
-                child: const Text('Add Certificate',
+                child: const Text('	Ajouter certificat',
                     style: TextStyle(
                         color: white,
                         fontSize: 16,
@@ -2122,7 +2124,7 @@ class _EditCertificatesSheetState extends State<EditCertificatesSheet> {
               ),
               const SizedBox(height: 25),
               const Text(
-                'Certificates Added',
+                'Certificats ajoutés',
                 style: TextStyle(
                     color: white, fontWeight: FontWeight.w600, fontSize: 16),
               ),
@@ -2167,7 +2169,7 @@ class _EditCertificatesSheetState extends State<EditCertificatesSheet> {
                             ),
                           IconButton(
                             splashRadius: 24,
-                            tooltip: 'Delete Certificate',
+                            tooltip: 'Supprimer certificat',
                             onPressed: () =>
                                 setState(() => certificates.removeAt(index)),
                             icon: const Icon(Icons.delete_outline,
@@ -2220,7 +2222,7 @@ class _EditCertificatesSheetState extends State<EditCertificatesSheet> {
                   ),
                   child: const Center(
                     child: Text(
-                      'Save All',
+                      'Enregistrer tout',
                       style: TextStyle(
                           color: black,
                           fontWeight: FontWeight.w700,
@@ -2318,7 +2320,7 @@ class _EditSkillsSheetState extends State<EditSkillsSheet> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Edit Your Skills',
+                'Modifier vos compétences',
                 style: TextStyle(
                     color: white, fontSize: 20, fontWeight: FontWeight.w600),
               ),
@@ -2329,7 +2331,7 @@ class _EditSkillsSheetState extends State<EditSkillsSheet> {
                     child: TextFormField(
                       style: const TextStyle(color: white),
                       decoration: const InputDecoration(
-                        hintText: 'New Skill',
+                        hintText: 'Nouvelle compétence',
                         hintStyle: TextStyle(color: white_gray),
                         filled: true,
                         fillColor: black_gray,
@@ -2411,7 +2413,7 @@ class _EditSkillsSheetState extends State<EditSkillsSheet> {
                   ),
                   child: const Center(
                     child: Text(
-                      'Save',
+                      'Enregistrer',
                       style: TextStyle(
                         color: white,
                         fontWeight: FontWeight.w700,
@@ -2460,8 +2462,8 @@ class _SkillsSectionState extends State<SkillsSection> {
   }
 
   String _levelLabel(double level) {
-    if (level <= 0.33) return "Beginner";
-    if (level <= 0.66) return "Intermediate";
+    if (level <= 0.33) return "Débutant";
+    if (level <= 0.66) return "Intermédiaire";
     return "Expert";
   }
 
@@ -2480,7 +2482,7 @@ class _SkillsSectionState extends State<SkillsSection> {
           Row(
             children: [
               const Text(
-                'Skills & Proficiency',
+                'Compétences & maîtrise',
                 style: TextStyle(
                   color: white,
                   fontSize: 18,
@@ -2496,7 +2498,7 @@ class _SkillsSectionState extends State<SkillsSection> {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Show your real strengths. Let recruiters know what you’re best at!',
+            'Mettez en avant vos atouts, montrez aux recruteurs vos points forts !',
             style: TextStyle(color: white_gray, fontSize: 14),
           ),
           const SizedBox(height: 20),
@@ -2504,7 +2506,7 @@ class _SkillsSectionState extends State<SkillsSection> {
           // Displaying Skills
           if (skills.isEmpty)
             const Text(
-              'No skills added yet.',
+              'Aucune compétence ajoutée.',
               style: TextStyle(color: white_gray, fontSize: 15),
             )
           else
@@ -2552,8 +2554,8 @@ class _SkillsSectionState extends State<SkillsSection> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: const [
-              Text('Beginner', style: TextStyle(color: white)),
-              Text('Intermediate', style: TextStyle(color: white_gray)),
+              Text('Débutant', style: TextStyle(color: white)),
+              Text('Intermédiaire', style: TextStyle(color: white_gray)),
               Text('Expert', style: TextStyle(color: white)),
             ],
           ),
@@ -2588,7 +2590,7 @@ class _SkillsSectionState extends State<SkillsSection> {
                     Icon(Icons.add, color: white),
                     SizedBox(width: 6),
                     Text(
-                      'Add Skill',
+                      'Ajouter une compétence',
                       style: TextStyle(
                         color: white,
                         fontWeight: FontWeight.w600,
@@ -2675,7 +2677,7 @@ class _EditSoftSkillsSheetState extends State<EditSoftSkillsSheet> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Select Your Soft Skills',
+                'Sélectionnez vos Soft Skills',
                 style: TextStyle(
                     color: white, fontSize: 20, fontWeight: FontWeight.w600),
               ),
@@ -2699,7 +2701,7 @@ class _EditSoftSkillsSheetState extends State<EditSoftSkillsSheet> {
                         decoration: const InputDecoration(
                           border: InputBorder.none,
                           isCollapsed: true,
-                          hintText: 'Search soft skills…',
+                          hintText: 'Rechercher une compétence douce…',
                           hintStyle: TextStyle(color: white_gray),
                         ),
                         onChanged: (v) => setState(() => _searchText = v),
@@ -2758,7 +2760,7 @@ class _EditSoftSkillsSheetState extends State<EditSoftSkillsSheet> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   child: const Center(
                     child: Text(
-                      'Save',
+                      'Enregistrer',
                       style: TextStyle(
                           color: white,
                           fontSize: 16,
@@ -2797,7 +2799,7 @@ class _EditStartDateSheetState extends State<EditStartDateSheet> {
   @override
   void initState() {
     super.initState();
-    isImmediate = widget.initialValue == 'Immediately';
+    isImmediate = widget.initialValue == 'Immédiatement';
   }
 
   @override
@@ -2829,7 +2831,7 @@ class _EditStartDateSheetState extends State<EditStartDateSheet> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'When can you start working?',
+                'Quand pouvez-vous commencer à travailler ?',
                 style: TextStyle(
                     color: white, fontSize: 20, fontWeight: FontWeight.w600),
               ),
@@ -2839,7 +2841,7 @@ class _EditStartDateSheetState extends State<EditStartDateSheet> {
                 value: isImmediate,
                 onChanged: (val) => setState(() => isImmediate = val),
                 title: const Text(
-                  'Immediately',
+                  'Immédiatement',
                   style: TextStyle(color: white, fontSize: 16),
                 ),
               ),
@@ -2887,7 +2889,7 @@ class _EditStartDateSheetState extends State<EditStartDateSheet> {
                         Text(
                           selectedDate != null
                               ? "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}"
-                              : 'Select start date',
+                              : 'Sélectionner la date de début',
                           style: const TextStyle(color: white, fontSize: 16),
                         ),
                         const Spacer(),
@@ -2899,7 +2901,7 @@ class _EditStartDateSheetState extends State<EditStartDateSheet> {
               GestureDetector(
                 onTap: () {
                   final output = isImmediate
-                      ? 'Immediately'
+                      ? 'Immédiatement'
                       : selectedDate != null
                           ? "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}"
                           : widget.initialValue;
@@ -2914,7 +2916,7 @@ class _EditStartDateSheetState extends State<EditStartDateSheet> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   child: const Center(
                     child: Text(
-                      'Save',
+                      'Enregistrer',
                       style: TextStyle(
                           color: white,
                           fontSize: 16,
@@ -3022,7 +3024,7 @@ class AvailabilitySection extends StatefulWidget {
 }
 
 class _AvailabilitySectionState extends State<AvailabilitySection> {
-  String startDateText = 'Immediately';
+  String startDateText = 'Immédiatement';
 
   void _openEditStartDate() {
     showModalBottomSheet(
@@ -3056,7 +3058,7 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
             Row(
               children: [
                 const Text(
-                  'Availability',
+                  'Disponibilité',
                   style: TextStyle(
                     color: white,
                     fontSize: 18,
@@ -3076,7 +3078,7 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
                 style: const TextStyle(fontSize: 15),
                 children: [
                   const TextSpan(
-                    text: 'Start date: ',
+                    text: 'Date de début: ',
                     style: TextStyle(color: white, fontSize: 17),
                   ),
                   TextSpan(
@@ -3160,7 +3162,7 @@ class _WeeklyAvailabilitySectionState extends State<WeeklyAvailabilitySection> {
           children: [
             // 🔹 Section title
             const Text(
-              'Weekly Availability',
+              'Disponibilité hebdomadaire',
               style: TextStyle(
                   color: white, fontSize: 18, fontWeight: FontWeight.w600),
             ),
@@ -3177,15 +3179,15 @@ class _WeeklyAvailabilitySectionState extends State<WeeklyAvailabilitySection> {
                           style: const TextStyle(color: white, fontSize: 14)),
                     ),
                     ToggleChip(
-                      label: 'Morning',
-                      selected: selected.contains('Morning'),
-                      onTap: () => toggle(day, 'Morning'),
+                      label: 'Matin',
+                      selected: selected.contains('Matin'),
+                      onTap: () => toggle(day, 'Matin'),
                     ),
                     const SizedBox(width: 10),
                     ToggleChip(
-                      label: 'Evening',
-                      selected: selected.contains('Evening'),
-                      onTap: () => toggle(day, 'Evening'),
+                      label: 'Soir',
+                      selected: selected.contains('Soir'),
+                      onTap: () => toggle(day, 'Soir'),
                     ),
                   ],
                 ),
@@ -3283,7 +3285,7 @@ class _EditInterestsSheetState extends State<EditInterestsSheet> {
               ),
               const SizedBox(height: 15),
               const Text(
-                'Edit Interests',
+                'Modifier vos centres d’intérêt',
                 style: TextStyle(
                   color: white,
                   fontSize: 18,
@@ -3303,7 +3305,7 @@ class _EditInterestsSheetState extends State<EditInterestsSheet> {
                           maxLines: null,
                           style: const TextStyle(color: white),
                           decoration: InputDecoration(
-                            hintText: 'Interest ${index + 1}',
+                            hintText: 'Intérêt ${index + 1}',
                             hintStyle: const TextStyle(color: white_gray),
                             filled: true,
                             fillColor: black_gray,
@@ -3328,7 +3330,7 @@ class _EditInterestsSheetState extends State<EditInterestsSheet> {
                 onPressed: _addInterest,
                 icon: const Icon(Icons.add, color: blue),
                 label: const Text(
-                  'Add Interest',
+                  'Ajouter un intérêt',
                   style: TextStyle(color: blue),
                 ),
               ),
@@ -3338,7 +3340,7 @@ class _EditInterestsSheetState extends State<EditInterestsSheet> {
               // 🔍 Preview
               if (controllers.any((c) => c.text.trim().isNotEmpty)) ...[
                 const Text(
-                  'Preview:',
+                  'Aperçu:',
                   style: TextStyle(
                       color: white, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
@@ -3396,7 +3398,7 @@ class _EditInterestsSheetState extends State<EditInterestsSheet> {
                   widget.onSave(updated);
                 },
                 child: const Text(
-                  'Save',
+                  'Enregistrer',
                   style: TextStyle(
                     color: white,
                     fontWeight: FontWeight.w700,
@@ -3425,7 +3427,7 @@ class ToggleChip extends StatelessWidget {
   });
 
   IconData get icon =>
-      label == 'Morning' ? Icons.wb_sunny_rounded : Icons.nightlight_round;
+      label == 'Matin' ? Icons.wb_sunny_rounded : Icons.nightlight_round;
 
   @override
   Widget build(BuildContext context) {
@@ -4153,7 +4155,7 @@ class _ContactInfoSectionState extends State<ContactInfoSection> {
           Row(
             children: [
               const Text(
-                'Contact Information',
+                'Informations de contact',
                 style: TextStyle(
                   color: white,
                   fontSize: 18,
@@ -4168,10 +4170,10 @@ class _ContactInfoSectionState extends State<ContactInfoSection> {
             ],
           ),
           const SizedBox(height: 15),
-          Text('Phone: $phone',
+          Text('Téléphone : $phone',
               style: const TextStyle(color: white_gray, fontSize: 15)),
           const SizedBox(height: 8),
-          Text('Address: $address',
+          Text('Adresse : $address',
               style: const TextStyle(color: white_gray, fontSize: 15)),
         ],
       ),
