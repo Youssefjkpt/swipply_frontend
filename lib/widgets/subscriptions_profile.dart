@@ -67,7 +67,7 @@ class SubscriptionComparisonCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Free',
+                    'Gratuit',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -90,7 +90,7 @@ class SubscriptionComparisonCard extends StatelessWidget {
                   ],
                 ),
                 child: const Text(
-                  "Current",
+                  "Plan actuel",
                   style: TextStyle(
                     color: Colors.black,
                     fontWeight: FontWeight.w700,
@@ -109,7 +109,7 @@ class SubscriptionComparisonCard extends StatelessWidget {
               Expanded(
                 flex: 6,
                 child: Text(
-                  "What's Included",
+                  "Ce qui est inclus",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13.5,
@@ -120,7 +120,7 @@ class SubscriptionComparisonCard extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: Text(
-                  "Free",
+                  "Gratuit",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
@@ -176,7 +176,7 @@ class SubscriptionComparisonCard extends StatelessWidget {
 
           const Center(
             child: Text(
-              "See All Features",
+              "Voir toutes les options",
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
@@ -272,7 +272,7 @@ class PlatinumSubscriptionCard extends StatelessWidget {
                   ],
                 ),
                 child: const Text(
-                  "Upgrade",
+                  "Passez au plan supérieur",
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -291,7 +291,7 @@ class PlatinumSubscriptionCard extends StatelessWidget {
               Expanded(
                 flex: 6,
                 child: Text(
-                  "What's Included",
+                  "Ce qui est inclus",
                   style: TextStyle(
                     color: Colors.black,
                     fontWeight: FontWeight.bold,
@@ -361,7 +361,7 @@ class PlatinumSubscriptionCard extends StatelessWidget {
 
           const Center(
             child: Text(
-              "See All Features",
+              "Voir toutes les options",
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,

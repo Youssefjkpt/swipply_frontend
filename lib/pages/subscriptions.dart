@@ -175,10 +175,10 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
     Color iconColor;
     String label;
 
-    if (title.toLowerCase().contains("premium")) {
+    if (title.toLowerCase().contains("platinum")) {
       icon = Icons.diamond;
       iconColor = Colors.cyanAccent;
-      label = "PREMIUM";
+      label = "PLATINUM";
     } else if (title.toLowerCase().contains("gold")) {
       icon = Icons.emoji_events;
       iconColor = Colors.amber;
@@ -221,7 +221,7 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
                             MaterialPageRoute(
                                 builder: (_) => const SwipplyGoldDetailsPage()),
                           );
-                        } else if (label == "PREMIUM") {
+                        } else if (label == "PLATINUM") {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -386,7 +386,7 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              ["GRATUIT", "GOLD", "PREMIUM"][index],
+                              ["GRATUIT", "GOLD", "PLATINUM"][index],
                               style: TextStyle(
                                 color: index == 0 ? Colors.black : Colors.white,
                                 fontSize: 11,
@@ -427,7 +427,7 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
                       ? "Swipply"
                       : _currentPage == 1
                           ? "Swipply Gold"
-                          : "Swipply Premium",
+                          : "Swipply Platinum",
                   _currentPage == 2,
                   _currentPage == 0
                       ? includedInFree

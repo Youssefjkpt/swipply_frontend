@@ -134,7 +134,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
     {
       "title": "Badge de profil vérifié",
       "description":
-          "Distinguez-vous auprès des recruteurs grâce à un badge premium.",
+          "Distinguez-vous auprès des recruteurs grâce à un badge Platinum.",
     },
     {
       "title": "Messagerie directe recruteur",
@@ -210,7 +210,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                 border: Border.all(color: Colors.cyanAccent, width: 1.4),
               ),
               child: const Text(
-                "Inclus avec Swipply Premium",
+                "Inclus avec Swipply Platinum",
                 style: TextStyle(
                   color: Colors.cyanAccent,
                   fontSize: 14,
@@ -267,7 +267,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text(
-                        "PREMIUM",
+                        "PLATINUM",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 9,
@@ -288,7 +288,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
-                    "Optimisez votre recherche d'emploi avec Swipply Premium.",
+                    "Optimisez votre recherche d'emploi avec Swipply Platinum.",
                     style: TextStyle(
                       fontSize: 23,
                       fontWeight: FontWeight.w700,

@@ -28,7 +28,7 @@ class EducationSection extends StatelessWidget {
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              const Text('Education',
+              const Text('Formation',
                   style: TextStyle(
                       color: white, fontSize: 18, fontWeight: FontWeight.w600)),
               const Spacer(),
@@ -58,7 +58,7 @@ class EducationSection extends StatelessWidget {
             if (educations.length > 3)
               GestureDetector(
                 onTap: onToggleShowAll,
-                child: Text(showAll ? 'Read less' : 'Read more',
+                child: Text(showAll ? 'Voir moins' : 'Voir plus',
                     style: const TextStyle(
                         color: blue,
                         fontSize: 15,

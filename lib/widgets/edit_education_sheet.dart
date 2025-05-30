@@ -87,7 +87,7 @@ class _EditEducationSheetState extends State<EditEducationSheet> {
               ),
               const SizedBox(height: 15),
               const Text(
-                'Edit Education',
+                'Modifier vos formation',
                 style: TextStyle(
                   color: white,
                   fontSize: 18,
@@ -108,7 +108,7 @@ class _EditEducationSheetState extends State<EditEducationSheet> {
                           maxLines: null,
                           style: const TextStyle(color: white),
                           decoration: InputDecoration(
-                            hintText: 'Education ${index + 1}',
+                            hintText: 'Formation ${index + 1}',
                             hintStyle: const TextStyle(color: white_gray),
                             filled: true,
                             fillColor: black_gray,
@@ -136,7 +136,7 @@ class _EditEducationSheetState extends State<EditEducationSheet> {
                 onPressed: _addExperience,
                 icon: const Icon(Icons.add, color: blue),
                 label: const Text(
-                  'Add Education',
+                  'Ajouter une formation',
                   style: TextStyle(color: blue),
                 ),
               ),
@@ -146,7 +146,7 @@ class _EditEducationSheetState extends State<EditEducationSheet> {
               // 🔍 Live Preview (optional)
               if (controllers.any((c) => c.text.trim().isNotEmpty)) ...[
                 const Text(
-                  'Preview:',
+                  'Aperçu:',
                   style: TextStyle(
                       color: white, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
@@ -204,7 +204,7 @@ class _EditEducationSheetState extends State<EditEducationSheet> {
                   Navigator.pop(context, updated);
                 },
                 child: const Text(
-                  'Save',
+                  'Enregistrer',
                   style: TextStyle(
                     color: white,
                     fontWeight: FontWeight.w700,

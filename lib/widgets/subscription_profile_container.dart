@@ -62,7 +62,7 @@ class _SubscriptionBadgeState extends State<SubscriptionBadge>
                 Padding(
                   padding: EdgeInsets.only(left: 2, right: 2),
                   child: Text(
-                    "Subscriptions",
+                    "Abonnements",
                     style: TextStyle(
                       color: white,
                       fontSize: 11,
@@ -74,7 +74,7 @@ class _SubscriptionBadgeState extends State<SubscriptionBadge>
                 ),
                 SizedBox(height: 6),
                 Text(
-                  "Add more",
+                  "Ajouter plus",
                   style: TextStyle(
                     fontSize: 10,
                     color: Colors.white70,

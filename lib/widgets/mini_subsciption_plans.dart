@@ -21,8 +21,8 @@ class _MiniSubscriptionSwiperState extends State<MiniSubscriptionSwiper> {
   Timer? _pauseTimer;
 
   final List<String> liteFeatures = [
-    "Preference job selection",
-    "1h AI auto-apply / day",
+    "Sélection de poste préférée",
+    "1 h de candidature automatique IA/jour",
   ];
   final List<bool> liteFree = [true, false];
   final List<bool> liteGold = [true, true];
@@ -109,7 +109,7 @@ class _MiniSubscriptionSwiperState extends State<MiniSubscriptionSwiper> {
                           builder: (context) => FullSubscriptionPage())),
                   child: SubscriptionComparisonCard(
                     planName: "Swipply",
-                    badgeText: "FREE",
+                    badgeText: "GRATUIT",
                     gradientStart: blue_gray,
                     gradientEnd: black_gray,
                     features: liteFeatures,

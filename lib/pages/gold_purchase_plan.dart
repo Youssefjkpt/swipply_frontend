@@ -329,7 +329,7 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
-                    "Débloquez instantanément les fonctionnalités Premium avec Swipply Gold.",
+                    "Débloquez instantanément les fonctionnalités Gold.",
                     style: TextStyle(
                       fontSize: 23,
                       fontWeight: FontWeight.w700,

@@ -61,7 +61,7 @@ class _AutoApplyBadgeState extends State<AutoApplyBadge>
                   height: 4,
                 ),
                 Text(
-                  "Auto Apply",
+                  "Candidature auto",
                   style: TextStyle(
                     color: white,
                     fontSize: 11,
@@ -72,7 +72,7 @@ class _AutoApplyBadgeState extends State<AutoApplyBadge>
                 ),
                 SizedBox(height: 6),
                 Text(
-                  "Add more",
+                  "Ajouter +",
                   style: TextStyle(
                     fontSize: 10,
                     color: Colors.white70,

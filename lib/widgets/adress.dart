@@ -103,7 +103,7 @@ class _EditContactInfoSheetState extends State<EditContactInfoSheet> {
         backgroundColor: blue_gray,
         textStyle: const TextStyle(color: white),
         inputDecoration: InputDecoration(
-          hintText: 'Search Country',
+          hintText: '	Rechercher un pays',
           hintStyle: const TextStyle(color: white_gray),
           filled: true,
           fillColor: black_gray,
@@ -179,7 +179,7 @@ class _EditContactInfoSheetState extends State<EditContactInfoSheet> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Edit Contact Info',
+                'Modifier les info de contact',
                 style: TextStyle(
                   color: white,
                   fontSize: 20,
@@ -226,7 +226,7 @@ class _EditContactInfoSheetState extends State<EditContactInfoSheet> {
                           style: const TextStyle(color: white),
                           keyboardType: TextInputType.phone,
                           decoration: const InputDecoration(
-                            hintText: 'Enter phone number',
+                            hintText: 'Entrer le numéro de téléphone',
                             hintStyle: TextStyle(color: white_gray),
                             border: InputBorder.none,
                           ),
@@ -242,7 +242,7 @@ class _EditContactInfoSheetState extends State<EditContactInfoSheet> {
                 onChanged: fetchAddressSuggestions,
                 style: const TextStyle(color: white),
                 decoration: const InputDecoration(
-                  labelText: 'Address',
+                  labelText: 'Adresse',
                   labelStyle: TextStyle(color: white_gray),
                   filled: true,
                   fillColor: black_gray,
@@ -293,7 +293,7 @@ class _EditContactInfoSheetState extends State<EditContactInfoSheet> {
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Center(
                       child: Text(
-                        'Save',
+                        'Enregistrer',
                         style: TextStyle(
                             color: white,
                             fontWeight: FontWeight.w700,
