@@ -92,7 +92,7 @@ class _MiniSubscriptionSwiperState extends State<MiniSubscriptionSwiper> {
 
         // ⏩ Swipeable cards
         SizedBox(
-          height: 330,
+          height: MediaQuery.of(context).size.height * 0.45,
           child: PageView.builder(
             controller: _controller,
             itemCount: 3,

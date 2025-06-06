@@ -64,15 +64,14 @@ class _AutoApplyBadgeState extends State<AutoApplyBadge>
                   "Candidature auto",
                   style: TextStyle(
                     color: white,
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.1,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 6),
                 Text(
-                  "Ajouter +",
+                  "Ajouter plus",
                   style: TextStyle(
                     fontSize: 10,
                     color: Colors.white70,

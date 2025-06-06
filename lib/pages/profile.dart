@@ -358,8 +358,7 @@ class _ProfileState extends State<Profile> {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    const Icon(Icons.arrow_back_ios_new_rounded,
-                        color: white, size: 30),
+                    const Icon(Icons.logout, color: white, size: 30),
                     const Spacer(),
                     GestureDetector(
                       onTap: _showEditBottomSheet,
@@ -476,7 +475,7 @@ class _ProfileState extends State<Profile> {
                       'CV',
                       style: TextStyle(
                         color: white,
-                        fontSize: 17,
+                        fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

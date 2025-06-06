@@ -94,7 +94,7 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
         final userId = result['user']['user_id'].toString();
         final token = result['token'];
         await saveUserSession(userId, token);
-
+        await _setCvCompleteFlag(userId);
         if (!mounted) return;
 
         showSuccessCheckPopup();
@@ -199,11 +199,10 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
       final jsonResponse = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        await saveUserSession(
-          jsonResponse['user']['user_id'].toString(),
-          jsonResponse['token'],
-        );
-
+        final userId = jsonResponse['user']['user_id'].toString();
+        final token = jsonResponse['token'];
+        await saveUserSession(userId, token);
+        await _setCvCompleteFlag(userId);
         if (!mounted) return;
 
         showSuccessCheckPopup();
@@ -265,6 +264,87 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
         Navigator.of(context).pop();
       }
     });
+  }
+
+  Future<void> _setCvCompleteFlag(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token == null) return;
+
+    // 1️⃣ Fetch user basic info
+    final userRes = await http.get(
+      Uri.parse('$BASE_URL_AUTH/users/$userId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    print('🛰️ userRes.statusCode: ${userRes.statusCode}');
+    print('🛰️ userRes.body: ${userRes.body}');
+
+    // 2️⃣ Fetch employee record
+    final empRes = await http.get(
+      Uri.parse('$BASE_URL_AUTH/api/get-employee/$userId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    print('🛰️ empRes.statusCode: ${empRes.statusCode}');
+    print('🛰️ empRes.body: ${empRes.body}');
+
+    if (userRes.statusCode == 200 && empRes.statusCode == 200) {
+      final userData = json.decode(userRes.body);
+      final empData = json.decode(empRes.body);
+
+      final fullName = userData['full_name']?.toString().trim();
+      final address = userData['address']?.toString().trim();
+      final email = userData['email']?.toString().trim();
+      final phone = userData['phone_number']?.toString().trim();
+
+      final resume = empData['resume']?.toString().trim();
+      final education = empData['education']?.toString().trim();
+      final experience = empData['experience']?.toString().trim();
+
+      final languages = empData['languages'] ?? [];
+      final interests = empData['interests'] ?? [];
+      final softSkills = empData['soft_skills'] ?? [];
+
+      print('🔍 fullName       = $fullName');
+      print('🔍 address        = $address');
+      print('🔍 email          = $email');
+      print('🔍 phone          = $phone');
+      print('🔍 resume         = $resume');
+      print('🔍 education      = $education');
+      print('🔍 experience     = $experience');
+      print('🔍 languages      = $languages');
+      print('🔍 interests      = $interests');
+      print('🔍 softSkills     = $softSkills');
+
+      final bool complete = fullName != null &&
+          fullName.isNotEmpty &&
+          address != null &&
+          address.isNotEmpty &&
+          email != null &&
+          email.isNotEmpty &&
+          phone != null &&
+          phone.isNotEmpty &&
+          resume != null &&
+          resume.isNotEmpty &&
+          education != null &&
+          education.isNotEmpty &&
+          experience != null &&
+          experience.isNotEmpty &&
+          (languages is List && languages.isNotEmpty) &&
+          (interests is List && interests.isNotEmpty) &&
+          (softSkills is List && softSkills.isNotEmpty);
+
+      print('✅ Computed cv_complete = $complete');
+      await prefs.setBool('cv_complete', complete);
+    } else {
+      print('❌ Failed to fetch user/employee, clearing cv_complete flag');
+      await prefs.remove('cv_complete');
+    }
   }
 
   late AnimationController _checkmarkController;

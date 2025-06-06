@@ -38,6 +38,11 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
   String? _passwordError;
   String? _confirmPasswordError;
   String? _serverError;
+  void _toggleConfirmPasswordVisibility() {
+    setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible);
+  }
+// Above your other methods:
+
   void _togglePasswordVisibility() {
     setState(() => _isPasswordVisible = !_isPasswordVisible);
   }
@@ -46,6 +51,11 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_id', userId);
     await prefs.setString('token', token);
+  }
+
+  Future<void> markCvIncomplete() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('cv_complete', false);
   }
 
   @override
@@ -69,6 +79,104 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
     if (value.trim().isEmpty) return 'Mot de passe requis';
     if (value.length < 6) return 'Minimum 6 caractères';
     return null;
+  }
+
+  Future<void> _setCvCompleteFlag(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token == null) return;
+
+    // 1️⃣ Fetch user basic info
+    final userRes = await http.get(
+      Uri.parse('$BASE_URL_AUTH/users/$userId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    print('🛰️ userRes.statusCode: ${userRes.statusCode}');
+    print('🛰️ userRes.body: ${userRes.body}');
+
+    // 2️⃣ Fetch employee record
+    final empRes = await http.get(
+      Uri.parse('$BASE_URL_AUTH/api/get-employee/$userId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    print('🛰️ empRes.statusCode: ${empRes.statusCode}');
+    print('🛰️ empRes.body: ${empRes.body}');
+
+    if (userRes.statusCode == 200 && empRes.statusCode == 200) {
+      final userData = json.decode(userRes.body);
+      final empData = json.decode(empRes.body);
+
+      final fullName = userData['full_name']?.toString().trim();
+      final address = userData['address']?.toString().trim();
+      final email = userData['email']?.toString().trim();
+      final phone = userData['phone_number']?.toString().trim();
+
+      final resume = empData['resume']?.toString().trim();
+      final education = empData['education']?.toString().trim();
+      final experience = empData['experience']?.toString().trim();
+
+      final languages = empData['languages'] ?? [];
+      final interests = empData['interests'] ?? [];
+      final softSkills = empData['soft_skills'] ?? [];
+
+      print('🔍 fullName       = $fullName');
+      print('🔍 address        = $address');
+      print('🔍 email          = $email');
+      print('🔍 phone          = $phone');
+      print('🔍 resume         = $resume');
+      print('🔍 education      = $education');
+      print('🔍 experience     = $experience');
+      print('🔍 languages      = $languages');
+      print('🔍 interests      = $interests');
+      print('🔍 softSkills     = $softSkills');
+
+      final bool complete = fullName != null &&
+          fullName.isNotEmpty &&
+          address != null &&
+          address.isNotEmpty &&
+          email != null &&
+          email.isNotEmpty &&
+          phone != null &&
+          phone.isNotEmpty &&
+          resume != null &&
+          resume.isNotEmpty &&
+          education != null &&
+          education.isNotEmpty &&
+          experience != null &&
+          experience.isNotEmpty &&
+          (languages is List && languages.isNotEmpty) &&
+          (interests is List && interests.isNotEmpty) &&
+          (softSkills is List && softSkills.isNotEmpty);
+
+      print('✅ Computed cv_complete = $complete');
+      await prefs.setBool('cv_complete', complete);
+    } else {
+      print('❌ Failed to fetch user/employee, clearing cv_complete flag');
+      await prefs.remove('cv_complete');
+    }
+  }
+
+  Future<void> _syncCvStatus(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final res = await http.get(
+      Uri.parse('$BASE_URL_AUTH/api/get-employee/$userId'),
+      headers: {'Content-Type': 'application/json'},
+    );
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      // if resume exists and non-empty, mark complete, else incomplete
+      final hasResume = (data['resume'] as String?)?.isNotEmpty == true;
+      await prefs.setBool('cv_complete', hasResume);
+    } else {
+      // no record → brand-new user
+      await prefs.setBool('cv_complete', false);
+    }
   }
 
   /* --------------------------------------------------------------------------
@@ -116,7 +224,7 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
 
       if (res.statusCode == 201 && data?['token'] != null) {
         await saveUserSession(data['user_id'].toString(), data['token']);
-
+        await markCvIncomplete(); // <-- new: mark CV as incomplete
         showSuccessCheckPopup();
         await Future.delayed(const Duration(seconds: 2));
         if (!mounted) return;
@@ -172,8 +280,10 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
       final data = jsonDecode(res.body);
 
       if (res.statusCode == 200 && data?['token'] != null) {
-        await saveUserSession(
-            data['user']['user_id'].toString(), data['token']);
+        final uid = data['user']['user_id'].toString();
+        await saveUserSession(uid, data['token']);
+        // 2) existing Google users → sync CV status; brand-new → mark incomplete
+        await _setCvCompleteFlag(uid);
 
         showSuccessCheckPopup();
         await Future.delayed(const Duration(seconds: 2));
@@ -373,51 +483,39 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
                           ),
                         ),
                       const SizedBox(height: 15),
-                      _buildPasswordField(
-                        "Mot de passe",
-                        "Entrez votre mot de passe",
-                        _passwordController,
-                        _isPasswordVisible,
-                        () => setState(
-                            () => _isPasswordVisible = !_isPasswordVisible),
-                        _checkPasswordStrength,
+                      Row(
+                        children: [
+                          Text('Mot de passe',
+                              style: const TextStyle(
+                                  fontSize: 17,
+                                  color: white,
+                                  fontWeight: FontWeight.w600)),
+                          Expanded(
+                              child: SizedBox(
+                            width: 1,
+                          ))
+                        ],
                       ),
-                      if (_passwordError != null) // <-- NEW
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            _passwordError!,
-                            style: const TextStyle(
-                                color: Colors.red, fontSize: 13),
-                          ),
-                        ),
-                      // Padding(
-                      //   padding: const EdgeInsets.only(top: 5),
-                      //   child: Text(
-                      //     _passwordStrength,
-                      //     style: TextStyle(
-                      //       color: _passwordStrength == "Faible"
-                      //           ? Colors.red
-                      //           : _passwordStrength == "Moyen"
-                      //               ? Colors.orange
-                      //               : Colors.green,
-                      //       fontSize: 14,
-                      //     ),
-                      //   ),
-                      // ),
                       const SizedBox(height: 15),
                       _buildPasswordField(
-                        "Confirmer le mot de passe",
-                        "Ré-entrez votre mot de passe",
-                        _confirmPasswordController,
-                        _isConfirmPasswordVisible,
-                        () {
-                          setState(() {
-                            _isConfirmPasswordVisible =
-                                !_isConfirmPasswordVisible;
-                          });
-                        },
-                        null,
+                        hintText: "Entrez votre mot de passe",
+                        controller: _passwordController,
+                        errorText: _passwordError,
+                        isVisible: _isPasswordVisible,
+                        toggleVisibility:
+                            _togglePasswordVisibility, // ← use the new method
+                        onChanged: _checkPasswordStrength,
+                      ),
+
+                      const SizedBox(height: 15),
+                      _buildPasswordField(
+                        hintText: "Ré-entrez votre mot de passe",
+                        controller: _confirmPasswordController,
+                        errorText: _confirmPasswordError,
+                        isVisible: _isConfirmPasswordVisible,
+                        toggleVisibility:
+                            _toggleConfirmPasswordVisibility, // ← your existing confirm toggle
+                        onChanged: (_) {},
                       ),
                       if (_confirmPasswordError != null) // <-- NEW
                         Padding(
@@ -428,7 +526,6 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
                                 color: Colors.red, fontSize: 13),
                           ),
                         ),
-
                       // Row(
                       //   children: [
                       //     Checkbox(
@@ -563,40 +660,68 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
   }
 }
 
-Widget _buildPasswordField(
-  String label,
-  String hintText,
-  TextEditingController controller,
-  bool isVisible,
-  VoidCallback toggleVisibility,
-  Function(String)? onChanged, // ✅ Ensure this argument exists
-) {
+Widget _buildPasswordField({
+  required String hintText,
+  required TextEditingController controller,
+  required String? errorText,
+  required bool isVisible,
+  required VoidCallback toggleVisibility,
+  required ValueChanged<String> onChanged,
+}) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(label,
-          style: const TextStyle(
-              fontSize: 17, color: white, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 10),
       Container(
         decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: gray, width: 2)),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(
+            color: errorText == null ? gray : Colors.red,
+            width: 2,
+          ),
+        ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 6),
-          child: TextFormField(
-            controller: controller,
-            obscureText: !isVisible,
-            style: const TextStyle(color: white, fontSize: 16),
-            cursorColor: blue,
-            decoration: InputDecoration(
-                border: InputBorder.none,
-                hintText: hintText,
-                hintStyle: TextStyle(color: gray, fontSize: 16)),
-            onChanged: onChanged, // ✅ Ensure this is used
+          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: controller,
+                  style: const TextStyle(color: white, fontSize: 16),
+                  cursorColor: blue,
+                  obscureText: !isVisible,
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  decoration: InputDecoration(
+                    hintText: hintText,
+                    hintStyle: const TextStyle(color: gray, fontSize: 16),
+                    hintMaxLines: 1,
+                    border: InputBorder.none,
+                  ),
+                  onChanged: onChanged,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 20),
+                child: GestureDetector(
+                  onTap: toggleVisibility,
+                  child: Icon(
+                    isVisible ? Icons.visibility_off : Icons.visibility,
+                    color: gray,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
+      if (errorText != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 5, left: 25),
+          child: Text(
+            errorText,
+            style: const TextStyle(color: Colors.red, fontSize: 14),
+          ),
+        ),
     ],
   );
 }

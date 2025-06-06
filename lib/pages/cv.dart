@@ -476,22 +476,53 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
   }
 
   List<Map<String, dynamic>> skills = [];
+  Future<String?> _fetchAnyJobId() async {
+    final token = await getAuthToken();
+    if (token == null) return null;
+
+    final uri = Uri.parse('$BASE_URL_AUTH/api/job-listings/any');
+    try {
+      final resp = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (resp.statusCode != 200) {
+        print('❌ Could not fetch any job_id: ${resp.statusCode} ${resp.body}');
+        return null;
+      }
+      final data = json.decode(resp.body) as Map<String, dynamic>;
+      return data['job_id'] as String?;
+    } catch (e) {
+      print('❌ Exception fetching any job_id: $e');
+      return null;
+    }
+  }
+
   Future<void> saveCV() async {
-    userId ??= await getUserId(); // ✅ assigns only if null
-
-    final token =
-        await getAuthToken(); // no need to assign globally if you only use it inside
-
+    userId ??= await getUserId();
+    final token = await getAuthToken();
     if (userId == null || token == null) {
       showUploadPopup(context, errorMessage: "ID ou jeton manquant");
       return;
     }
 
-    showUploadPopup(context); // Show loading popup
+    showUploadPopup(context); // display loading popup
 
+    // 1) Fetch one existing job_id from the backend
+    final anyJobId = await _fetchAnyJobId();
+    if (anyJobId == null) {
+      Navigator.of(context).pop(); // close loading
+      showUploadPopup(context,
+          errorMessage: "Impossible de récupérer un job_id.");
+      return;
+    }
+
+    // 2) Build your payload using that job_id
     final safePhone = phone?.trim();
     final safeAddress = address?.trim();
-    bool _showAllInterests = false;
     final data = {
       'email': userEmail,
       if (safePhone != null && safePhone.isNotEmpty) 'phone': safePhone,
@@ -510,8 +541,8 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
       'lettre_de_motivation': null,
       'fullName': userFullName,
       'available_start_date': null,
-      'job_title': _jobTitle, // required for backend insert
-      'job_id': '0e86aea3-1236-4a41-a13a-e249d2f24aea',
+      'job_title': _jobTitle,
+      'job_id': anyJobId, // ← dynamically inserted from the endpoint
     };
 
     final body = {
@@ -521,7 +552,6 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
 
     try {
       print("📦 Sending saveCV body: ${jsonEncode(body)}");
-
       final response = await http.post(
         Uri.parse("$BASE_URL_AUTH/api/save-cv"),
         headers: {
@@ -533,12 +563,12 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
       print("📨 Save CV Response: ${response.statusCode}");
       print("📨 Save CV Body: ${response.body}");
 
-      Navigator.of(context).pop(); // Close loading
+      Navigator.of(context).pop(); // close loading
 
       if (response.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('cv_complete', true);
-        showSuccessCheckPopup(); // ✅ Success animation
+        showSuccessCheckPopup();
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) Navigator.of(context).pop();
       } else {
@@ -3444,15 +3474,16 @@ class ToggleChip extends StatelessWidget {
         child: Row(
           children: [
             Icon(icon, color: selected ? black : white_gray, size: 16),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                color: selected ? black : white_gray,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+                  color: selected ? black : white_gray,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 1.2),
             ),
+            const SizedBox(width: 4),
           ],
         ),
       ),

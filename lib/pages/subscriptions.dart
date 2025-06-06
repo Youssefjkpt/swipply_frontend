@@ -177,7 +177,7 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
 
     if (title.toLowerCase().contains("platinum")) {
       icon = Icons.diamond;
-      iconColor = Colors.cyanAccent;
+      iconColor = Color(0xFF18FFFF);
       label = "PLATINUM";
     } else if (title.toLowerCase().contains("gold")) {
       icon = Icons.emoji_events;
@@ -455,8 +455,8 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
                     _currentPage == 0
                         ? "Activé"
                         : _currentPage == 1
-                            ? "Activer pour 4.99€ / month"
-                            : "Activer pour 9.99€ / month",
+                            ? "Activer pour 8.99€ / semaine"
+                            : "Activer pour 12.99€ / semaine",
                     style: TextStyle(
                       color: _currentPage == 0 ? Colors.white : Colors.black,
                       fontWeight: FontWeight.bold,

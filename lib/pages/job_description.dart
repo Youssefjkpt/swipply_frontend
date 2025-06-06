@@ -70,6 +70,7 @@ class _JobInformationsState extends State<JobInformations> {
     }
   }
 
+  String? _userId;
   final Completer<GoogleMapController> _mapController = Completer();
   bool _expandedMap = false; // for single map on this page
   bool isLoading = true;
@@ -138,10 +139,37 @@ class _JobInformationsState extends State<JobInformations> {
     super.dispose();
   }
 
+  Future<void> _initSavedState() async {
+    final prefs = await SharedPreferences.getInstance();
+    _userId = prefs.getString('user_id');
+    if (_userId != null) {
+      final saved = await ApiService.fetchSavedJobIds(_userId!);
+      setState(() => isSaved = saved.contains(widget.job['job_id'].toString()));
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _resolveLocation();
+    _initSavedState();
+  }
+
+  Future<void> _toggleSave() async {
+    if (_userId == null) return;
+    final jobId = widget.job['job_id'].toString();
+    try {
+      final resp = isSaved
+          ? await ApiService.removeSaveJob(userId: _userId!, jobId: jobId)
+          : await ApiService.saveJob(userId: _userId!, jobId: jobId);
+      if (resp.statusCode == 200) {
+        setState(() => isSaved = !isSaved);
+      } else {
+        print('❌ Failed: ${resp.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error toggling save: $e');
+    }
   }
 
   @override
@@ -214,17 +242,17 @@ class _JobInformationsState extends State<JobInformations> {
                               onTap: saveJob,
                               child: Padding(
                                 padding: EdgeInsets.only(top: 10),
-                                child: IconButton(
-                                  onPressed: () async {
-                                    setState(() => isSaved = !isSaved);
-                                    await saveJob(); // now actually invoke the API call
-                                  },
-                                  icon: Icon(
-                                    isSaved
-                                        ? Icons.bookmark_rounded
-                                        : Icons.bookmark_border_rounded,
-                                    color: white,
-                                    size: 28,
+                                child: Padding(
+                                  padding: EdgeInsets.only(top: 10),
+                                  child: IconButton(
+                                    onPressed: _toggleSave,
+                                    icon: Icon(
+                                      isSaved
+                                          ? Icons.bookmark_rounded
+                                          : Icons.bookmark_border_rounded,
+                                      color: white,
+                                      size: 28,
+                                    ),
                                   ),
                                 ),
                               ),

@@ -74,7 +74,7 @@ class _SuperLikeBadgeState extends State<SuperLikeBadge>
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: 2),
                   Text(
                     "Ajouter plus",
                     style: TextStyle(

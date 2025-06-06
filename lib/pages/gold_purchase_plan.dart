@@ -1,14 +1,23 @@
 // ignore_for_file: unused_field
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
+import 'package:swipply/pages/home_page.dart';
+import 'package:swipply/pages/main_layout.dart';
+import 'package:swipply/pages/welcoming_pages.dart';
+import 'package:swipply/widgets/success_payment.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 import 'package:http/http.dart' as http;
+import 'package:vibration/vibration.dart';
 
 class SwipplyGoldDetailsPage extends StatefulWidget {
   const SwipplyGoldDetailsPage({super.key});
@@ -18,7 +27,11 @@ class SwipplyGoldDetailsPage extends StatefulWidget {
 }
 
 class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
+  // ✅ New fields:
+  late final AnimationController _badgeController;
+  late Animation<double> _badgeAngle;
+
   int selectedPlanIndex = 1;
   Future<String?> getUserId() async {
     final prefs = await SharedPreferences.getInstance();
@@ -26,10 +39,11 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
   }
 
   final List<String> stripePriceIds = [
-    "price_1RAnPeCKzHpBcr4fcNh5YkBs", // 1 Week
-    "price_1RAxKMCKzHpBcr4fuHhvhxZG", // 1 Month
-    "price_1RAxMMCKzHpBcr4fiWV16Vmc", // 6 Months
+    "price_1RWi4jCKzHpBcr4fu6S7WEZl", // Gold 1 week (8.99 €)
+    "price_1RWi5FCKzHpBcr4frzSI5jOh", // Gold 1 month (17.99 €)
+    "price_1RWi3vCKzHpBcr4fIcPiTSHP", // Gold 6 months (84.99 €)
   ];
+  bool _showCelebration = false;
 
   void showUploadPopup(BuildContext context, {String? errorMessage}) {
     final bool isError = errorMessage != null;
@@ -118,10 +132,18 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
   }
 
   final List<String> planLabels = ["1 semaine", "1 mois", "6 mois"];
-  final List<double> planPrices = [8.99, 39.96, 99.76];
-  final List<String> planBadges = ["Populaire", "", "Meilleure offre"];
-  final List<String> planSubtexts = ["8.99 €/sem", "7.99 €/sem", "5.99 €/sem"];
-  final List<String> savings = ["", "Écon. 40%", "Écon. 76%"];
+  final List<double> planPrices = [8.99, 17.99, 84.99];
+  final List<String> planBadges = [
+    "Populaire",
+    "Économique",
+    "Meilleure offre"
+  ];
+  final List<String> planSubtexts = [
+    "8.99 € / semaine",
+    "4.5 € / semaine",
+    "3.5 € / semaine"
+  ];
+  final List<String> savings = ["", "Écon. 50%", "Écon. 61%"];
 
   final List<Map<String, String>> features = [
     {
@@ -145,6 +167,9 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
           "Revenez en arrière pour revoir les opportunités ou offres aimées.",
     },
   ];
+  Timer? _autoDismissTimer;
+  bool _homeButtonEnabled = false;
+  Timer? _enableButtonTimer;
 
   Widget buildFeatureSection() {
     return Stack(
@@ -264,290 +289,741 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
   @override
   void initState() {
     super.initState();
+
+    // 1) Run a continuous 0→2π animation over 600 ms:
+    _badgeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 4000),
+    )..repeat();
+
+    // 2) Map that to an angle in radians:
+    _badgeAngle = Tween<double>(
+      begin: 0.0,
+      end: 2 * pi,
+    ).animate(_badgeController);
   }
 
+  @override
+  void dispose() {
+    _badgeController.dispose();
+    super.dispose();
+  }
+
+  bool _loading = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: blue_gray,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            Row(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(width: 15),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(
-                    Icons.close,
-                    color: white,
-                    size: 30,
-                  ),
-                ),
-                const Expanded(child: SizedBox(width: 1)),
-                const Text(
-                  "Swipply",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Padding(
-                  padding: const EdgeInsets.only(right: 30),
-                  child: Transform(
-                    transform: Matrix4.skewX(-0.3),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 229, 175, 51),
-                        borderRadius: BorderRadius.circular(6),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    const SizedBox(width: 15),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(
+                        Icons.close,
+                        color: white,
+                        size: 30,
                       ),
-                      child: const Text(
-                        "GOLD",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
+                    ),
+                    const Expanded(child: SizedBox(width: 1)),
+                    const Text(
+                      "Swipply",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 30),
+                      child: Transform(
+                        transform: Matrix4.skewX(-0.3),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(255, 229, 175, 51),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            "GOLD",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                    const Expanded(child: SizedBox(width: 1)),
+                  ],
                 ),
-                const Expanded(child: SizedBox(width: 1)),
-              ],
-            ),
-            const SizedBox(height: 30),
-            Expanded(
-              child: ListView(children: [
-                const SizedBox(height: 16),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    "Débloquez instantanément les fonctionnalités Gold.",
-                    style: TextStyle(
-                      fontSize: 23,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                const SizedBox(height: 10),
+                Expanded(
+                  child: ListView(children: [
+                    const SizedBox(height: 16),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Text(
+                        "Débloquez instantanément les fonctionnalités Gold.",
+                        style: TextStyle(
+                          fontSize: 23,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 22),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: Text(
-                    "Sélectionnez une offre",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                    const SizedBox(height: 22),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Text(
+                        "Sélectionnez une offre",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: MediaQuery.of(context).size.height * 0.22,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: planLabels.length,
-                    itemBuilder: (context, index) {
-                      final isSelected = index == selectedPlanIndex;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() => selectedPlanIndex = index);
-                        },
-                        child: Container(
-                          width: MediaQuery.of(context).size.width * 0.6,
-                          margin: const EdgeInsets.only(right: 16),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            border: Border.all(
-                              color: isSelected
-                                  ? const Color(0xFFFFD97D)
-                                  : white_gray,
-                              width: isSelected ? 2.5 : 1.2,
-                            ),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(
-                                height: 10,
-                              ),
-                              if (planBadges[index].isNotEmpty)
-                                Text(
-                                  planBadges[index],
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color.fromARGB(255, 255, 205, 88),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              const SizedBox(height: 4),
-                              Text(
-                                planLabels[index],
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.22,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: planLabels.length,
+                        itemBuilder: (context, index) {
+                          final isSelected = index == selectedPlanIndex;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() => selectedPlanIndex = index);
+                            },
+                            child: Container(
+                              width: MediaQuery.of(context).size.width * 0.6,
+                              margin: const EdgeInsets.only(right: 16),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                border: Border.all(
                                   color: isSelected
-                                      ? Colors.white
-                                      : Colors.white70,
+                                      ? const Color(0xFFFFD97D)
+                                      : white_gray,
+                                  width: isSelected ? 2.5 : 1.2,
                                 ),
+                                borderRadius: BorderRadius.circular(18),
                               ),
-                              const Expanded(
-                                  child: SizedBox(
-                                height: 1,
-                              )),
-                              Row(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    planSubtexts[index],
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.white54,
-                                    ),
+                                  const SizedBox(
+                                    height: 10,
                                   ),
-                                  const Spacer(),
-                                  if (savings[index].isNotEmpty)
-                                    Align(
-                                      alignment: Alignment.bottomRight,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: blue_gray,
-                                          borderRadius:
-                                              BorderRadius.circular(100),
+                                  if (planBadges[index].isNotEmpty)
+                                    Text(
+                                      planBadges[index],
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        color:
+                                            Color.fromARGB(255, 255, 205, 88),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        planLabels[index],
+                                        style: TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                          color: isSelected
+                                              ? Colors.white
+                                              : Colors.white70,
                                         ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 4),
-                                          child: Text(
-                                            savings[index],
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: white,
-                                              fontWeight: FontWeight.w600,
+                                      ),
+                                      Expanded(
+                                          child: SizedBox(
+                                        width: 1,
+                                      )),
+                                      if (savings[index].isNotEmpty)
+                                        Align(
+                                          alignment: Alignment.bottomRight,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: blue_gray,
+                                              borderRadius:
+                                                  BorderRadius.circular(100),
+                                            ),
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 4),
+                                              child: Text(
+                                                savings[index],
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: white,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ),
+                                    ],
+                                  ),
+                                  const Expanded(
+                                      child: SizedBox(
+                                    height: 1,
+                                  )),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        planSubtexts[index],
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.white54,
+                                        ),
                                       ),
-                                    ),
+                                      const Spacer(),
+                                    ],
+                                  ),
                                 ],
                               ),
-                            ],
-                          ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding:
+                          const EdgeInsets.only(left: 15, right: 15, top: 20),
+                      child: buildFeatureSection(),
+                    )
+                  ]),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        height: 10,
+                      ),
+                      Text(
+                        "En appuyant sur Continuer, vous serez facturé. Paiement unique, sans renouvellement.",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white70,
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        "Conditions générales | Politique de confidentialité",
+                        style: TextStyle(
+                          fontSize: 11,
+                          letterSpacing: 0.1,
+                          color: Colors.white54,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () async {
+                    final prefs = await SharedPreferences.getInstance();
+                    final userId = prefs.getString('user_id');
+                    if (userId == null) {
+                      showStripeErrorPopup(
+                        context,
+                      );
+                      return;
+                    }
+
+                    setState(() => _loading = true);
+
+                    try {
+                      // 1) Call backend to create a PaymentIntent
+                      final uri =
+                          Uri.parse('$BASE_URL_JOBS/create-payment-intent');
+                      final response = await http.post(
+                        uri,
+                        headers: {'Content-Type': 'application/json'},
+                        body: jsonEncode({
+                          'user_id': userId,
+                          'price_id': stripePriceIds[selectedPlanIndex],
+                        }),
+                      );
+
+                      if (response.statusCode != 200) {
+                        throw Exception('Backend erreur : ${response.body}');
+                      }
+
+                      final body = jsonDecode(response.body);
+                      final clientSecret = body['clientSecret'] as String;
+
+                      // 2) Initialize the Stripe Payment Sheet
+                      await Stripe.instance.initPaymentSheet(
+                        paymentSheetParameters: SetupPaymentSheetParameters(
+                          paymentIntentClientSecret: clientSecret,
+                          merchantDisplayName: 'Swipply',
                         ),
                       );
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 15, right: 15, top: 20),
-                  child: buildFeatureSection(),
-                )
-              ]),
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: 10,
-                  ),
-                  Text(
-                    "En appuyant sur Continuer, vous serez facturé. Paiement unique, sans renouvellement.",
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white70,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    "Conditions générales | Politique de confidentialité",
-                    style: TextStyle(
-                      fontSize: 11,
-                      letterSpacing: 0.1,
-                      color: Colors.white54,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            GestureDetector(
-              onTap: () async {
-                final userId = await getUserId();
-                final priceId = stripePriceIds[selectedPlanIndex];
 
-                showUploadPopup(context); // 🟡 Show loading
+                      // 3) Present the Payment Sheet
+                      await Stripe.instance.presentPaymentSheet();
 
-                final uri = Uri.parse("$BASE_URL_JOBS/create-checkout-session");
+                      // 4) On success, show confirmation
+                      showGoldCelebrationPopup(context);
 
-                try {
-                  final response = await http.post(
-                    uri,
-                    headers: {'Content-Type': 'application/json'},
-                    body: jsonEncode({'user_id': userId, 'priceId': priceId}),
-                  );
-
-                  Navigator.of(context).pop(); // ⛔ Remove loading
-
-                  if (response.statusCode == 200) {
-                    final data = jsonDecode(response.body);
-                    final checkoutUrl = data['url'];
-
-                    final launched = await launchUrlString(
-                      checkoutUrl,
-                      mode: LaunchMode.externalApplication,
-                    );
-
-                    if (!launched) {
-                      showUploadPopup(context,
-                          errorMessage:
-                              "❌ Impossible d’ouvrir le lien Stripe.");
+                      //////////////////////////////////////////////////////////////////
+                    } catch (e) {
+                      showStripeErrorPopup(
+                        context,
+                      );
+                    } finally {
+                      setState(() => _loading = false);
                     }
-                  } else {
-                    showUploadPopup(context,
-                        errorMessage: "❌ Erreur Stripe: ${response.body}");
-                  }
-                } catch (e) {
-                  Navigator.of(context).pop(); // Remove loading
-                  showUploadPopup(context, errorMessage: "❌ Exception: $e");
-                }
-              },
-              child: Container(
-                width: double.infinity,
-                margin: const EdgeInsets.all(20),
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFEEEC6), Color(0xFFFFD97D)],
-                  ),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Center(
-                  child: Text(
-                    "Continue for ${planPrices[selectedPlanIndex].toStringAsFixed(2)} € total",
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFEEEC6), Color(0xFFFFD97D)],
+                      ),
+                      borderRadius: BorderRadius.circular(18),
                     ),
+                    child: _loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : Center(
+                            child: Text(
+                              "Continuer pour ${planPrices[selectedPlanIndex].toStringAsFixed(2)} € total",
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show a centered blue-gray dialog that reports a Stripe failure.
+  /// [errorMsg] → line of text shown under the sad-emoji animation.
+  /// Friendly, generic Stripe–error dialog (no raw backend text shown)
+  void showStripeErrorPopup(BuildContext context) {
+    showGeneralDialog(
+      context: context,
+      barrierLabel: "stripeError",
+      barrierDismissible: true,
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 250),
+      pageBuilder: (_, __, ___) => const SafeArea(
+        child: _StripeErrorContent(), // ← no parameter anymore
+      ),
+      transitionBuilder: (_, a1, __, child) => FadeTransition(
+          opacity: CurvedAnimation(parent: a1, curve: Curves.easeOut),
+          child: child),
+    );
+  }
+
+  /// 1) In your SwipplyGoldDetailsPage class:
+  void showGoldCelebrationPopup(BuildContext context) {
+    // A) create the timer and keep a handle to it
+    late final Timer _autoCloseTimer;
+    _autoCloseTimer = Timer(const Duration(seconds: 7), () {
+      final nav = Navigator.maybeOf(context);
+      if (nav != null && nav.canPop()) nav.pop();
+    });
+
+    // B) show the dialog and give it a way to cancel the timer
+    showGeneralDialog(
+      context: context,
+      barrierLabel: "goldCelebration",
+      barrierDismissible: false,
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (ctx, a1, a2) => SafeArea(
+        child: _GoldCelebrationContent(
+          originalContext: context,
+          cancelAutoClose: () => _autoCloseTimer.cancel(), // ← REAL canceller
+        ),
+      ),
+      transitionBuilder: (ctx, a1, a2, child) => FadeTransition(
+        opacity: CurvedAnimation(parent: a1, curve: Curves.easeOut),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _StripeErrorContent extends StatelessWidget {
+  const _StripeErrorContent({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext ctx) {
+    return Center(
+      child: Container(
+        width: MediaQuery.of(ctx).size.width * 0.80,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: blue_gray,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+                color: Colors.black45, blurRadius: 12, offset: Offset(0, 6)),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 1) Bigger Lottie (fits width while respecting aspect ratio)
+            SizedBox(
+              height: 130, // ← adjust to any size you want
+              width: 130,
+              child: Lottie.asset(
+                errorBox, // your asset constant / path
+                fit: BoxFit.contain,
+              ),
+            ),
+
+            // 2) Friendly headline
+            const Text(
+              "Oups ! Paiement échoué",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontFamily: null,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                decoration: TextDecoration.none,
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // 3) Short explanatory sentence – always the same
+            const Text(
+              "Merci de réessayer ou d’utiliser un autre moyen de paiement.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 15,
+                fontFamily: null,
+                decoration: TextDecoration.none,
+              ),
+            ),
+            const SizedBox(height: 28),
+
+            // 4) Close button
+            GestureDetector(
+              onTap: () => Navigator.of(ctx).pop(),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 14, horizontal: 30),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  "Fermer",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontFamily: null,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.none,
                   ),
                 ),
               ),
+            ),
+            SizedBox(
+              height: 20,
             )
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 2) The inner StatefulWidget that displays badge/confetti & button:
+class _GoldCelebrationContent extends StatefulWidget {
+  final BuildContext originalContext;
+  final VoidCallback cancelAutoClose;
+  const _GoldCelebrationContent({
+    required this.originalContext,
+    required this.cancelAutoClose,
+  });
+
+  @override
+  State<_GoldCelebrationContent> createState() =>
+      _GoldCelebrationContentState();
+}
+
+class _GoldCelebrationContentState extends State<_GoldCelebrationContent>
+    with TickerProviderStateMixin {
+  late final AnimationController _badgeController;
+  late Animation<double> _badgeAngle;
+  bool _canClose = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 1) Run a continuous 0→2π animation over 5000 ms:
+    _badgeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 5000),
+    )..repeat();
+
+    // 2) Map that to an angle in radians:
+    _badgeAngle = Tween<double>(
+      begin: 0.0,
+      end: 2 * pi,
+    ).animate(_badgeController);
+
+    // 3) Schedule enabling the cancel‐icon after 4 seconds:
+    Future.delayed(const Duration(seconds: 4)).then((_) {
+      if (mounted) {
+        setState(() {
+          _canClose = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    widget.cancelAutoClose();
+    _badgeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext dialogCtx) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // 1) Confetti Lottie (behind entire screen)
+        Positioned.fill(
+          child: Stack(
+            children: [
+              // First confetti immediately:
+              Positioned.fill(
+                child: Lottie.asset(
+                  confetti,
+                  fit: BoxFit.cover,
+                  repeat: false,
+                ),
+              ),
+              // Second confetti after 1 second:
+              Positioned.fill(
+                child: FutureBuilder<void>(
+                  future: Future.delayed(const Duration(seconds: 1)),
+                  builder: (ctx2, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.done) {
+                      return Lottie.asset(
+                        confetti,
+                        fit: BoxFit.cover,
+                        repeat: false,
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // 2) Center Card‐like container with semi‐transparent blue_gray background
+        Center(
+          child: Container(
+            width: MediaQuery.of(dialogCtx).size.width * 0.80,
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            decoration: BoxDecoration(
+              color: blue_gray.withOpacity(0.8),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black45,
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                )
+              ],
+              border: Border.all(color: Colors.grey.shade800, width: 1.2),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // A) Confetti fills the entire card background:
+                Positioned.fill(
+                  child: Lottie.asset(
+                    confetti,
+                    fit: BoxFit.cover,
+                    repeat: false,
+                  ),
+                ),
+
+                // B) The column of badge + texts + “Aller à l’accueil” button:
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 1) Floating gold badge:
+                    SizedBox(
+                      height: 120,
+                      width: 120,
+                      child: Center(
+                        child: AnimatedBuilder(
+                          animation: _badgeAngle,
+                          builder: (context, child) {
+                            final t = _badgeAngle.value;
+                            // Horizontal amplitude ±5% of width:
+                            final dx = 0.05 * sin(t);
+                            // Vertical amplitude ±4.5% of height:
+                            final dy = 0.045 * sin(2 * t);
+                            return FractionalTranslation(
+                              translation: Offset(dx, dy),
+                              child: child,
+                            );
+                          },
+                          child: SizedBox(
+                            height: 100,
+                            width: 100,
+                            child: Lottie.asset(
+                              goldBadge,
+                              repeat: false,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    // 2) “Félicitations!” title:
+                    const Text(
+                      "Félicitations!",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFFFFD700),
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.none,
+                        shadows: [
+                          Shadow(
+                            offset: Offset(0, 1),
+                            blurRadius: 4,
+                            color: Colors.black54,
+                          )
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // 3) “Votre adhésion Gold …” subtitle:
+                    const Text(
+                      "Votre adhésion Gold est maintenant activée.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    // 4) “Aller à l’accueil” button (in French):
+                    // ─── REPLACE THIS ENTIRE GestureDetector(...) BLOCK ───────────────────────────
+                    // 4) “Aller à l’accueil” button (in French):
+                    GestureDetector(
+                      onTap: () {
+                        widget.cancelAutoClose();
+                        // 1) Dismiss the celebration dialog first:
+                        Navigator.of(dialogCtx).pop();
+
+                        // 2) After the dialog closes, safely navigate to home:
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          final nav = Navigator.maybeOf(dialogCtx);
+                          if (nav != null) {
+                            nav.pushReplacement(
+                              MaterialPageRoute(builder: (_) => MainLayout()),
+                            );
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 16, horizontal: 24),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFD700),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          "Aller à l’accueil",
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ),
+                    ),
+
+// ───────────────────────────────────────────────────────────────────────────
+
+                    const SizedBox(height: 12),
+                  ],
+                ),
+
+                // C) Top‐right Cancel “X” icon:
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.close,
+                      color: _canClose ? Colors.white : Colors.grey,
+                      size: 24,
+                    ),
+                    onPressed: _canClose
+                        ? () {
+                            widget.cancelAutoClose();
+                            Navigator.of(dialogCtx).pop();
+                          }
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

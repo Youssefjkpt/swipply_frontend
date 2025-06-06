@@ -272,7 +272,7 @@ class PlatinumSubscriptionCard extends StatelessWidget {
                   ],
                 ),
                 child: const Text(
-                  "Passez au plan supérieur",
+                  "Upgrade",
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,

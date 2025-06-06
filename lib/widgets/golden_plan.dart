@@ -78,7 +78,7 @@ class GoldSubscriptionCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Text(
-                  "Mettre à niveau",
+                  "Upgrade",
                   style: TextStyle(
                     color: Colors.black,
                     fontWeight: FontWeight.w700,

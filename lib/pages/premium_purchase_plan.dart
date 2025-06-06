@@ -1,12 +1,16 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
+import 'package:swipply/pages/main_layout.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:http/http.dart' as http;
 
 class SwipplyPremiumDetailsPage extends StatefulWidget {
@@ -21,20 +25,38 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
   int selectedPlanIndex = 1;
 
   final List<String> planLabels = ["1 semaine", "1 mois", "6 mois"];
-  final List<double> planPrices = [12.99, 49.99, 119.99];
-  final List<String> planBadges = ["Populaire", "", "Meilleure offre"];
-  final List<String> planSubtexts = [
-    "12,99 €/sem.",
-    "11,49 €/sem.",
-    "7,99 €/sem."
-  ];
-  final List<String> savings = ["", "Écon. 25 %", "Écon. 55 %"];
+// ─── 1) Replace your stripePriceIds with the correct Platinum IDs ─────────
   final List<String> stripePriceIds = [
-    "price_1RAnPeCKzHpBcr4fcNh5YkBs", // 1 Week
-    "price_1RAxKMCKzHpBcr4fuHhvhxZG", // 1 Month
-    "price_1RAxMMCKzHpBcr4fiWV16Vmc", // 6 Months
+    "price_1RWhzsCKzHpBcr4fEFtyaiX6", // Platinum 1 week (12.99 €)
+    "price_1RWi22CKzHpBcr4fnln8iblK", // Platinum 1 month (24.99 €)
+    "price_1RWi89CKzHpBcr4fdsvUIZd8", // Platinum 6 months (94.99 €)
   ];
 
+// ─── 2) Replace your displayed prices ───────────────────────────────────────
+  final List<double> planPrices = [12.99, 24.99, 94.99];
+
+// ─── 3) Badges (1 week = “Populaire”, 1 month = “Économique”, 6 mois = “Meilleure offre”) ──
+  final List<String> planBadges = [
+    "Populaire",
+    "Économique",
+    "Meilleure offre",
+  ];
+
+// ─── 4) Sub-text showing €/week equivalents ────────────────────────────────
+  final List<String> planSubtexts = [
+    "12,99 € / sem.",
+    "6,20 € / sem.", // 24.99 € ÷ 4 sem.
+    "3,99 € / sem.", // 94.99 € ≃ 26 sem. ⇒ 3.99 € / sem.
+  ];
+
+// ─── 5) (Optional) Rough “savings” labels ──────────────────────────────────
+  final List<String> savings = [
+    "",
+    "Écon. 52 %", // 24.99 vs (12.99 × 4≈51.96)
+    "Écon. 70 %", // 94.99 vs (12.99 × 26≈337.74)
+  ];
+
+  bool _loading = false;
   void showUploadPopup(BuildContext context, {String? errorMessage}) {
     final bool isError = errorMessage != null;
     void showSuccessCheckPopup(BuildContext context, TickerProvider vsync) {
@@ -166,7 +188,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                     Row(
                       children: [
                         const Icon(Icons.check_circle,
-                            color: Colors.cyanAccent, size: 24),
+                            color: Color(0xFF18FFFF), size: 24),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
@@ -281,7 +303,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                 const Expanded(child: SizedBox(width: 1)),
               ],
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 10),
             Expanded(
               child: ListView(children: [
                 const SizedBox(height: 16),
@@ -348,27 +370,22 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                                   ),
                                 ),
                               const SizedBox(height: 4),
-                              Text(
-                                planLabels[index],
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : Colors.white70,
-                                ),
-                              ),
-                              const Expanded(child: SizedBox(height: 1)),
                               Row(
                                 children: [
                                   Text(
-                                    planSubtexts[index],
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.white54,
+                                    planLabels[index],
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.white70,
                                     ),
                                   ),
-                                  const Spacer(),
+                                  Expanded(
+                                      child: SizedBox(
+                                    width: 1,
+                                  )),
                                   if (savings[index].isNotEmpty)
                                     Align(
                                       alignment: Alignment.bottomRight,
@@ -392,6 +409,19 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                                         ),
                                       ),
                                     ),
+                                ],
+                              ),
+                              const Expanded(child: SizedBox(height: 1)),
+                              Row(
+                                children: [
+                                  Text(
+                                    planSubtexts[index],
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white54,
+                                    ),
+                                  ),
+                                  const Spacer(),
                                 ],
                               ),
                             ],
@@ -437,41 +467,55 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
               onTap: () async {
                 final userId = await getUserId();
                 final priceId = stripePriceIds[selectedPlanIndex];
+                if (userId == null) {
+                  showStripeErrorPopup(
+                    context,
+                  );
+                  return;
+                }
 
-                showUploadPopup(context); // Show loading popup
-
-                final uri = Uri.parse("$BASE_URL_JOBS/create-checkout-session");
+                setState(() => _loading = true);
 
                 try {
+                  // 1) Call backend to create a PaymentIntent
+                  final uri = Uri.parse('$BASE_URL_JOBS/create-payment-intent');
                   final response = await http.post(
                     uri,
                     headers: {'Content-Type': 'application/json'},
-                    body: jsonEncode({'user_id': userId, 'priceId': priceId}),
+                    body: jsonEncode({
+                      'user_id': userId,
+                      'price_id': priceId,
+                    }),
                   );
 
-                  Navigator.of(context).pop(); // Dismiss loading popup
-
-                  if (response.statusCode == 200) {
-                    final data = jsonDecode(response.body);
-                    final checkoutUrl = data['url'];
-
-                    final launched = await launchUrlString(
-                      checkoutUrl,
-                      mode: LaunchMode.externalApplication,
-                    );
-
-                    if (!launched) {
-                      showUploadPopup(context,
-                          errorMessage:
-                              "❌ Impossible d’ouvrir le lien Stripe.");
-                    }
-                  } else {
-                    showUploadPopup(context,
-                        errorMessage: "❌ Erreur Stripe: ${response.body}");
+                  if (response.statusCode != 200) {
+                    throw Exception('Backend erreur : ${response.body}');
                   }
+
+                  final body = jsonDecode(response.body);
+                  final clientSecret = body['clientSecret'] as String;
+
+                  // 2) Initialize the Stripe Payment Sheet
+                  await Stripe.instance.initPaymentSheet(
+                    paymentSheetParameters: SetupPaymentSheetParameters(
+                      paymentIntentClientSecret: clientSecret,
+                      merchantDisplayName: 'Swipply',
+                    ),
+                  );
+
+                  // 3) Present the Payment Sheet
+                  await Stripe.instance.presentPaymentSheet();
+
+                  // 4) On success, show confirmation
+                  showGoldCelebrationPopup(context);
+
+                  //////////////////////////////////////////////////////////////////
                 } catch (e) {
-                  Navigator.of(context).pop(); // Dismiss loading popup
-                  showUploadPopup(context, errorMessage: "❌ Exception: $e");
+                  showStripeErrorPopup(
+                    context,
+                  );
+                } finally {
+                  setState(() => _loading = false);
                 }
               },
               child: Container(
@@ -484,21 +528,418 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                   ),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: Center(
-                  child: Text(
-                    "Continuer pour ${planPrices[selectedPlanIndex].toStringAsFixed(2)} € au total",
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : Center(
+                        child: Text(
+                          "Continuer pour ${planPrices[selectedPlanIndex].toStringAsFixed(2)} € au total",
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  void showStripeErrorPopup(BuildContext context) {
+    showGeneralDialog(
+      context: context,
+      barrierLabel: "stripeError",
+      barrierDismissible: true,
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 250),
+      pageBuilder: (_, __, ___) => const SafeArea(
+        child: _StripeErrorContent(), // ← no parameter anymore
+      ),
+      transitionBuilder: (_, a1, __, child) => FadeTransition(
+          opacity: CurvedAnimation(parent: a1, curve: Curves.easeOut),
+          child: child),
+    );
+  }
+
+  /// 1) In your SwipplyGoldDetailsPage class:
+  void showGoldCelebrationPopup(BuildContext context) {
+    // A) create the timer and keep a handle to it
+    late final Timer _autoCloseTimer;
+    _autoCloseTimer = Timer(const Duration(seconds: 7), () {
+      final nav = Navigator.maybeOf(context);
+      if (nav != null && nav.canPop()) nav.pop();
+    });
+
+    // B) show the dialog and give it a way to cancel the timer
+    showGeneralDialog(
+      context: context,
+      barrierLabel: "goldCelebration",
+      barrierDismissible: false,
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (ctx, a1, a2) => SafeArea(
+        child: _GoldCelebrationContent(
+          originalContext: context,
+          cancelAutoClose: () => _autoCloseTimer.cancel(), // ← REAL canceller
+        ),
+      ),
+      transitionBuilder: (ctx, a1, a2, child) => FadeTransition(
+        opacity: CurvedAnimation(parent: a1, curve: Curves.easeOut),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _StripeErrorContent extends StatelessWidget {
+  const _StripeErrorContent({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext ctx) {
+    return Center(
+      child: Container(
+        width: MediaQuery.of(ctx).size.width * 0.80,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: blue_gray,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+                color: Colors.black45, blurRadius: 12, offset: Offset(0, 6)),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 1) Bigger Lottie (fits width while respecting aspect ratio)
+            SizedBox(
+              height: 130, // ← adjust to any size you want
+              width: 130,
+              child: Lottie.asset(
+                errorBox, // your asset constant / path
+                fit: BoxFit.contain,
+              ),
+            ),
+
+            // 2) Friendly headline
+            const Text(
+              "Oups ! Paiement échoué",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontFamily: null,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                decoration: TextDecoration.none,
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // 3) Short explanatory sentence – always the same
+            const Text(
+              "Merci de réessayer ou d’utiliser un autre moyen de paiement.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 15,
+                fontFamily: null,
+                decoration: TextDecoration.none,
+              ),
+            ),
+            const SizedBox(height: 28),
+
+            // 4) Close button
+            GestureDetector(
+              onTap: () => Navigator.of(ctx).pop(),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 14, horizontal: 30),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  "Fermer",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontFamily: null,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 20,
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 2) The inner StatefulWidget that displays badge/confetti & button:
+class _GoldCelebrationContent extends StatefulWidget {
+  final BuildContext originalContext;
+  final VoidCallback cancelAutoClose;
+  const _GoldCelebrationContent({
+    required this.originalContext,
+    required this.cancelAutoClose,
+  });
+
+  @override
+  State<_GoldCelebrationContent> createState() =>
+      _GoldCelebrationContentState();
+}
+
+class _GoldCelebrationContentState extends State<_GoldCelebrationContent>
+    with TickerProviderStateMixin {
+  late final AnimationController _badgeController;
+  late Animation<double> _badgeAngle;
+  bool _canClose = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 1) Run a continuous 0→2π animation over 5000 ms:
+    _badgeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 5000),
+    )..repeat();
+
+    // 2) Map that to an angle in radians:
+    _badgeAngle = Tween<double>(
+      begin: 0.0,
+      end: 2 * pi,
+    ).animate(_badgeController);
+
+    // 3) Schedule enabling the cancel‐icon after 4 seconds:
+    Future.delayed(const Duration(seconds: 4)).then((_) {
+      if (mounted) {
+        setState(() {
+          _canClose = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    widget.cancelAutoClose();
+    _badgeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext dialogCtx) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // 1) Confetti Lottie (behind entire screen)
+        Positioned.fill(
+          child: Stack(
+            children: [
+              // First confetti immediately:
+              Positioned.fill(
+                child: Lottie.asset(
+                  confetti,
+                  fit: BoxFit.cover,
+                  repeat: false,
+                ),
+              ),
+              // Second confetti after 1 second:
+              Positioned.fill(
+                child: FutureBuilder<void>(
+                  future: Future.delayed(const Duration(seconds: 1)),
+                  builder: (ctx2, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.done) {
+                      return Lottie.asset(
+                        confetti,
+                        fit: BoxFit.cover,
+                        repeat: false,
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // 2) Center Card‐like container with semi‐transparent blue_gray background
+        Center(
+          child: Container(
+            width: MediaQuery.of(dialogCtx).size.width * 0.80,
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            decoration: BoxDecoration(
+              color: blue_gray.withOpacity(0.8),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black45,
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                )
+              ],
+              border: Border.all(color: Colors.grey.shade800, width: 1.2),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // A) Confetti fills the entire card background:
+                Positioned.fill(
+                  child: Lottie.asset(
+                    confetti,
+                    fit: BoxFit.cover,
+                    repeat: false,
+                  ),
+                ),
+
+                // B) The column of badge + texts + “Aller à l’accueil” button:
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 1) Floating gold badge:
+                    SizedBox(
+                      height: 120,
+                      width: 120,
+                      child: Center(
+                        child: AnimatedBuilder(
+                          animation: _badgeAngle,
+                          builder: (context, child) {
+                            final t = _badgeAngle.value;
+                            // Horizontal amplitude ±5% of width:
+                            final dx = 0.05 * sin(t);
+                            // Vertical amplitude ±4.5% of height:
+                            final dy = 0.045 * sin(2 * t);
+                            return FractionalTranslation(
+                              translation: Offset(dx, dy),
+                              child: child,
+                            );
+                          },
+                          child: SizedBox(
+                            height: 100,
+                            width: 100,
+                            child: Lottie.asset(
+                              gdiamond,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    // 2) “Félicitations!” title:
+                    const Text(
+                      "Félicitations!",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.none,
+                        shadows: [
+                          Shadow(
+                            offset: Offset(0, 1),
+                            blurRadius: 4,
+                            color: Colors.black54,
+                          )
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // 3) “Votre adhésion Gold …” subtitle:
+                    const Text(
+                      "Votre adhésion Platinum est maintenant activée.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    // 4) “Aller à l’accueil” button (in French):
+                    // ─── REPLACE THIS ENTIRE GestureDetector(...) BLOCK ───────────────────────────
+                    // 4) “Aller à l’accueil” button (in French):
+                    GestureDetector(
+                      onTap: () {
+                        widget.cancelAutoClose();
+                        // 1) Dismiss the celebration dialog first:
+                        Navigator.of(dialogCtx).pop();
+
+                        // 2) After the dialog closes, safely navigate to home:
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          final nav = Navigator.maybeOf(dialogCtx);
+                          if (nav != null) {
+                            nav.pushReplacement(
+                              MaterialPageRoute(builder: (_) => MainLayout()),
+                            );
+                          }
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 16, horizontal: 24),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF18FFFF),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          "Aller à l’accueil",
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ),
+                    ),
+
+// ───────────────────────────────────────────────────────────────────────────
+
+                    const SizedBox(height: 12),
+                  ],
+                ),
+
+                // C) Top‐right Cancel “X” icon:
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.close,
+                      color: _canClose ? Colors.white : Colors.grey,
+                      size: 24,
+                    ),
+                    onPressed: _canClose
+                        ? () {
+                            widget.cancelAutoClose();
+                            Navigator.of(dialogCtx).pop();
+                          }
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

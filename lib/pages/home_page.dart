@@ -31,11 +31,10 @@ ValueNotifier<bool> isSwiping = ValueNotifier(false);
 
 class _HomePageState extends State<HomePage> {
   double _swipeProgress = 0.0;
-  String? fullName, address, email, phone;
-  String? resume;
-  bool cvLoading = false;
-  final GlobalKey bellKey = GlobalKey();
 
+  final GlobalKey bellKey = GlobalKey();
+  String? fullName, email, phone, resume, jobTitle;
+  bool cvLoading = false;
   void _runFlyingAnimation(Offset start, Offset end) {
     final overlay = Overlay.of(context, rootOverlay: false);
     late OverlayEntry entry;
@@ -144,7 +143,6 @@ class _HomePageState extends State<HomePage> {
 
   final CardSwiperController _controller = CardSwiperController();
   Completer<GoogleMapController> _mapController = Completer();
-  bool _isMapLoading = true;
   ValueNotifier<bool> isSwiping = ValueNotifier(false);
   final GlobalKey<_GradientSwapButtonState> cancelBtnKey = GlobalKey();
   final GlobalKey<_GradientSwapButtonState> rewindBtnKey = GlobalKey();
@@ -158,30 +156,19 @@ class _HomePageState extends State<HomePage> {
   int _currentIndex = 0; // Track the current card index
 
   void _goToNextPage() {
-    setState(() {
-      if (_currentPage < 2) {
-        _currentPage++;
-        _isMapLoading = true;
-
-        if (_currentPage == 1) {
-          cvLoading = true;
-          _fetchUserProfile().then((_) {
-            setState(() {
-              cvLoading = false;
-            });
-          });
-        }
-      }
-    });
+    if (_currentPage == 0) {
+      setState(() {
+        _currentPage = 1;
+      });
+    }
   }
 
   void _goToPreviousPage() {
-    setState(() {
-      if (_currentPage > 0) {
-        _currentPage--;
-        _isMapLoading = true;
-      }
-    });
+    if (_currentPage == 1) {
+      setState(() {
+        _currentPage = 0;
+      });
+    }
   }
 
   void _toggleMapSize(int index) {
@@ -315,22 +302,11 @@ class _HomePageState extends State<HomePage> {
     return [];
   }
 
-  String? jobTitle;
   String? sanitizeField(dynamic value) {
     if (value == null) return null;
     final str = value.toString().trim();
     if (str.isEmpty || str == '{}' || str == 'null') return null;
     return str;
-  }
-
-  bool get isCvComplete {
-    return fullName != null &&
-        address != null &&
-        email != null &&
-        phone != null &&
-        resume != null &&
-        education.isNotEmpty &&
-        languages.isNotEmpty;
   }
 
   final int dailySwipeLimit = 100;
@@ -570,6 +546,7 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {}
   }
 
+  String? address;
   Future<void> _personalizeCv(String jobId) async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
@@ -713,8 +690,23 @@ class _HomePageState extends State<HomePage> {
       }
     } catch (e) {
       //
-    } finally {
-      setState(() => cvLoading = false);
+    } finally {}
+  }
+
+  void _fetchJobs() async {
+    try {
+      final fetchedJobs = await ApiService.fetchAllJobs();
+      setState(() {
+        jobs = fetchedJobs;
+        isLoading = false;
+      });
+
+      // Initialize expanded maps
+      for (int i = 0; i < fetchedJobs.length; i++) {
+        _expandedMaps[i] = false;
+      }
+    } catch (e) {
+      setState(() => isLoading = false);
     }
   }
 
@@ -771,23 +763,6 @@ class _HomePageState extends State<HomePage> {
         }
       }
     } else {}
-  }
-
-  void _fetchJobs() async {
-    try {
-      final fetchedJobs = await ApiService.fetchAllJobs();
-      setState(() {
-        jobs = fetchedJobs;
-        isLoading = false;
-      });
-
-      // Initialize expanded maps
-      for (int i = 0; i < fetchedJobs.length; i++) {
-        _expandedMaps[i] = false;
-      }
-    } catch (e) {
-      setState(() => isLoading = false);
-    }
   }
 
   @override
@@ -864,13 +839,6 @@ class _HomePageState extends State<HomePage> {
                                     }
                                     if (direction ==
                                         CardSwiperDirection.right) {
-                                      final allowed = await canSwipeLocally();
-                                      if (!allowed) {
-                                        await showSwipeLimitReachedDialog(
-                                            context);
-                                        return false; // ⛔️ block swipe before it happens
-                                      }
-
                                       // ✅ Swipe now, handle backend after
                                       final jobId =
                                           jobs[previousIndex]['job_id'];
@@ -1283,7 +1251,7 @@ class _HomePageState extends State<HomePage> {
                           jobs[index]["category_chip"] is List &&
                           jobs[index]["category_chip"].isNotEmpty)
                         ...jobs[index]["category_chip"]
-                            .take(3)
+                            .take(5)
                             .map<Widget>(
                                 (chip) => CategoryChip(label: chip.toString()))
                             .toList()
@@ -2099,9 +2067,8 @@ class _HomePageState extends State<HomePage> {
                 overlay.insert(entry);
               }
 
-              if (!isCvComplete) {
+              if (!await _checkCvComplete()) {
                 await showCustomCVDialog();
-
                 return;
               }
 

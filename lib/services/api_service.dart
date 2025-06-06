@@ -94,6 +94,27 @@ class ApiService {
     }
   }
 
+  static Future<http.Response> removeSaveJob(
+      {required String userId, required String jobId}) {
+    final url = Uri.parse('$baseUrlJobs/api/save-job');
+    return http
+        .delete(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'user_id': userId, 'job_id': jobId}),
+        )
+        .timeout(const Duration(seconds: 10));
+  }
+
+  // helper to fetch all saved job IDs for current user:
+  static Future<Set<String>> fetchSavedJobIds(String userId) async {
+    final url = Uri.parse('$baseUrlJobs/api/saved-jobs?user_id=$userId');
+    final resp = await http.get(url).timeout(const Duration(seconds: 10));
+    if (resp.statusCode != 200) throw Exception('Failed to load saved jobs');
+    final List data = jsonDecode(resp.body);
+    return data.map<String>((j) => j['job_id'].toString()).toSet();
+  }
+
   static Future<dynamic> getUsers() async {
     final response = await http.get(Uri.parse('$baseUrlAuth/users'));
     return _handleResponse(response);

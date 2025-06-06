@@ -22,7 +22,7 @@ class _ApplicationsInProgressPageState extends State<ApplicationsInProgressPage>
     with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _applications = [];
   bool isLoading = true;
-
+  bool hasError = false;
   @override
   void initState() {
     super.initState();
@@ -30,48 +30,105 @@ class _ApplicationsInProgressPageState extends State<ApplicationsInProgressPage>
   }
 
   Future<void> _fetchApplications() async {
-    setState(() => isLoading = true);
+    setState(() {
+      isLoading = true;
+      hasError = false;
+    });
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('user_id');
       final token = prefs.getString('token');
+      debugPrint('▶︎ SP: user_id=$userId, token=$token');
+
       if (userId == null || token == null) {
-        setState(() => isLoading = false);
+        setState(() {
+          isLoading = false;
+          hasError = true;
+        });
         return;
       }
 
+      final uri = Uri.parse(
+          '$BASE_URL_AUTH/api/applications-in-progress?user_id=$userId');
       final resp = await http.get(
-        Uri.parse(
-            '$BASE_URL_AUTH/api/applications-in-progress?user_id=$userId'),
+        uri,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       );
+
+      debugPrint('▶︎ GET ${uri.toString()} → ${resp.statusCode}');
+      debugPrint('▶︎ body: ${resp.body}');
+
       if (resp.statusCode == 200) {
         final data = json.decode(resp.body) as Map<String, dynamic>;
-        final list = (data['applications'] as List?) ?? [];
-        setState(() {
-          _applications = list.map((raw) {
-            final app = raw as Map<String, dynamic>;
-            return {
-              'JobListings': app['JobListings'],
-              'progress_status': (app['progress_status'] as int?) ?? 0,
-              // null-safe cast:
-              'application_status':
-                  (app['application_status']?.toString() ?? ''),
-            };
-          }).toList();
-          print('Response body: ${resp.body}');
 
+        // 1) On extrait bien la liste sous la clé "applications"
+        final rawList = (data['applications'] as List<dynamic>?) ?? [];
+        debugPrint('▶︎ rawList.length = ${rawList.length}');
+
+        // 2) On convertit chaque élément en Map<String, dynamic>
+        final allApps = rawList.map((raw) {
+          final app = raw as Map<String, dynamic>;
+          debugPrint('▶︎ raw app obj: $app');
+
+          return {
+            'application_id': app['application_id'] as String? ?? '',
+            // ATTENTION : si votre backend utilise "JobListings" (camelCase), on le récupère ici
+            'JobListings': (app['JobListings'] as Map<String, dynamic>?) ?? {},
+            'progress_status':
+                (app['progress_status'] as int?)?.clamp(0, 100) ?? 0,
+            'application_status': (app['application_status'] as String?) ?? '',
+            'error_message': (app['error_message'] as String?) ?? '',
+          };
+        }).toList();
+
+        // 3) On conserve uniquement ceux dont "progress_status" < 100
+        final pending =
+            allApps.where((a) => (a['progress_status'] as int) < 100).toList();
+
+        setState(() {
+          _applications = pending;
           isLoading = false;
         });
       } else {
-        setState(() => isLoading = false);
+        setState(() {
+          isLoading = false;
+          hasError = true;
+          _applications = [];
+        });
       }
-    } catch (_) {
-      setState(() => isLoading = false);
+    } catch (e) {
+      debugPrint('❌ Exception in _fetchApplications: $e');
+      setState(() {
+        isLoading = false;
+        hasError = true;
+        _applications = [];
+      });
     }
+  }
+
+  Future<bool> _hideApplicationOnServer(String applicationId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token == null) return false;
+
+    final uri = Uri.parse(
+      '$BASE_URL_AUTH/api/applications/$applicationId/hide',
+    );
+    final resp = await http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    debugPrint(
+      '→ [HideApplication] POST ${uri.toString()} → ${resp.statusCode}, body: ${resp.body}',
+    );
+    return resp.statusCode == 200;
   }
 
   @override

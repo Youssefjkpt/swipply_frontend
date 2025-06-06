@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:swipply/env.dart';
 import 'package:swipply/pages/welcoming_pages.dart';
 import 'package:swipply/services/api_service.dart';
 
@@ -9,6 +11,7 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  Stripe.publishableKey = STRIPE_PUBLISHABLE_KEY;
   testApiConnection();
   runApp(const MyApp());
 }

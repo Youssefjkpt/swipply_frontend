@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
 import 'package:swipply/pages/job_description.dart';
@@ -83,13 +85,26 @@ class _SavedJobsState extends State<SavedJobs> {
           children: [
             SizedBox(height: MediaQuery.of(context).size.height * 0.06),
             Padding(
-              padding: const EdgeInsets.only(left: 25, right: 25),
-              child: Text(
-                'Vous avez enregistré ${_jobList.length} offre ${_jobList.length != 1 ? 's' : ''} 👍',
-                style: const TextStyle(
-                  color: white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: Text.rich(
+                TextSpan(
+                  text:
+                      'Vous avez enregistré ${_jobList.length} offre${_jobList.length != 1 ? 's' : ''} ',
+                  style: const TextStyle(
+                    color: white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  children: [
+                    WidgetSpan(
+                      alignment: PlaceholderAlignment.middle,
+                      child: Lottie.asset(
+                        _jobList.isEmpty ? angry : congrats,
+                        width: 50,
+                        height: 50,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -106,60 +121,55 @@ class _SavedJobsState extends State<SavedJobs> {
               padding: const EdgeInsets.only(left: 10, right: 10),
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : RefreshIndicator(
-                      color: blue,
-                      onRefresh: _loadSavedJobs,
-                      child: _jobList.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'Aucune offre enregistrée !',
-                                style: TextStyle(color: white),
+                  : _jobList.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Aucune offre enregistrée !',
+                            style: TextStyle(color: white),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          itemCount: _jobList.length,
+                          itemBuilder: (context, index) {
+                            final job = _jobList[index];
+                            final savedAtRaw = job['saved_at'] as String? ??
+                                job['scraped_at']
+                                    as String? // fallback if you still have scraped_at
+                                ??
+                                '';
+                            final savedAt =
+                                DateTime.tryParse(savedAtRaw) ?? DateTime.now();
+
+                            final now = DateTime.now();
+                            final diff = now.difference(savedAt);
+                            final timeAgo = diff.inHours < 24
+                                ? 'il y a${diff.inHours} h'
+                                : 'il y a ${diff.inDays} jour ${diff.inDays > 1 ? 's' : ''}';
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: JobCard(
+                                title: job['title'] ?? 'UI Design',
+                                company: job['company'] ?? 'Google',
+                                salary: timeAgo,
+                                location: job['location'] ?? '',
+                                status: 'en attente',
+                                jobType: job['contract_type'] ?? '',
+                                imagePath: job['company_logo_url']!,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => JobInformations(
+                                          job: job), // ✅ Pass job
+                                    ),
+                                  );
+                                },
                               ),
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.only(bottom: 20),
-                              itemCount: _jobList.length,
-                              itemBuilder: (context, index) {
-                                final job = _jobList[index];
-                                final savedAtRaw = job['saved_at'] as String? ??
-                                    job['scraped_at']
-                                        as String? // fallback if you still have scraped_at
-                                    ??
-                                    '';
-                                final savedAt = DateTime.tryParse(savedAtRaw) ??
-                                    DateTime.now();
-
-                                final now = DateTime.now();
-                                final diff = now.difference(savedAt);
-                                final timeAgo = diff.inHours < 24
-                                    ? 'il y a ${diff.inHours} h'
-                                    : 'il y a  ${diff.inDays} jour ${diff.inDays > 1 ? 's' : ''}';
-
-                                return Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 10),
-                                  child: JobCard(
-                                    title: job['title'] ?? 'UI Design',
-                                    company: job['company'] ?? 'Google',
-                                    salary: timeAgo,
-                                    location: job['location'] ?? '',
-                                    status: 'applied',
-                                    jobType: job['contract_type'] ?? '',
-                                    imagePath: job['company_logo_url']!,
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => JobInformations(
-                                              job: job), // ✅ Pass job
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
+                            );
+                          },
+                        ),
             )),
           ],
         ),

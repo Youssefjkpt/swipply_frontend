@@ -1,6 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipply/constants/themes.dart';
+import 'package:swipply/env.dart';
+import 'package:http/http.dart' as http;
 
 /// Warning card for email backup, matching dark theme with red accent.
 class WarningEmailBackupCard extends StatelessWidget {
@@ -10,6 +15,30 @@ class WarningEmailBackupCard extends StatelessWidget {
     Key? key,
     required this.warningLottieAsset,
   }) : super(key: key);
+
+  Future<void> _saveBackupEmail(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('second_email', email);
+
+    final token = prefs.getString('token');
+    final userId = prefs.getString('user_id');
+    if (token == null || userId == null) return;
+
+    final uri = Uri.parse('$BASE_URL_AUTH/api/users/$userId/second-email');
+    final response = await http.post(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'second_email': email}),
+    );
+
+    if (response.statusCode != 200) {
+      // handle error…
+      print('❌ Failed to save second email: ${response.body}');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,9 +152,11 @@ class WarningEmailBackupCard extends StatelessWidget {
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         final email = _emailController.text.trim();
-                        // TODO: handle saving backup email
+                        if (email.isNotEmpty) {
+                          await _saveBackupEmail(email);
+                        }
                         Navigator.pop(context);
                       },
                       child: const Text(
