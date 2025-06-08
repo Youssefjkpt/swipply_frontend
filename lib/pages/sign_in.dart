@@ -428,17 +428,17 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
                 const SizedBox(height: 10),
                 _buildPasswordField(),
 
-                const SizedBox(height: 15),
+                // const SizedBox(height: 15),
 
-                // Forgot Password
-                const Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    'Mot de passe oublié ?',
-                    style: TextStyle(
-                        color: blue, fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                ),
+                // // Forgot Password
+                // const Align(
+                //   alignment: Alignment.centerRight,
+                //   child: Text(
+                //     'Mot de passe oublié ?',
+                //     style: TextStyle(
+                //         color: blue, fontSize: 16, fontWeight: FontWeight.w500),
+                //   ),
+                // ),
                 const SizedBox(height: 30),
 
                 // Server Error Message
@@ -495,7 +495,7 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
                     ),
                   ],
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
                 GestureDetector(
                     onTap: _signInWithGoogle,
                     child: Container(
