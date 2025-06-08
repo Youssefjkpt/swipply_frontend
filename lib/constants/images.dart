@@ -21,3 +21,4 @@ const confetti = 'assets/confetti.json';
 const errorBox = 'assets/errorBox.json';
 const gdiamond = 'assets/gdiamondd.json';
 const diamond = 'assets/diamond.json';
+const notFound = 'assets/A24vQawHMI.json';

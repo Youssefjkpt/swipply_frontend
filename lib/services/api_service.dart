@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipply/env.dart';
+import 'package:swipply/pages/sign_in.dart';
 
 class ApiService {
   static const String baseUrlAuth = BASE_URL_AUTH;
@@ -136,6 +138,97 @@ class ApiService {
       }),
     );
     return _handleResponse(response);
+  }
+
+  // api_service.dart (add / replace)
+  static Future<List<Map<String, dynamic>>> fetchJobs({
+    List<String>? jobCategories,
+    List<String>? categoryChips,
+    String? employmentType,
+    String? contractType,
+    String? location,
+    bool? canAutoApply,
+    String? search,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    final qp = <String, String>{};
+    if (jobCategories != null && jobCategories.isNotEmpty) {
+      qp['job_category'] = jobCategories.join(',');
+    }
+    if (categoryChips != null && categoryChips.isNotEmpty) {
+      qp['category_chip'] = categoryChips.join(',');
+    }
+    if (employmentType != null) qp['employment_type'] = employmentType;
+    if (contractType != null) qp['contract_type'] = contractType;
+    if (location != null) qp['location'] = location;
+    if (canAutoApply != null) qp['can_auto_apply'] = canAutoApply.toString();
+    if (search != null && search.trim().isNotEmpty)
+      qp['search'] = search.trim();
+
+    final uri =
+        Uri.parse('$BASE_URL_JOBS/api/jobs').replace(queryParameters: qp);
+    final resp = await http.get(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (resp.statusCode == 200) {
+      final List data = jsonDecode(resp.body);
+      return data.map((e) => Map<String, dynamic>.from(e)).toList();
+    } else {
+      throw Exception('Failed to load jobs');
+    }
+  }
+
+  static Future<void> signOut(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token != null) {
+      await http.post(
+        Uri.parse('$baseUrlAuth/api/auth/logout'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+    }
+
+    await prefs.remove('token');
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const SignIn()),
+      (_) => false,
+    );
+  }
+
+// services/api_service.dart
+  static Future<List<Map<String, dynamic>>> fetchFilteredJobs({
+    List<String>? categories,
+    List<String>? employmentTypes,
+    List<String>? contractTypes,
+    int? sinceHours,
+    String? userId,
+  }) async {
+    final params = <String, String>{};
+    if (categories?.isNotEmpty == true) {
+      params['categories'] = categories!.join(',');
+    }
+    if (employmentTypes?.isNotEmpty == true) {
+      params['employment'] = employmentTypes!.join(',');
+    }
+    if (contractTypes?.isNotEmpty == true) {
+      params['contract'] = contractTypes!.join(',');
+    }
+    if (sinceHours != null) params['since_h'] = '$sinceHours';
+    if (userId != null) params['user_id'] = userId;
+    final uri =
+        Uri.parse('$baseUrlJobs/api/jobs').replace(queryParameters: params);
+    final resp = await http.get(uri).timeout(const Duration(seconds: 10));
+    if (resp.statusCode != 200) throw Exception('Fetch failed');
+    return (jsonDecode(resp.body) as List).cast<Map<String, dynamic>>();
   }
 
   static Future<List<Map<String, dynamic>>> fetchAllJobs() async {

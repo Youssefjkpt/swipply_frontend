@@ -31,7 +31,7 @@ ValueNotifier<bool> isSwiping = ValueNotifier(false);
 
 class _HomePageState extends State<HomePage> {
   double _swipeProgress = 0.0;
-
+  List<String> _allCategoriesFromDB = [];
   final GlobalKey bellKey = GlobalKey();
   String? fullName, email, phone, resume, jobTitle;
   bool cvLoading = false;
@@ -309,7 +309,7 @@ class _HomePageState extends State<HomePage> {
     return str;
   }
 
-  final int dailySwipeLimit = 100;
+  int get _effectiveSwipeLimit => _swipeLimit ?? 5; // fallback
 
   Future<int> getLocalSwipeCount() async {
     final prefs = await SharedPreferences.getInstance();
@@ -326,12 +326,18 @@ class _HomePageState extends State<HomePage> {
   Future<void> incrementLocalSwipeCount() async {
     final prefs = await SharedPreferences.getInstance();
     int current = await getLocalSwipeCount();
-    await prefs.setInt('swipe_count', current + 1);
+    int newCount = current + 1;
+    await prefs.setInt('swipe_count', newCount);
+
+    // DEBUG: print it so you can see it in your console
+    debugPrint('▶️ Swipe count is now: $newCount');
   }
+
+  String? _planName;
 
   Future<bool> canSwipeLocally() async {
     int current = await getLocalSwipeCount();
-    return current < dailySwipeLimit;
+    return current < _effectiveSwipeLimit;
   }
 
   Future<void> showSwipeLimitReachedDialog(BuildContext context) async {
@@ -344,7 +350,7 @@ class _HomePageState extends State<HomePage> {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
             constraints: const BoxConstraints(minHeight: 200),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -360,6 +366,7 @@ class _HomePageState extends State<HomePage> {
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.3,
                   ),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
                 const Text(
@@ -392,11 +399,14 @@ class _HomePageState extends State<HomePage> {
                             ),
                           );
                         },
-                        child: const Text(
-                          "Améliorer l'offre",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: const Text(
+                            "Améliorer l'offre",
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                fontSize: 14),
                           ),
                         ),
                       ),
@@ -412,11 +422,14 @@ class _HomePageState extends State<HomePage> {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         onPressed: () => Navigator.pop(context),
-                        child: const Text(
-                          "Annuler",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white70,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: const Text(
+                            "Annuler",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white70,
+                            ),
                           ),
                         ),
                       ),
@@ -519,6 +532,9 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  int? _swipeLimit;
+  bool _canPersonalize = false;
+
   Future<void> _autoRegisterAndApply(String jobId) async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
@@ -546,8 +562,68 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {}
   }
 
+  Future<void> _pullJobs({
+    // <-- NEW helper
+    List<String> cats = const [],
+    List<String> emp = const [],
+    List<String> contr = const [],
+    int? sinceH,
+  }) async {
+    setState(() => isLoading = true);
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    try {
+      jobs = await ApiService.fetchFilteredJobs(
+        categories: cats,
+        employmentTypes: emp,
+        contractTypes: contr,
+        sinceHours: sinceH,
+        userId: userId,
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        isLoading = false;
+        _currentIndex = 0;
+        _expandedMaps.clear();
+      });
+    }
+  }
+
+  Future<void> _resetDailyLimits() async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+
+    // Swipe resets
+    if (prefs.getString('swipe_date') != today) {
+      await prefs
+        ..setString('swipe_date', today)
+        ..setInt('swipe_count', 0);
+    }
+
+    // Personalize resets
+    if (prefs.getString('personalize_date') != today) {
+      await prefs
+        ..setString('personalize_date', today)
+        ..setInt('personalize_count', 0);
+    }
+  }
+
+  void _loadCategories() async {
+    final raw = await ApiService.fetchFilteredJobs(); // unfiltered
+    final set = <String>{};
+    for (final j in raw) {
+      set.addAll(List<String>.from(j['job_category'] ?? []));
+    }
+    setState(() => _allCategoriesFromDB = set.toList()..sort());
+  }
+
   String? address;
   Future<void> _personalizeCv(String jobId) async {
+    if (!await canPersonalizeLocally()) {
+      return showSwipeLimitReachedDialog(context);
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
     if (userId == null) return;
@@ -570,6 +646,7 @@ class _HomePageState extends State<HomePage> {
         ));
 
         if (cvRes.statusCode == 200) {
+          await incrementLocalPersonalizeCount();
           final personalizedData = json.decode(cvRes.body);
 
           setState(() {
@@ -611,6 +688,8 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               constraints: const BoxConstraints(minHeight: 200),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(Icons.lock_outline,
@@ -624,6 +703,7 @@ class _HomePageState extends State<HomePage> {
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.3,
                     ),
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
                   const Text(
@@ -693,23 +773,6 @@ class _HomePageState extends State<HomePage> {
     } finally {}
   }
 
-  void _fetchJobs() async {
-    try {
-      final fetchedJobs = await ApiService.fetchAllJobs();
-      setState(() {
-        jobs = fetchedJobs;
-        isLoading = false;
-      });
-
-      // Initialize expanded maps
-      for (int i = 0; i < fetchedJobs.length; i++) {
-        _expandedMaps[i] = false;
-      }
-    } catch (e) {
-      setState(() => isLoading = false);
-    }
-  }
-
   Future<void> _fetchUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
@@ -765,11 +828,71 @@ class _HomePageState extends State<HomePage> {
     } else {}
   }
 
+  int? _dailyPersonalizeLimit;
+  bool _autoApply = false;
+  Future<int> getLocalPersonalizeCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('personalize_count') ?? 0;
+  }
+
+  Future<void> incrementLocalPersonalizeCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = await getLocalPersonalizeCount();
+    await prefs.setInt('personalize_count', current + 1);
+  }
+
+  Future<bool> canPersonalizeLocally() async {
+    final prefs = await SharedPreferences.getInstance();
+    final limit =
+        prefs.getInt('daily_personalize_limit') ?? _dailyPersonalizeLimit ?? 0;
+    return await getLocalPersonalizeCount() < limit;
+  }
+
   @override
   void initState() {
     super.initState();
-    _fetchJobs();
+    _resetDailyLimits();
+    _pullJobs();
     _fetchUserProfile();
+    _loadCategories();
+    _fetchUserCapabilities();
+  }
+
+  Future<void> _fetchUserCapabilities() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    final token = prefs.getString('token');
+    if (userId == null) return;
+
+    final res = await http.get(
+      Uri.parse('$BASE_URL_AUTH/api/user-capabilities/$userId'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+    if (res.statusCode == 200) {
+      final data = json.decode(res.body);
+      setState(() {
+        _planName = data['plan_name'] as String?;
+        _swipeLimit = data['daily_swipe_limit'];
+        _canPersonalize = data['can_personalize_cv'];
+        _autoApply = (data['has_auto_apply'] as bool?) ?? false;
+        _dailyPersonalizeLimit = data['daily_personalize_limit']; // NEW
+      });
+      debugPrint('📝 Plan: $_planName');
+      debugPrint('📝 Daily swipe limit: $_swipeLimit');
+      debugPrint('📝 Daily CV‐personalize limit: $_dailyPersonalizeLimit');
+      debugPrint('📝 Auto‐apply enabled: $_autoApply');
+      debugPrint('📝 Can personalize CV: $_canPersonalize');
+      // persist them
+      await prefs
+        ..setString('plan_name', _planName ?? '')
+        ..setInt('daily_swipe_limit', data['daily_swipe_limit'])
+        ..setBool('can_personalize_cv', data['can_personalize_cv'])
+        ..setBool('has_auto_apply', (data['has_auto_apply'] as bool?) ?? false)
+        ..setInt('daily_personalize_limit', data['daily_personalize_limit']);
+    }
   }
 
   @override
@@ -790,14 +913,30 @@ class _HomePageState extends State<HomePage> {
           centerTitle: false,
           actions: [
             RingingBellButton(bellKey: bellKey),
+            // inside AppBar actions:
             IconButton(
-              icon: const Icon(
-                CupertinoIcons.slider_horizontal_3,
-                color: Colors.white,
-                size: 26,
-              ),
-              onPressed: () {
-                // Implement your filter functionality here
+              icon: const Icon(CupertinoIcons.slider_horizontal_3,
+                  color: Colors.white),
+              onPressed: () async {
+                await showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (_) => JobFilterSheet(
+                    allCategories:
+                        _allCategoriesFromDB, // cache it once at start
+                    onApply: (
+                        {required categories,
+                        required employment,
+                        required contract,
+                        required sinceHours}) {
+                      _pullJobs(
+                          cats: categories,
+                          emp: employment,
+                          contr: contract,
+                          sinceH: sinceHours);
+                    },
+                  ),
+                );
               },
             ),
           ],
@@ -837,6 +976,13 @@ class _HomePageState extends State<HomePage> {
                                       await showCustomCVDialog();
                                       return false; // block the swipe immediately
                                     }
+                                    final allowed = await canSwipeLocally();
+                                    if (!allowed) {
+                                      await showSwipeLimitReachedDialog(
+                                          context);
+                                      return false;
+                                    }
+
                                     if (direction ==
                                         CardSwiperDirection.right) {
                                       // ✅ Swipe now, handle backend after
@@ -852,6 +998,26 @@ class _HomePageState extends State<HomePage> {
 
                                     // ✅ allow swipe and continue
                                     if (direction == CardSwiperDirection.left) {
+                                      final jobId =
+                                          jobs[previousIndex]['job_id'];
+                                      final prefs =
+                                          await SharedPreferences.getInstance();
+                                      // record left swipe but don’t increment local count
+                                      Future.microtask(() async {
+                                        await http.post(
+                                          Uri.parse(
+                                              '$BASE_URL_AUTH/api/swipe-job'),
+                                          headers: {
+                                            'Content-Type': 'application/json'
+                                          },
+                                          body: json.encode({
+                                            'user_id':
+                                                prefs.getString('user_id'),
+                                            'job_id': jobId,
+                                            'action': 'left',
+                                          }),
+                                        );
+                                      });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                         cancelBtnKey.currentState
@@ -1913,8 +2079,12 @@ class _HomePageState extends State<HomePage> {
         ),
         _buildPageIndicator(),
         PulseButton(
-          onPressed: () {
-            _personalizeCv(jobs[index]['job_id']);
+          onPressed: () async {
+            if (!_canPersonalize) {
+              // you already wrote a dialog for this
+              return showCustomCVDialog();
+            }
+            await _personalizeCv(jobs[index]['job_id']);
           },
         ),
         Positioned(
@@ -2008,7 +2178,10 @@ class _HomePageState extends State<HomePage> {
             onPressed: () {
               cancelBtnKey.currentState?.triggerSwapExternally();
               Future.delayed(const Duration(milliseconds: 150), () {
+                final currentJob = jobs[_currentIndex];
+                final jobId = currentJob['job_id'];
                 _controller.swipe(CardSwiperDirection.left);
+                Future.microtask(() => _postSwipe(jobId, action: 'left'));
               });
             },
           ),
@@ -2089,6 +2262,19 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _postSwipe(String jobId, {required String action}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await http.post(
+      Uri.parse('$BASE_URL_AUTH/api/swipe-job'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'user_id': prefs.getString('user_id'),
+        'job_id': jobId,
+        'action': action,
+      }),
     );
   }
 }
@@ -2217,6 +2403,284 @@ class _GradientSwapButtonState extends State<GradientSwapButton>
           ),
         );
       },
+    );
+  }
+}
+
+class JobFilterSheet extends StatefulWidget {
+  final List<String> allCategories;
+  final void Function({
+    required List<String> categories,
+    required List<String> employment,
+    required List<String> contract,
+    required int? sinceHours,
+  }) onApply;
+
+  const JobFilterSheet({
+    super.key,
+    required this.allCategories,
+    required this.onApply,
+  });
+
+  @override
+  State<JobFilterSheet> createState() => _JobFilterSheetState();
+}
+
+class _JobFilterSheetState extends State<JobFilterSheet> {
+  final _search = TextEditingController();
+  final Set<String> _selCat = {};
+  final Set<String> _selEmp = {};
+  final Set<String> _selContr = {};
+  int? _sinceH;
+
+  static const empTypes = [
+    'Temps plein',
+    'Temps partiel',
+    'Stage',
+    'Alternance',
+    'Freelance',
+    'Autre'
+  ];
+  static const contrTypes = [
+    'CDI',
+    'CDD',
+    'Stage',
+    'Alternance',
+    'Freelance',
+    'Autre'
+  ];
+  static const recencyOpt = [null, 12, 24, 48, 168];
+
+  Widget _chip(String label, bool sel, VoidCallback onTap) => GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: sel ? blue : black_gray,
+            borderRadius: BorderRadius.circular(100),
+            border: sel ? null : Border.all(color: white_gray),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: sel ? black : white_gray,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final cats = widget.allCategories
+        .where((c) => c.toLowerCase().contains(_search.text.toLowerCase()))
+        .take(6)
+        .toList();
+
+    return WillPopScope(
+      onWillPop: () async {
+        widget.onApply(
+          categories: _selCat.toList(),
+          employment: _selEmp.toList(),
+          contract: _selContr.toList(),
+          sinceHours: _sinceH,
+        );
+        return true;
+      },
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        maxChildSize: 0.95,
+        minChildSize: 0.6,
+        expand: false,
+        builder: (_, scroll) => Container(
+          padding: const EdgeInsets.all(20),
+          decoration: const BoxDecoration(
+            color: blue_gray,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          child: Column(
+            children: [
+              Center(
+                child: Container(
+                  width: 80,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: white_gray,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Filtrer les offres',
+                style: TextStyle(
+                    color: white, fontSize: 20, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                decoration: BoxDecoration(
+                  color: black_gray,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: white_gray),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _search,
+                        style: const TextStyle(color: white),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          isCollapsed: true,
+                          hintText: 'Catégorie…',
+                          hintStyle: TextStyle(color: white_gray),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scroll,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 8,
+                        children: cats
+                            .map((c) => _chip(
+                                  c,
+                                  _selCat.contains(c),
+                                  () => setState(() {
+                                    _selCat.contains(c)
+                                        ? _selCat.remove(c)
+                                        : _selCat.add(c);
+                                  }),
+                                ))
+                            .toList(),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Divider(color: white_gray, height: 1),
+                      ),
+                      const Text(
+                        'Type de contrat',
+                        style: TextStyle(
+                            color: white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 8,
+                        children: contrTypes
+                            .map((c) => _chip(
+                                  c,
+                                  _selContr.contains(c),
+                                  () => setState(() {
+                                    _selContr.contains(c)
+                                        ? _selContr.remove(c)
+                                        : _selContr.add(c);
+                                  }),
+                                ))
+                            .toList(),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Divider(color: white_gray, height: 1),
+                      ),
+                      const Text(
+                        'Temps de travail',
+                        style: TextStyle(
+                            color: white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 8,
+                        children: empTypes
+                            .map((e) => _chip(
+                                  e,
+                                  _selEmp.contains(e),
+                                  () => setState(() {
+                                    _selEmp.contains(e)
+                                        ? _selEmp.remove(e)
+                                        : _selEmp.add(e);
+                                  }),
+                                ))
+                            .toList(),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Divider(color: white_gray, height: 1),
+                      ),
+                      const Text(
+                        'Récence',
+                        style: TextStyle(
+                            color: white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 8,
+                        children: recencyOpt
+                            .map((h) => _chip(
+                                  h == null ? 'Tout' : '≤ $h h',
+                                  _sinceH == h,
+                                  () => setState(() => _sinceH = h),
+                                ))
+                            .toList(),
+                      ),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  widget.onApply(
+                    categories: _selCat.toList(),
+                    employment: _selEmp.toList(),
+                    contract: _selContr.toList(),
+                    sinceHours: _sinceH,
+                  );
+                  Navigator.of(context).pop();
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: blue,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: const Center(
+                    child: Text(
+                      'Appliquer les filtres',
+                      style: TextStyle(
+                          color: white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

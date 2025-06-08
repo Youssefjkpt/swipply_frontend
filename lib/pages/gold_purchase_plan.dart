@@ -10,14 +10,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
-import 'package:swipply/pages/home_page.dart';
 import 'package:swipply/pages/main_layout.dart';
-import 'package:swipply/pages/welcoming_pages.dart';
-import 'package:swipply/widgets/success_payment.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 
 import 'package:http/http.dart' as http;
-import 'package:vibration/vibration.dart';
 
 class SwipplyGoldDetailsPage extends StatefulWidget {
   const SwipplyGoldDetailsPage({super.key});
@@ -38,6 +33,7 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
     return prefs.getString('user_id');
   }
 
+  final String plan = 'Gold';
   final List<String> stripePriceIds = [
     "price_1RWi4jCKzHpBcr4fu6S7WEZl", // Gold 1 week (8.99 €)
     "price_1RWi5FCKzHpBcr4frzSI5jOh", // Gold 1 month (17.99 €)
@@ -583,10 +579,17 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
 
                       // 3) Present the Payment Sheet
                       await Stripe.instance.presentPaymentSheet();
-
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setString('plan_name', 'Gold');
+                      await prefs.setString(
+                          'swipe_date', ''); // reset local date
+                      await prefs.setInt('swipe_count', 0);
+                      await _fetchUserCapabilities();
                       // 4) On success, show confirmation
-                      showGoldCelebrationPopup(context);
+                      await showGoldCelebrationPopup(context);
 
+                      Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(builder: (_) => MainLayout()));
                       //////////////////////////////////////////////////////////////////
                     } catch (e) {
                       showStripeErrorPopup(
@@ -628,6 +631,33 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
     );
   }
 
+  Future<void> _fetchUserCapabilities() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    final token = prefs.getString('token');
+    if (userId == null) return;
+
+    final res = await http.get(
+      Uri.parse('$BASE_URL_AUTH/api/user-capabilities/$userId'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+    if (res.statusCode == 200) {
+      final data = json.decode(res.body);
+      setState(() {
+        _swipeLimit = data['daily_swipe_limit'];
+        _canPersonalize = data['can_personalize_cv'];
+        _personalizeLimit = data['daily_personalize_limit'];
+      });
+    }
+  }
+
+  int? _personalizeLimit;
+  int? _swipeLimit;
+  bool _canPersonalize = false;
+
   /// Show a centered blue-gray dialog that reports a Stripe failure.
   /// [errorMsg] → line of text shown under the sad-emoji animation.
   /// Friendly, generic Stripe–error dialog (no raw backend text shown)
@@ -648,7 +678,7 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
   }
 
   /// 1) In your SwipplyGoldDetailsPage class:
-  void showGoldCelebrationPopup(BuildContext context) {
+  Future<void> showGoldCelebrationPopup(BuildContext context) {
     // A) create the timer and keep a handle to it
     late final Timer _autoCloseTimer;
     _autoCloseTimer = Timer(const Duration(seconds: 7), () {
@@ -657,7 +687,7 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
     });
 
     // B) show the dialog and give it a way to cancel the timer
-    showGeneralDialog(
+    return showGeneralDialog(
       context: context,
       barrierLabel: "goldCelebration",
       barrierDismissible: false,

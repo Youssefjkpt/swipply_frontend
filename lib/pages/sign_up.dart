@@ -47,10 +47,18 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
     setState(() => _isPasswordVisible = !_isPasswordVisible);
   }
 
-  Future<void> saveUserSession(String userId, String token) async {
+  Future<void> saveUserSession(
+      {required String userId,
+      required String token,
+      required String email, // new
+      required String planName // new
+      }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_id', userId);
     await prefs.setString('token', token);
+    await prefs.setString('user_email', email);
+    await prefs.setString(
+        'plan_name', planName); // 'Free' | 'Gold' | 'Platinum'
   }
 
   Future<void> markCvIncomplete() async {
@@ -179,6 +187,7 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
     }
   }
 
+  String plan = 'Free';
   /* --------------------------------------------------------------------------
  * 1.  SIGN-UP  (email / password)
  * --------------------------------------------------------------------------*/
@@ -223,8 +232,19 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
       final data = jsonDecode(res.body);
 
       if (res.statusCode == 201 && data?['token'] != null) {
-        await saveUserSession(data['user_id'].toString(), data['token']);
-        await markCvIncomplete(); // <-- new: mark CV as incomplete
+        await saveUserSession(
+          userId: data['user']['user_id'],
+          token: data['token'],
+          email: data['user']['email'] ?? '',
+          planName: 'Free', // on sign-up
+        );
+
+        await markCvIncomplete();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+            'plan_name', plan); // 'Gold' | 'Platinum' | 'Free'
+
+        // <-- new: mark CV as incomplete
         showSuccessCheckPopup();
         await Future.delayed(const Duration(seconds: 2));
         if (!mounted) return;
@@ -281,9 +301,18 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
 
       if (res.statusCode == 200 && data?['token'] != null) {
         final uid = data['user']['user_id'].toString();
-        await saveUserSession(uid, data['token']);
+        await saveUserSession(
+          userId: data['user']['user_id'],
+          token: data['token'],
+          email: data['user']['email'] ?? '',
+          planName: 'Free', // on sign-up
+        );
+
         // 2) existing Google users → sync CV status; brand-new → mark incomplete
         await _setCvCompleteFlag(uid);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+            'plan_name', plan); // 'Gold' | 'Platinum' | 'Free'
 
         showSuccessCheckPopup();
         await Future.delayed(const Duration(seconds: 2));
@@ -457,13 +486,13 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
                   style: TextStyle(
                       fontSize: 28, color: white, fontWeight: FontWeight.w700),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 6),
                 const Text(
                   'Inscrivez-vous et commencez à postuler aux offres d\'emploi !',
                   style: TextStyle(
                       fontSize: 18, color: gray, fontWeight: FontWeight.w500),
                 ),
-                SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+                SizedBox(height: 6),
                 Form(
                   key: _formKey,
                   child: Column(
@@ -566,7 +595,31 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 15),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text("Vous avez déjà",
+                              style: TextStyle(color: white, fontSize: 16)),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const SignIn()));
+                            },
+                            child: const Text(
+                              " Se connecter",
+                              style: TextStyle(
+                                color: blue,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 15),
                       Column(
                         children: [
                           GestureDetector(
@@ -621,33 +674,9 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text("Vous avez déjà",
-                                  style: TextStyle(color: white, fontSize: 16)),
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) => const SignIn()));
-                                },
-                                child: const Text(
-                                  " Se connecter",
-                                  style: TextStyle(
-                                    color: blue,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ],
                       ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),

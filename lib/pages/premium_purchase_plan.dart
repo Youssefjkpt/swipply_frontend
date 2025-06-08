@@ -138,6 +138,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
     );
   }
 
+  String plan = 'Platinum';
   Future<String?> getUserId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('user_id');
@@ -505,10 +506,18 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
 
                   // 3) Present the Payment Sheet
                   await Stripe.instance.presentPaymentSheet();
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString('plan_name', 'Platinum'); // ← new plan
+                  await prefs.setString('swipe_date', ''); // ← force a reset
+// ← add this:
+                  await prefs.setInt('swipe_count', 0);
 
+// 1) Pull down fresh limits from server:
+                  await _fetchUserCapabilities();
                   // 4) On success, show confirmation
-                  showGoldCelebrationPopup(context);
-
+                  await showGoldCelebrationPopup(context);
+                  Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (_) => MainLayout()));
                   //////////////////////////////////////////////////////////////////
                 } catch (e) {
                   showStripeErrorPopup(
@@ -548,6 +557,32 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
     );
   }
 
+  Future<void> _fetchUserCapabilities() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    final token = prefs.getString('token');
+    if (userId == null) return;
+
+    final res = await http.get(
+      Uri.parse('$BASE_URL_AUTH/api/user-capabilities/$userId'),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+    if (res.statusCode == 200) {
+      final data = json.decode(res.body);
+      setState(() {
+        _swipeLimit = data['daily_swipe_limit'];
+        _canPersonalize = data['can_personalize_cv'];
+        _personalizeLimit = data['daily_personalize_limit'];
+      });
+    }
+  }
+
+  int? _personalizeLimit;
+  int? _swipeLimit;
+  bool _canPersonalize = false;
   void showStripeErrorPopup(BuildContext context) {
     showGeneralDialog(
       context: context,
@@ -565,7 +600,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
   }
 
   /// 1) In your SwipplyGoldDetailsPage class:
-  void showGoldCelebrationPopup(BuildContext context) {
+  Future<void> showGoldCelebrationPopup(BuildContext context) {
     // A) create the timer and keep a handle to it
     late final Timer _autoCloseTimer;
     _autoCloseTimer = Timer(const Duration(seconds: 7), () {
@@ -574,7 +609,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
     });
 
     // B) show the dialog and give it a way to cancel the timer
-    showGeneralDialog(
+    return showGeneralDialog(
       context: context,
       barrierLabel: "goldCelebration",
       barrierDismissible: false,

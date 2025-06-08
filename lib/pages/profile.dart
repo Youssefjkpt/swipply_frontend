@@ -7,6 +7,7 @@ import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
 import 'package:swipply/pages/cv.dart';
 import 'package:swipply/pages/subscriptions.dart';
+import 'package:swipply/services/api_service.dart';
 import 'package:swipply/widgets/auto_apply_card.dart';
 import 'package:swipply/widgets/cv_chevker.dart';
 import 'package:swipply/widgets/like_container_profile.dart';
@@ -358,7 +359,14 @@ class _ProfileState extends State<Profile> {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    const Icon(Icons.logout, color: white, size: 30),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.logout,
+                        color: white,
+                        size: 30,
+                      ),
+                      onPressed: () => ApiService.signOut(context),
+                    ),
                     const Spacer(),
                     GestureDetector(
                       onTap: _showEditBottomSheet,

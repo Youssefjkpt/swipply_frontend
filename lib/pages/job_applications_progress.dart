@@ -48,15 +48,17 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
 
     final uri =
         Uri.parse('$BASE_URL_AUTH/api/applications/$applicationId/hide');
-    final res = await http.patch(
+    final res = await http.post(
+      // ← use post, not patch
       uri,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
     );
-    // If you want to handle errors (e.g. re-insert locally on failure), you could check:
-    // if (res.statusCode != 204) { /* re-add to _applications... */ }
+    if (res.statusCode != 204 && res.statusCode != 200) {
+      debugPrint('Failed to hide application: ${res.statusCode} ${res.body}');
+    }
   }
 
   Future<void> _loadBackupEmail() async {
@@ -368,13 +370,16 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 children: [
-                  if (_showInterviewBanner) _buildInterviewBanner(theme),
-                  const SizedBox(height: 16),
                   if (_applications.isEmpty)
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 80),
-                        child: Text(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.1,
+                        ),
+                        Lottie.asset(notFound, height: 300, width: 300),
+                        Text(
                           "Vous n'avez aucune application en cours.",
                           style: TextStyle(
                             color: Colors.white54,
@@ -382,7 +387,7 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
                           ),
                           textAlign: TextAlign.center,
                         ),
-                      ),
+                      ],
                     )
                   else
                     ..._applications.map((app) {
@@ -518,75 +523,6 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
                 ],
               ),
             ),
-    );
-  }
-
-  Widget _buildInterviewBanner(ThemeData theme) {
-    return Dismissible(
-      key: const Key('interview_banner'),
-      direction: DismissDirection.up,
-      onDismissed: (_) {
-        setState(() => _showInterviewBanner = false);
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1E1E1E), Color(0xFF2A2A2A)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.5),
-              spreadRadius: 1,
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-          border: Border.all(color: Colors.tealAccent, width: 1.2),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const Icon(
-              Icons.celebration_rounded,
-              color: Colors.tealAccent,
-              size: 40,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Félicitations !",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Vous avez un entretien avec NEXORA.",
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            GestureDetector(
-              onTap: () => setState(() => _showInterviewBanner = false),
-              child: Icon(Icons.close, color: theme.colorScheme.secondary),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

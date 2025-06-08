@@ -122,11 +122,17 @@ class _SavedJobsState extends State<SavedJobs> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _jobList.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'Aucune offre enregistrée !',
-                            style: TextStyle(color: white),
-                          ),
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.1,
+                            ),
+                            Lottie.asset(notFound,
+                                height:
+                                    MediaQuery.of(context).size.height * 0.3,
+                                width: MediaQuery.of(context).size.width),
+                          ],
                         )
                       : ListView.builder(
                           padding: const EdgeInsets.only(bottom: 20),
@@ -144,14 +150,14 @@ class _SavedJobsState extends State<SavedJobs> {
                             final now = DateTime.now();
                             final diff = now.difference(savedAt);
                             final timeAgo = diff.inHours < 24
-                                ? 'il y a${diff.inHours} h'
+                                ? 'il y a ${diff.inHours} h'
                                 : 'il y a ${diff.inDays} jour ${diff.inDays > 1 ? 's' : ''}';
 
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               child: JobCard(
-                                title: job['title'] ?? 'UI Design',
-                                company: job['company'] ?? 'Google',
+                                title: job['title'] ?? '',
+                                company: job['company'] ?? '',
                                 salary: timeAgo,
                                 location: job['location'] ?? '',
                                 status: 'en attente',

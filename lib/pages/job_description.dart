@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/services/api_service.dart';
@@ -19,6 +20,10 @@ class JobInformations extends StatefulWidget {
 
 class _JobInformationsState extends State<JobInformations> {
   int selectedTab = 1;
+  void requestLocationPermission() async {
+    await Permission.location.request();
+  }
+
   List<Map<String, dynamic>> jobs = [];
   bool isExpanded = false; // To manage "Read more" functionality
   bool showAll = false;
@@ -94,46 +99,6 @@ class _JobInformationsState extends State<JobInformations> {
     }
   }
 
-  Widget _buildMap() {
-    final height = _expandedMap ? 350.0 : 180.0;
-    if (_isGeocoding || _jobLatLng == null) {
-      return SizedBox(
-        height: height,
-        child: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: SizedBox(
-        height: height,
-        width: double.infinity,
-        child: GoogleMap(
-          initialCameraPosition: CameraPosition(
-            target: _jobLatLng!,
-            zoom: 12,
-          ),
-          onMapCreated: (controller) {
-            _mapController.complete(controller);
-          },
-          onCameraIdle: () => debugPrint('✅ camera idle at $_jobLatLng'),
-          markers: {
-            Marker(
-              markerId: const MarkerId("jobLocation"),
-              position: _jobLatLng!,
-              infoWindow: InfoWindow(
-                title: widget.job["company_name"] ?? "Entreprise",
-                snippet: widget.job["location"] ?? "",
-              ),
-            ),
-          },
-          zoomGesturesEnabled: true,
-          scrollGesturesEnabled: true,
-        ),
-      ),
-    );
-  }
-
   @override
   void dispose() {
     super.dispose();
@@ -151,6 +116,7 @@ class _JobInformationsState extends State<JobInformations> {
   @override
   void initState() {
     super.initState();
+    requestLocationPermission();
     _resolveLocation();
     _initSavedState();
   }

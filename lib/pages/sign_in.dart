@@ -63,10 +63,24 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
     Navigator.of(context, rootNavigator: true).pop();
   }
 
-  Future<void> saveUserSession(String userId, String token) async {
+  Future<void> ensureIdentityPrefs({
+    required String userId,
+    required String token,
+    required String email,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
+
+    // 1) always refresh session id & token
     await prefs.setString('user_id', userId);
     await prefs.setString('token', token);
+
+    // 2) if the phone has never stored an email / plan, seed them
+    if ((prefs.getString('user_email') ?? '').isEmpty) {
+      await prefs.setString('user_email', email);
+    }
+    if (!prefs.containsKey('plan_name')) {
+      await prefs.setString('plan_name', 'Free'); // first login ⇒ Free
+    }
   }
 
   void _signIn() async {
@@ -93,7 +107,12 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
       if (result is Map<String, dynamic> && result.containsKey("token")) {
         final userId = result['user']['user_id'].toString();
         final token = result['token'];
-        await saveUserSession(userId, token);
+        final email = result['user']['email'] ?? '';
+        await ensureIdentityPrefs(
+          userId: userId,
+          token: token,
+          email: email,
+        );
         await _setCvCompleteFlag(userId);
         if (!mounted) return;
 
@@ -201,7 +220,13 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
       if (response.statusCode == 200) {
         final userId = jsonResponse['user']['user_id'].toString();
         final token = jsonResponse['token'];
-        await saveUserSession(userId, token);
+        final email = jsonResponse['user']['email'] ?? '';
+        await ensureIdentityPrefs(
+          userId: userId,
+          token: token,
+          email: email,
+        );
+        await ensurePlanLocal('Free');
         await _setCvCompleteFlag(userId);
         if (!mounted) return;
 
@@ -264,6 +289,14 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
         Navigator.of(context).pop();
       }
     });
+  }
+
+  Future<void> ensurePlanLocal([String defaultPlan = 'Free']) async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = prefs.getString('plan_name');
+    if (current == null || current.isEmpty) {
+      await prefs.setString('plan_name', defaultPlan);
+    }
   }
 
   Future<void> _setCvCompleteFlag(String userId) async {
