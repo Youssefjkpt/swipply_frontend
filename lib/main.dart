@@ -20,31 +20,52 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-  Future<Widget> _determineStartScreen() async {
-    final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('user_email') ?? '';
-
-    // If we’ve *ever* stored an email, we consider the user “signed-in”.
-    return email.isNotEmpty ? MainLayout() : OnboardingScreen();
-  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData(fontFamily: 'Inter'),
+      title: 'Swipply',
       debugShowCheckedModeBanner: false,
-      home: FutureBuilder<Widget>(
-        future: _determineStartScreen(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done &&
-              snapshot.hasData) {
-            return snapshot.data!;
-          }
-          // simple splash while prefs load
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        },
+      theme: ThemeData(fontFamily: 'Inter'),
+      home: const SplashScreen(),
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(const Duration(seconds: 1), () async {
+      // decide next page
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString('user_email') ?? '';
+      final next = email.isNotEmpty ? MainLayout() : OnboardingScreen();
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => next),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black, // your splash bg
+      body: Center(
+        child: Text(
+          'Swipply',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 36,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }

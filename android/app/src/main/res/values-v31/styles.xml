@@ -1,6 +1,0 @@
-<resources>
-  <style name="NormalTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-    <item name="android:windowBackground">@android:color/black</item>
-    <!-- API-31+ can add extra attributes here if needed -->
-  </style>
-</resources>

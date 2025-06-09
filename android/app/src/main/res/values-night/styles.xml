@@ -1,6 +1,0 @@
-<resources>
-  <style name="NormalTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-    <!-- You can keep a different night-mode window background if you want, or just copy the same black: -->
-    <item name="android:windowBackground">@android:color/black</item>
-  </style>
-</resources>
