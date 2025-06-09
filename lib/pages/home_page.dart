@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
@@ -309,36 +310,9 @@ class _HomePageState extends State<HomePage> {
     return str;
   }
 
-  int get _effectiveSwipeLimit => _swipeLimit ?? 5; // fallback
-
-  Future<int> getLocalSwipeCount() async {
-    final prefs = await SharedPreferences.getInstance();
-    final today = DateTime.now().toIso8601String().substring(0, 10);
-    final storedDate = prefs.getString('swipe_date') ?? '';
-    if (storedDate != today) {
-      await prefs.setString('swipe_date', today);
-      await prefs.setInt('swipe_count', 0);
-      return 0;
-    }
-    return prefs.getInt('swipe_count') ?? 0;
-  }
-
-  Future<void> incrementLocalSwipeCount() async {
-    final prefs = await SharedPreferences.getInstance();
-    int current = await getLocalSwipeCount();
-    int newCount = current + 1;
-    await prefs.setInt('swipe_count', newCount);
-
-    // DEBUG: print it so you can see it in your console
-    debugPrint('▶️ Swipe count is now: $newCount');
-  }
+  int get _effectiveSwipeLimit => _dailySwipeLimit ?? 5; // fallback
 
   String? _planName;
-
-  Future<bool> canSwipeLocally() async {
-    int current = await getLocalSwipeCount();
-    return current < _effectiveSwipeLimit;
-  }
 
   Future<void> showSwipeLimitReachedDialog(BuildContext context) async {
     await showDialog(
@@ -370,7 +344,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  "Vous avez atteint votre quota quotidien de swipes.\nAméliorez votre offre pour bénéficier de swipes illimités.",
+                  "Améliorez votre offre pour bénéficier de plus de swipes.",
                   style: TextStyle(
                     fontSize: 14,
                     color: Color(0xFFCCCCCC),
@@ -399,10 +373,10 @@ class _HomePageState extends State<HomePage> {
                             ),
                           );
                         },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: const Text(
-                            "Améliorer l'offre",
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            "Voir l'offre",
                             style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
@@ -422,9 +396,9 @@ class _HomePageState extends State<HomePage> {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         onPressed: () => Navigator.pop(context),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: const Text(
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
                             "Annuler",
                             style: TextStyle(
                               fontWeight: FontWeight.w500,
@@ -532,7 +506,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  int? _swipeLimit;
   bool _canPersonalize = false;
 
   Future<void> _autoRegisterAndApply(String jobId) async {
@@ -561,6 +534,8 @@ class _HomePageState extends State<HomePage> {
       }
     } catch (e) {}
   }
+
+  int? _dailySwipeLimit;
 
   Future<void> _pullJobs({
     // <-- NEW helper
@@ -618,6 +593,25 @@ class _HomePageState extends State<HomePage> {
     setState(() => _allCategoriesFromDB = set.toList()..sort());
   }
 
+  List<String> parsePostgresArray(dynamic raw) {
+    if (raw == null) return [];
+    if (raw is List) return raw.map((e) => e.toString()).toList();
+
+    String s = raw.toString().trim();
+    // strip outer braces if present
+    if (s.startsWith('{') && s.endsWith('}')) {
+      s = s.substring(1, s.length - 1);
+    }
+    if (s.isEmpty) return [];
+
+    // split on commas, then strip any wrapping quotes and whitespace
+    return s
+        .split(RegExp(r','))
+        .map((e) => e.trim().replaceAll(RegExp(r'^"|"$'), ''))
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
   String? address;
   Future<void> _personalizeCv(String jobId) async {
     if (!await canPersonalizeLocally()) {
@@ -654,18 +648,16 @@ class _HomePageState extends State<HomePage> {
             jobTitle = personalizedData['job_title'] ?? jobTitle;
             fullName = personalizedData['full_name'] ?? fullName;
 
-            education =
-                _safeDecodeStringifiedSet(personalizedData['education']);
-            experiences = List<String>.from(
-                personalizedData['experience'] ?? experiences);
+            experiences = parsePostgresArray(personalizedData['experience']);
+            education = parsePostgresArray(personalizedData['education']);
+            softSkills = parsePostgresArray(personalizedData['soft_skills']);
+            languages = parsePostgresArray(personalizedData['languages']);
+            interests = parsePostgresArray(personalizedData['interests']);
 
-            softSkills = _safeDecodeList(personalizedData['soft_skills']);
-            languages = _safeDecodeList(personalizedData['languages']);
-            interests = _safeDecodeList(personalizedData['interests']);
-
-            certificates = personalizedData['certificates'] ?? certificates;
-            skillsAndProficiency = personalizedData['skills_and_proficiency'] ??
-                skillsAndProficiency;
+            certificates =
+                List<dynamic>.from(personalizedData['certificates'] ?? []);
+            skillsAndProficiency = List<dynamic>.from(
+                personalizedData['skills_and_proficiency'] ?? []);
           });
 
           // ScaffoldMessenger.of(context).showSnackBar(
@@ -675,6 +667,23 @@ class _HomePageState extends State<HomePage> {
           // ScaffoldMessenger.of(context).showSnackBar(
           //   const SnackBar(content: Text("Failed to load personalized CV.")),
           // );
+          // DEFENSIVELY PARSE THE ERROR MESSAGE
+          // …inside your cvRes.statusCode != 200 block…
+          String errMsg;
+          try {
+            final decoded = json.decode(cvRes.body);
+            if (decoded is Map && decoded['error'] is String) {
+              errMsg = decoded['error'];
+            } else {
+              errMsg = decoded.toString();
+            }
+          } catch (_) {
+            errMsg = cvRes.body;
+          }
+
+          showStripeErrorPopup(
+            context,
+          );
         }
       } else if (response.statusCode == 403) {
         await showDialog(
@@ -767,11 +776,23 @@ class _HomePageState extends State<HomePage> {
         // ScaffoldMessenger.of(context).showSnackBar(
         //   SnackBar(content: Text("Failed: ${response.statusCode}")),
         // );
+        // DEFENSIVELY PARSE THE ERROR MESSAGE
+        showStripeErrorPopup(
+          context,
+        );
       }
     } catch (e) {
       //
-    } finally {}
+
+      showStripeErrorPopup(
+        context,
+      );
+    } finally {
+      setState(() => cvLoading = false);
+    }
   }
+
+  int _swipeCount = 0;
 
   Future<void> _fetchUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
@@ -840,22 +861,46 @@ class _HomePageState extends State<HomePage> {
     final current = await getLocalPersonalizeCount();
     await prefs.setInt('personalize_count', current + 1);
   }
+// STATE
+
+// Called once at startup (after your capabilities load)
+  Future<void> _loadSwipeCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    final token = prefs.getString('token');
+    if (userId == null || token == null) return;
+
+    final res = await http.get(
+      Uri.parse('$BASE_URL_AUTH/api/swipe-count/$userId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      setState(() => _swipeCount = data['count'] as int);
+      debugPrint('🖐️ You have swiped $_swipeCount today');
+    }
+  }
 
   Future<bool> canPersonalizeLocally() async {
-    final prefs = await SharedPreferences.getInstance();
-    final limit =
-        prefs.getInt('daily_personalize_limit') ?? _dailyPersonalizeLimit ?? 0;
-    return await getLocalPersonalizeCount() < limit;
+    return _dailyPersonalizeLimit != null &&
+        await getLocalPersonalizeCount() < _dailyPersonalizeLimit!;
   }
 
   @override
   void initState() {
     super.initState();
     _resetDailyLimits();
-    _pullJobs();
-    _fetchUserProfile();
-    _loadCategories();
-    _fetchUserCapabilities();
+    _fetchUserCapabilities().then((_) {
+      // now that _planName & _dailySwipeLimit are populated,
+      // it's safe to load the rest of the UI
+      _pullJobs();
+      _fetchUserProfile();
+      _loadCategories();
+      _loadSwipeCount();
+    });
   }
 
   Future<void> _fetchUserCapabilities() async {
@@ -875,23 +920,18 @@ class _HomePageState extends State<HomePage> {
       final data = json.decode(res.body);
       setState(() {
         _planName = data['plan_name'] as String?;
-        _swipeLimit = data['daily_swipe_limit'];
+        _dailySwipeLimit = data['daily_swipe_limit']; // ← ADD THIS
         _canPersonalize = data['can_personalize_cv'];
+
         _autoApply = (data['has_auto_apply'] as bool?) ?? false;
         _dailyPersonalizeLimit = data['daily_personalize_limit']; // NEW
       });
       debugPrint('📝 Plan: $_planName');
-      debugPrint('📝 Daily swipe limit: $_swipeLimit');
+      debugPrint('📝 Daily swipe limit: $_dailySwipeLimit ');
       debugPrint('📝 Daily CV‐personalize limit: $_dailyPersonalizeLimit');
       debugPrint('📝 Auto‐apply enabled: $_autoApply');
       debugPrint('📝 Can personalize CV: $_canPersonalize');
       // persist them
-      await prefs
-        ..setString('plan_name', _planName ?? '')
-        ..setInt('daily_swipe_limit', data['daily_swipe_limit'])
-        ..setBool('can_personalize_cv', data['can_personalize_cv'])
-        ..setBool('has_auto_apply', (data['has_auto_apply'] as bool?) ?? false)
-        ..setInt('daily_personalize_limit', data['daily_personalize_limit']);
     }
   }
 
@@ -971,13 +1011,13 @@ class _HomePageState extends State<HomePage> {
                                   cardsCount: jobs.length,
                                   onSwipe: (int previousIndex, int? targetIndex,
                                       CardSwiperDirection direction) async {
-                                    final cvOK = await _checkCvComplete();
-                                    if (!cvOK) {
+                                    if (!await _checkCvComplete()) {
                                       await showCustomCVDialog();
-                                      return false; // block the swipe immediately
+                                      return false;
                                     }
-                                    final allowed = await canSwipeLocally();
-                                    if (!allowed) {
+                                    // 2) enforce server limit
+                                    if (_swipeCount >=
+                                        (_dailySwipeLimit ?? 0)) {
                                       await showSwipeLimitReachedDialog(
                                           context);
                                       return false;
@@ -991,8 +1031,17 @@ class _HomePageState extends State<HomePage> {
 
                                       // Run post-swipe logic asynchronously
                                       Future.microtask(() async {
-                                        await _autoRegisterAndApply(jobId);
-                                        await incrementLocalSwipeCount();
+                                        await _postSwipe(jobId,
+                                            action: direction ==
+                                                    CardSwiperDirection.right
+                                                ? 'right'
+                                                : 'left');
+                                        await _loadSwipeCount();
+                                      });
+                                      setState(() {
+                                        _currentIndex =
+                                            targetIndex ?? _currentIndex;
+                                        _currentPage = 0;
                                       });
                                     }
 
@@ -2245,13 +2294,7 @@ class _HomePageState extends State<HomePage> {
                 return;
               }
 
-              final allowed = await canSwipeLocally();
-              if (!allowed) {
-                showSwipeLimitReachedDialog(context);
-                return;
-              }
-
-              await incrementLocalSwipeCount();
+              await _loadSwipeCount();
 
               likeBtnKey.currentState?.triggerSwapExternally();
               Future.delayed(const Duration(milliseconds: 150), () {
@@ -2275,6 +2318,111 @@ class _HomePageState extends State<HomePage> {
         'job_id': jobId,
         'action': action,
       }),
+    );
+  }
+}
+
+void showStripeErrorPopup(BuildContext context) {
+  showGeneralDialog(
+    context: context,
+    barrierLabel: "stripeError",
+    barrierDismissible: true,
+    barrierColor: Colors.black54,
+    transitionDuration: const Duration(milliseconds: 250),
+    pageBuilder: (_, __, ___) => const SafeArea(
+      child: _StripeErrorContent(), // ← no parameter anymore
+    ),
+    transitionBuilder: (_, a1, __, child) => FadeTransition(
+        opacity: CurvedAnimation(parent: a1, curve: Curves.easeOut),
+        child: child),
+  );
+}
+
+class _StripeErrorContent extends StatelessWidget {
+  const _StripeErrorContent({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext ctx) {
+    return Center(
+      child: Container(
+        width: MediaQuery.of(ctx).size.width * 0.80,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: blue_gray,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+                color: Colors.black45, blurRadius: 12, offset: Offset(0, 6)),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 1) Bigger Lottie (fits width while respecting aspect ratio)
+            SizedBox(
+              height: 130, // ← adjust to any size you want
+              width: 130,
+              child: Lottie.asset(
+                errorBox, // your asset constant / path
+                fit: BoxFit.contain,
+              ),
+            ),
+
+            // 2) Friendly headline
+            const Text(
+              "Oups! Personnalisation échoué",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontFamily: null,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                decoration: TextDecoration.none,
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // 3) Short explanatory sentence – always the same
+            const Text(
+              "Nous n'avons pas pu personnaliser votre CV. Merci de retenter ultérieurement.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 15,
+                fontFamily: null,
+                decoration: TextDecoration.none,
+              ),
+            ),
+            const SizedBox(height: 28),
+
+            // 4) Close button
+            GestureDetector(
+              onTap: () => Navigator.of(ctx).pop(),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 14, horizontal: 30),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  "Fermer",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontFamily: null,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 20,
+            )
+          ],
+        ),
+      ),
     );
   }
 }
@@ -2808,7 +2956,7 @@ class _RingingBellButtonState extends State<RingingBellButton>
         context,
         MaterialPageRoute(builder: (context) => ApplicationsInProgressPage()),
       );
-    } catch (e, stack) {}
+    } catch (e) {}
   }
 
   @override

@@ -474,7 +474,7 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 30),
 
                 // Register Link
                 Row(
@@ -495,7 +495,7 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 30),
                 GestureDetector(
                     onTap: _signInWithGoogle,
                     child: Container(

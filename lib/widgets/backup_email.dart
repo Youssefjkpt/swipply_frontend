@@ -48,7 +48,7 @@ class WarningEmailBackupCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: black,
+          color: blue_gray,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.redAccent, width: 1.5),
         ),

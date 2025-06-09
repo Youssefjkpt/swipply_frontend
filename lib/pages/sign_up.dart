@@ -231,14 +231,15 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
 
       final data = jsonDecode(res.body);
 
-      if (res.statusCode == 201 && data?['token'] != null) {
-        await saveUserSession(
-          userId: data['user']['user_id'],
-          token: data['token'],
-          email: data['user']['email'] ?? '',
-          planName: 'Free', // on sign-up
-        );
+      if (res.statusCode == 201) {
+        final data = jsonDecode(res.body);
+        final uid = data['user']['user_id'].toString();
+        final token = data['token'] as String;
+        final email = data['user']['email'] as String? ?? '';
 
+        saveUserSession(
+            userId: uid, token: token, email: email, planName: 'Free');
+        await _setCvCompleteFlag(uid);
         await markCvIncomplete();
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(
@@ -466,6 +467,21 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
         _passwordStrength = "Fort";
       }
     });
+  }
+
+  Future<void> _saveSession({
+    required String userId,
+    required String token,
+    required String email,
+    String planName = 'Free',
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_id', userId);
+    await prefs.setString('token', token);
+    await prefs.setString('user_email', email);
+    if (!prefs.containsKey('plan_name')) {
+      await prefs.setString('plan_name', planName);
+    }
   }
 
   @override

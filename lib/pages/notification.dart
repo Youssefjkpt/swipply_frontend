@@ -168,14 +168,8 @@ class _ApplicationsInProgressPageState extends State<ApplicationsInProgressPage>
     // 2) pick the one with highest progress
     pending.sort((a, b) =>
         (b['progress_status'] as int).compareTo(a['progress_status'] as int));
-    final active = pending.first;
 
     // 3) compute bar params
-    final totalStages = pending.length;
-    final currentStage = pending.indexOf(active);
-    final fraction = (active['progress_status'] as int).clamp(0, 100) / 100.0;
-    final progressFraction =
-        (active['progress_status'] as int).clamp(0, 100) / 100;
 
     return Scaffold(
         backgroundColor: Colors.black,
@@ -264,9 +258,6 @@ class _ApplicationsInProgressPageState extends State<ApplicationsInProgressPage>
                           ),
                           child: Builder(
                             builder: (context) {
-                              final count = _applications.length.clamp(0, 3);
-                              final containerHeight =
-                                  40.0 + count * 96.0 + (count - 1) * 8.0;
                               return SizedBox(
                                 child: Stack(
                                   children: [

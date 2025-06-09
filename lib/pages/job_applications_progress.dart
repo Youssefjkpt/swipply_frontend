@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipply/constants/images.dart';
-import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
 
 class JobApplicationsProgress extends StatefulWidget {
@@ -22,7 +21,6 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
   final Set<String> _retryingIds = {};
   final Map<String, int> _retryCount = {};
   Timer? _poller;
-  bool _showInterviewBanner = true;
 
   @override
   void initState() {
@@ -248,7 +246,7 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
       context: context,
       barrierDismissible: true,
       builder: (_) => Dialog(
-        backgroundColor: Theme.of(context).cardColor,
+        backgroundColor: const Color.fromARGB(255, 27, 27, 27),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -289,7 +287,7 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.tealAccent,
+                        backgroundColor: const Color(0xFF00C2C2),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -306,7 +304,7 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
                         "Enregistrer",
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          color: Colors.black,
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -400,16 +398,10 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
                       final isStuck = DateTime.now().difference(lastTime) >
                           const Duration(seconds: 10);
 
-                      ApplicationState state;
                       if (rawProgress == 100 && error == null) {
-                        state = ApplicationState.success;
                       } else if (rawProgress == 100 && error != null) {
-                        state = ApplicationState.failWithError;
                       } else if (isStuck) {
-                        state = ApplicationState.failStuck;
-                      } else {
-                        state = ApplicationState.inFlight;
-                      }
+                      } else {}
 
                       return Dismissible(
                         key: Key(id),
