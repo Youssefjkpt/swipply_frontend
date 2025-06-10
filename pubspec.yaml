@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.1.5
+version: 1.1.6
 
 environment:
   sdk: '>=3.2.4 <4.0.0'
@@ -82,6 +82,18 @@ dev_dependencies:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/Swippl.png"
+flutter_native_splash:
+  color: "#ffffff"        # background color for older Android/iOS
+  image: assets/Swippl.png  # splash image for older Android/iOS
+  # ... other settings ...
+  android_12:
+    image: assets/Swippl.png  # (or omit to use app icon)
+    icon_background_color: "#ffffff"      # background behind the icon
+    color: "#000000"                      # overall window background color
 
 # The following section is specific to Flutter packages.
 flutter:

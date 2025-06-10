@@ -14,6 +14,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "463526138738-3jj3e0njn6q72i86fn6nubpql7q62jk2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.revoluxe.swipply",
+            "certificate_hash": "e33c4976cce9b989884b08fedf3dd3c54908c4c4"
+          }
+        },
+        {
+          "client_id": "463526138738-cadhkce4e316dn1q84ljee74866b6p84.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.revoluxe.swipply",
+            "certificate_hash": "b9b221c9f031f0cdbe7d8071b503af97b38d281c"
+          }
+        },
+        {
           "client_id": "463526138738-tauogto08nnf8k6onkinoe9ule7ng5o7.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
