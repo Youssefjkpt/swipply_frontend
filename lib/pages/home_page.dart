@@ -155,13 +155,23 @@ class _HomePageState extends State<HomePage> {
   int _currentPage = 0;
   Map<int, bool> _expandedMaps = {};
   int _currentIndex = 0; // Track the current card index
-
+  bool _isMapLoading = true;
   void _goToNextPage() {
-    if (_currentPage == 0) {
-      setState(() {
-        _currentPage = 1;
-      });
-    }
+    setState(() {
+      if (_currentPage < 2) {
+        _currentPage++;
+        _isMapLoading = true;
+
+        if (_currentPage == 1) {
+          cvLoading = true;
+          _fetchUserProfile().then((_) {
+            setState(() {
+              cvLoading = false;
+            });
+          });
+        }
+      }
+    });
   }
 
   void _goToPreviousPage() {
