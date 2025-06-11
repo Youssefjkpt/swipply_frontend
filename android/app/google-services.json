@@ -7,33 +7,41 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:463526138738:android:e63be7227f69355c2f43eb",
+        "mobilesdk_app_id": "1:463526138738:android:abcb5527a71aeb312f43eb",
         "android_client_info": {
-          "package_name": "com.revoluxe.swipply"
+          "package_name": "com.revoluxe.swipply1"
         }
       },
       "oauth_client": [
         {
-          "client_id": "463526138738-3jj3e0njn6q72i86fn6nubpql7q62jk2.apps.googleusercontent.com",
+          "client_id": "463526138738-0bdv8tl27fmve4kaq3p8n87cgi8j98ub.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.revoluxe.swipply",
-            "certificate_hash": "e33c4976cce9b989884b08fedf3dd3c54908c4c4"
+            "package_name": "com.revoluxe.swipply1",
+            "certificate_hash": "9b4a986d93bfeb3da8aa340087dade99ac0b7d8e"
           }
         },
         {
-          "client_id": "463526138738-cadhkce4e316dn1q84ljee74866b6p84.apps.googleusercontent.com",
+          "client_id": "463526138738-2iftrgklrl87ijhoinin6siudrr7ih4p.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.revoluxe.swipply",
+            "package_name": "com.revoluxe.swipply1",
             "certificate_hash": "b9b221c9f031f0cdbe7d8071b503af97b38d281c"
           }
         },
         {
-          "client_id": "463526138738-tauogto08nnf8k6onkinoe9ule7ng5o7.apps.googleusercontent.com",
+          "client_id": "463526138738-ko8kafoa7a86pofh6am35sqnt68vps8s.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.revoluxe.swipply",
+            "package_name": "com.revoluxe.swipply1",
+            "certificate_hash": "e33c4976cce9b989884b08fedf3dd3c54908c4c4"
+          }
+        },
+        {
+          "client_id": "463526138738-vrnifoaiq8md3en3h0quhmd8lnmo57b2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.revoluxe.swipply1",
             "certificate_hash": "19d7584a88d8525ada748059dbe8c0c2ab7b55ac"
           }
         },
@@ -44,7 +52,7 @@
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBY0PSA9t-sOWTDD0GlvJbMoVoCFvamqYo"
+          "current_key": "AIzaSyABCE9Q2b4HmaIXA1LiFXxwwR2Ep9230lg"
         }
       ],
       "services": {
@@ -58,7 +66,7 @@
               "client_id": "463526138738-k1pcbkdhiajjv89pa5q5i5r37fkgouml.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.revoluxe.swipply"
+                "bundle_id": "com.revoluxe.swipply1"
               }
             }
           ]

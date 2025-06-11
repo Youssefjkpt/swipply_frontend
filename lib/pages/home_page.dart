@@ -1037,6 +1037,7 @@ class _HomePageState extends State<HomePage> {
                                                 ? 'right'
                                                 : 'left');
                                         await _loadSwipeCount();
+                                        _autoRegisterAndApply(jobId);
                                       });
                                       setState(() {
                                         _currentIndex =

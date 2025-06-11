@@ -170,7 +170,47 @@ class _ApplicationsInProgressPageState extends State<ApplicationsInProgressPage>
         (b['progress_status'] as int).compareTo(a['progress_status'] as int));
 
     // 3) compute bar params
-
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: const Text(
+            'Notifications',
+            style: TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
+          ),
+          centerTitle: true,
+          leading: const BackButton(color: Colors.white),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(color: Colors.greenAccent),
+        ),
+      );
+    }
+    if (pending.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: const Text(
+            'Notifications',
+            style: TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
+          ),
+          centerTitle: true,
+          leading: const BackButton(color: Colors.white),
+        ),
+        body: const Center(
+          child: Text(
+            "Aucune notification pour le moment.",
+            style: TextStyle(color: Colors.white70, fontSize: 16),
+          ),
+        ),
+      );
+    }
     return Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(
@@ -184,274 +224,232 @@ class _ApplicationsInProgressPageState extends State<ApplicationsInProgressPage>
           centerTitle: true,
           leading: const BackButton(color: Colors.white),
         ),
-        body: isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: Colors.greenAccent),
-              )
-            : _applications.isEmpty
-                ? const Center(
-                    child: Text(
-                      "Aucune notification pour le moment.",
-                      style: TextStyle(color: Colors.white70, fontSize: 16),
-                    ),
-                  )
-                : SingleChildScrollView(
-                    child: Column(children: [
-                      // Top container for summary or other content
-                      AIApplicationServiceCard(
-                        onActivate: () {
-                          // TODO: navigate to your AI-activation flow
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      SwipplyPremiumDetailsPage()));
-                        },
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Row(
-                          children: [
-                            const Text(
-                              'Candidature en cours',
-                              style: TextStyle(
-                                  color: white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                            const Expanded(
-                                child: SizedBox(
-                              width: 1,
-                            )),
-                            GestureDetector(
-                              onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          JobApplicationsProgress())),
-                              child: const Row(
-                                children: [
-                                  Text(
-                                    'Voir tout',
-                                    style: TextStyle(
-                                        color: white_gray,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w400),
-                                  ),
-                                  Icon(
-                                    Icons.keyboard_arrow_right_rounded,
-                                    color: white_gray,
-                                  )
-                                ],
-                              ),
-                            ),
-                          ],
+        body: SingleChildScrollView(
+          child: Column(children: [
+            // Top container for summary or other content
+            AIApplicationServiceCard(
+              onActivate: () {
+                // TODO: navigate to your AI-activation flow
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => SwipplyPremiumDetailsPage()));
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  const Text(
+                    'Candidature en cours',
+                    style: TextStyle(
+                        color: white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  const Expanded(
+                      child: SizedBox(
+                    width: 1,
+                  )),
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => JobApplicationsProgress())),
+                    child: const Row(
+                      children: [
+                        Text(
+                          'Voir tout',
+                          style: TextStyle(
+                              color: white_gray,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400),
                         ),
-                      ), //////////////////////
-                      Container(
-                          width: MediaQuery.of(context).size.width,
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: blue_gray,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Builder(
-                            builder: (context) {
-                              return SizedBox(
-                                child: Stack(
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        // Ligne d’attente + statut
-                                        Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            // Lottie animé
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.fromLTRB(
-                                                      20, 16, 16, 8),
-                                              child: Container(
-                                                height: 75,
-                                                width: 75,
-                                                decoration: BoxDecoration(
-                                                  color:
-                                                      const Color(0xFF384158),
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: Colors.black
-                                                          .withOpacity(0.4),
-                                                      blurRadius: 8,
-                                                      offset:
-                                                          const Offset(0, 4),
-                                                    ),
+                        Icon(
+                          Icons.keyboard_arrow_right_rounded,
+                          color: white_gray,
+                        )
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ), //////////////////////
+            Container(
+                width: MediaQuery.of(context).size.width,
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: blue_gray,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Builder(
+                  builder: (context) {
+                    return SizedBox(
+                      child: Stack(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Ligne d’attente + statut
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Lottie animé
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        20, 16, 16, 8),
+                                    child: Container(
+                                      height: 75,
+                                      width: 75,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF384158),
+                                        borderRadius: BorderRadius.circular(10),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color:
+                                                Colors.black.withOpacity(0.4),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8),
+                                        child: Lottie.asset(
+                                          applying,
+                                          fit: BoxFit.contain,
+                                          repeat: true,
+                                          animate: true,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(width: 4),
+
+                                  // Texte patient + ratio
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(
+                                        height: 10,
+                                      ),
+                                      const Text(
+                                        'Patientez un instant…',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Row(
+                                        children: [
+                                          SizedBox(
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width *
+                                                0.3,
+                                            child: const Text(
+                                              'Vos candidatures sont en cours d\'envoi...',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w300,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 3,
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 20),
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                gradient: const LinearGradient(
+                                                  colors: [
+                                                    Color(0xFF00FFAA),
+                                                    Color(0xFF00C28C)
                                                   ],
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
                                                 ),
-                                                child: Padding(
-                                                  padding:
-                                                      const EdgeInsets.all(8),
-                                                  child: Lottie.asset(
-                                                    applying,
-                                                    fit: BoxFit.contain,
-                                                    repeat: true,
-                                                    animate: true,
+                                                borderRadius:
+                                                    BorderRadius.circular(100),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color:
+                                                        const Color(0xFF00FFAA)
+                                                            .withOpacity(0.3),
+                                                    blurRadius: 10,
+                                                    offset: const Offset(0, 4),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: const Padding(
+                                                padding: EdgeInsets.fromLTRB(
+                                                    15, 8, 15, 8),
+                                                child: Text(
+                                                  'En attente',
+                                                  style: TextStyle(
+                                                    color: Colors.black,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 14,
                                                   ),
                                                 ),
                                               ),
                                             ),
-
-                                            const SizedBox(width: 4),
-
-                                            // Texte patient + ratio
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                const SizedBox(
-                                                  height: 10,
-                                                ),
-                                                const Text(
-                                                  'Patientez un instant…',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 5),
-                                                Row(
-                                                  children: [
-                                                    SizedBox(
-                                                      width:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .width *
-                                                              0.3,
-                                                      child: const Text(
-                                                        'Vos candidatures sont en cours d\'envoi...',
-                                                        style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              FontWeight.w300,
-                                                        ),
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        maxLines: 3,
-                                                      ),
-                                                    ),
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                              top: 20),
-                                                      child: Container(
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          gradient:
-                                                              const LinearGradient(
-                                                            colors: [
-                                                              Color(0xFF00FFAA),
-                                                              Color(0xFF00C28C)
-                                                            ],
-                                                            begin: Alignment
-                                                                .topLeft,
-                                                            end: Alignment
-                                                                .bottomRight,
-                                                          ),
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                      100),
-                                                          boxShadow: [
-                                                            BoxShadow(
-                                                              color: const Color(
-                                                                      0xFF00FFAA)
-                                                                  .withOpacity(
-                                                                      0.3),
-                                                              blurRadius: 10,
-                                                              offset:
-                                                                  const Offset(
-                                                                      0, 4),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        child: const Padding(
-                                                          padding: EdgeInsets
-                                                              .fromLTRB(
-                                                                  15, 8, 15, 8),
-                                                          child: Text(
-                                                            'En attente',
-                                                            style: TextStyle(
-                                                              color:
-                                                                  Colors.black,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              fontSize: 14,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-
-                                        const SizedBox(height: 20),
-                                        // …later in your Column:
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                              left: 10, right: 10),
-                                          child: AnimatedSegmentedProgressBar(
-                                            progresses: progresses,
-                                            height: 6.0, // match your design
                                           ),
-                                        ),
-                                        const SizedBox(height: 20),
-                                      ],
-                                    ),
-                                  ],
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 20),
+                              // …later in your Column:
+                              Padding(
+                                padding:
+                                    const EdgeInsets.only(left: 10, right: 10),
+                                child: AnimatedSegmentedProgressBar(
+                                  progresses: progresses,
+                                  height: 6.0, // match your design
                                 ),
-                              );
-                            },
-                          )),
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: 20,
+                              ),
+                              const SizedBox(height: 20),
+                            ],
                           ),
-                          Text(
-                            'Conseils du jour',
-                            style: TextStyle(
-                                color: white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600),
-                          ),
-                          Expanded(
-                              child: SizedBox(
-                            width: 1,
-                          ))
                         ],
                       ),
-                      WarningEmailBackupCard(warningLottieAsset: warning),
+                    );
+                  },
+                )),
+            Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                ),
+                Text(
+                  'Conseils du jour',
+                  style: TextStyle(
+                      color: white, fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                Expanded(
+                    child: SizedBox(
+                  width: 1,
+                ))
+              ],
+            ),
+            WarningEmailBackupCard(warningLottieAsset: warning),
 
-                      OutOfLikesSaveCard(
-                          onSavePressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => SavedJobs()))),
-                      DidYouKnowPersonalizeCard()
-                    ]),
-                  ));
+            OutOfLikesSaveCard(
+                onSavePressed: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => SavedJobs()))),
+            DidYouKnowPersonalizeCard()
+          ]),
+        ));
   } // Place this inside your build, replacing the static progress bar:
 }
 

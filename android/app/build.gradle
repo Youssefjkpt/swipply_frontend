@@ -15,7 +15,7 @@ if (localPropertiesFile.exists()) {
 
 
 android {
-    namespace "com.revoluxe.swipply"
+    namespace "com.revoluxe.swipply1"
     compileSdkVersion 34
 
     ndkVersion flutter.ndkVersion
@@ -30,11 +30,11 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.revoluxe.swipply"
+        applicationId "com.revoluxe.swipply1"
         minSdkVersion 21
         targetSdkVersion 34
-          versionCode 10 // ✅ Manually set this to the next unused version code
-    versionName "1.2.6" // ✅ Manually set this to the next version name
+          versionCode 12 // ✅ Manually set this to the next unused version code
+    versionName "1.2.8" // ✅ Manually set this to the next version name
         multiDexEnabled true
     }
 
@@ -69,6 +69,8 @@ dependencies {
     implementation 'com.google.android.gms:play-services-auth:20.7.0'
     implementation 'com.google.android.gms:play-services-maps:18.1.0'
     implementation 'androidx.multidex:multidex:2.0.1'
+    implementation 'com.google.android.material:material:1.8.0'
+
 }
 
 apply plugin: 'com.google.gms.google-services'

@@ -64,9 +64,11 @@ class DefaultFirebaseOptions {
     messagingSenderId: '463526138738',
     projectId: 'swipply-4c511',
     storageBucket: 'swipply-4c511.firebasestorage.app',
-    androidClientId: '463526138738-6gr7n1do81ebrvt2b8uf77h3h62j66qn.apps.googleusercontent.com',
-    iosClientId: '463526138738-l4nuv8lh7iesd2qkks0l45mjmeplc8ks.apps.googleusercontent.com',
-    iosBundleId: 'com.example.swipply',
+    androidClientId:
+        '463526138738-6gr7n1do81ebrvt2b8uf77h3h62j66qn.apps.googleusercontent.com',
+    iosClientId:
+        '463526138738-l4nuv8lh7iesd2qkks0l45mjmeplc8ks.apps.googleusercontent.com',
+    iosBundleId: 'com.example.swipply1',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -75,8 +77,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '463526138738',
     projectId: 'swipply-4c511',
     storageBucket: 'swipply-4c511.firebasestorage.app',
-    androidClientId: '463526138738-6gr7n1do81ebrvt2b8uf77h3h62j66qn.apps.googleusercontent.com',
-    iosClientId: '463526138738-l4nuv8lh7iesd2qkks0l45mjmeplc8ks.apps.googleusercontent.com',
+    androidClientId:
+        '463526138738-6gr7n1do81ebrvt2b8uf77h3h62j66qn.apps.googleusercontent.com',
+    iosClientId:
+        '463526138738-l4nuv8lh7iesd2qkks0l45mjmeplc8ks.apps.googleusercontent.com',
     iosBundleId: 'com.example.swipply',
   );
 

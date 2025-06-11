@@ -1,4 +1,4 @@
-package com.revoluxe.swipply
+package com.revoluxe.swipply1
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine

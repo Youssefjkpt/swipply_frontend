@@ -540,63 +540,53 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
                   onTap: () async {
                     final prefs = await SharedPreferences.getInstance();
                     final userId = prefs.getString('user_id');
+                    print('🔥 onTap start; userId=$userId');
                     if (userId == null) {
-                      showStripeErrorPopup(
-                        context,
-                      );
+                      print('⚠️ no userId, aborting');
+                      showStripeErrorPopup(context);
                       return;
                     }
-
                     setState(() => _loading = true);
-
                     try {
-                      // 1) Call backend to create a PaymentIntent
+                      final priceId = stripePriceIds[selectedPlanIndex];
+                      print('📦 creating PaymentIntent for priceId=$priceId');
                       final uri =
                           Uri.parse('$BASE_URL_JOBS/create-payment-intent');
                       final response = await http.post(
                         uri,
                         headers: {'Content-Type': 'application/json'},
-                        body: jsonEncode({
-                          'user_id': userId,
-                          'price_id': stripePriceIds[selectedPlanIndex],
-                        }),
+                        body: jsonEncode(
+                            {'user_id': userId, 'price_id': priceId}),
                       );
-
+                      print('📡 create-intent status=${response.statusCode}');
+                      print('📨 body=${response.body}');
                       if (response.statusCode != 200) {
-                        throw Exception('Backend erreur : ${response.body}');
+                        throw Exception('HTTP ${response.statusCode}');
                       }
-
                       final body = jsonDecode(response.body);
                       final clientSecret = body['clientSecret'] as String;
-
-                      // 2) Initialize the Stripe Payment Sheet
+                      print('🔑 clientSecret=$clientSecret');
                       await Stripe.instance.initPaymentSheet(
                         paymentSheetParameters: SetupPaymentSheetParameters(
                           paymentIntentClientSecret: clientSecret,
                           merchantDisplayName: 'Swipply',
                         ),
                       );
-
-                      // 3) Present the Payment Sheet
+                      print('✅ initPaymentSheet done');
                       await Stripe.instance.presentPaymentSheet();
-                      final prefs = await SharedPreferences.getInstance();
+                      print('🎉 presentPaymentSheet done');
                       await prefs.setString('plan_name', 'Gold');
-                      await prefs.setString(
-                          'swipe_date', ''); // reset local date
-                      await prefs.setInt('swipe_count', 0);
-                      await _fetchUserCapabilities();
-                      // 4) On success, show confirmation
+                      print('💾 prefs updated, navigating home');
                       await showGoldCelebrationPopup(context);
-
                       Navigator.of(context).pushReplacement(
                           MaterialPageRoute(builder: (_) => MainLayout()));
-                      //////////////////////////////////////////////////////////////////
-                    } catch (e) {
-                      showStripeErrorPopup(
-                        context,
-                      );
+                    } catch (e, st) {
+                      print('❌ payment flow error: $e');
+                      print(st);
+                      showStripeErrorPopup(context);
                     } finally {
                       setState(() => _loading = false);
+                      print('🔚 onTap end');
                     }
                   },
                   child: Container(

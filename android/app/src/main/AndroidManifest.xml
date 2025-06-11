@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.revoluxe.swipply">
+    package="com.revoluxe.swipply1">
 
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -13,7 +13,7 @@
     android:name="androidx.multidex.MultiDexApplication"
     android:label="Swipply"
      android:icon="@mipmap/ic_launcher"
-      android:theme="@style/LaunchTheme"
+      android:theme="@style/AppTheme"
     android:allowBackup="true"
     android:screenOrientation="portrait"
     android:enableOnBackInvokedCallback="true">
