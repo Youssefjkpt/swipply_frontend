@@ -34,7 +34,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 34
           versionCode 12 // ✅ Manually set this to the next unused version code
-    versionName "1.2.8" // ✅ Manually set this to the next version name
+    versionName "1.2.9" // ✅ Manually set this to the next version name
         multiDexEnabled true
     }
 
