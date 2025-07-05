@@ -1,0 +1,186 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "6445D6FD",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "14.99",
+      "familyShareable" : false,
+      "internalID" : "6747647452",
+      "localizations" : [
+        {
+          "description" : "Accès Gold 1 mois aux offres avancées",
+          "displayName" : "Swipply Gold",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "Accès Gold 1 mois aux offres avancées",
+          "displayName" : "Swipply Gold",
+          "locale" : "fr"
+        }
+      ],
+      "productID" : "Swipply_gold_1month",
+      "referenceName" : "Swipply gold 1 month",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "7.99",
+      "familyShareable" : false,
+      "internalID" : "6747647362",
+      "localizations" : [
+        {
+          "description" : "Accès Gold pendant 7 jours aux offres premium",
+          "displayName" : "Swipply Gold",
+          "locale" : "fr"
+        }
+      ],
+      "productID" : "Swipply_gold_1week",
+      "referenceName" : "Swipply gold 1 week",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "79.99",
+      "familyShareable" : false,
+      "internalID" : "6747647756",
+      "localizations" : [
+        {
+          "description" : "Accès Gold 6 mois à toutes les fonctions",
+          "displayName" : "Swipply Gold",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "Swipply_gold_6months",
+      "referenceName" : "Swipply gold 6 months",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "22.99",
+      "familyShareable" : false,
+      "internalID" : "6747647786",
+      "localizations" : [
+        {
+          "description" : "Accès Platinum 1 mois aux outils premium",
+          "displayName" : "Swipply Platinum",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "Swipply_platinum_1month",
+      "referenceName" : "Swipply Platinum 1 month",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "11.99",
+      "familyShareable" : false,
+      "internalID" : "6747647679",
+      "localizations" : [
+        {
+          "description" : "Accès Platinum 7j avec fonctions exclusives",
+          "displayName" : "Swipply Platinum",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "Swipply_platinum_1week",
+      "referenceName" : "Swipply Platinum 1 week",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "79.99",
+      "familyShareable" : false,
+      "internalID" : "6747647766",
+      "localizations" : [
+        {
+          "description" : "Platinum 6 mois – accès complet exclusif",
+          "displayName" : "Swipply Platinum",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "Swipply_platinum_6month",
+      "referenceName" : "Swipply Platinum 6 months",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6744581922",
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_developerTeamID" : "PSNSMM8856",
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 773022664.53279305,
+    "_locale" : "fr",
+    "_renewalBillingIssuesEnabled" : true,
+    "_storefront" : "FRA",
+    "_storeKitErrors" : [
+      {
+        "current" : {
+          "index" : 2,
+          "type" : "generic"
+        },
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : {
+          "index" : 1,
+          "type" : "purchase"
+        },
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

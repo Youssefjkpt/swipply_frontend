@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>463526138738-l4nuv8lh7iesd2qkks0l45mjmeplc8ks.apps.googleusercontent.com</string>
+	<string>463526138738-s7tn0r6t6b3g99202ma44g3vd2gd6pdo.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.463526138738-l4nuv8lh7iesd2qkks0l45mjmeplc8ks</string>
+	<string>com.googleusercontent.apps.463526138738-s7tn0r6t6b3g99202ma44g3vd2gd6pdo</string>
 	<key>ANDROID_CLIENT_ID</key>
-	<string>463526138738-6gr7n1do81ebrvt2b8uf77h3h62j66qn.apps.googleusercontent.com</string>
+	<string>463526138738-0bdv8tl27fmve4kaq3p8n87cgi8j98ub.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
 	<string>AIzaSyDgvHnOdcrPcCOiDs2Qz0NLZJUTxCoPJQA</string>
 	<key>GCM_SENDER_ID</key>
@@ -15,7 +15,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.swipply</string>
+	<string>com.revoluxe.swipply1</string>
 	<key>PROJECT_ID</key>
 	<string>swipply-4c511</string>
 	<key>STORAGE_BUCKET</key>
@@ -31,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:463526138738:ios:26f5aa6ee2f370322f43eb</string>
+	<string>1:463526138738:ios:d7576a0046cbc37c2f43eb</string>
 </dict>
 </plist>

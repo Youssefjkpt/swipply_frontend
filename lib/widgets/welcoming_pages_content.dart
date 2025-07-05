@@ -5,18 +5,18 @@ class OnboardingContent extends StatelessWidget {
   final String image, title, description;
 
   const OnboardingContent({
-    Key? key,
+    super.key,
     required this.image,
     required this.title,
     required this.description,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Center(
-          child: Container(
+          child: SizedBox(
             width: MediaQuery.of(context).size.width * 0.8,
             child: Image.asset(
               image,

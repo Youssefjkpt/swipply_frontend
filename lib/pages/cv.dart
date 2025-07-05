@@ -1,121 +1,102 @@
-// ignore_for_file: dead_code, avoid_print
-
 import 'dart:io';
-import 'dart:math';
-import 'dart:ui';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:open_file/open_file.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
 import 'package:swipply/env.dart';
+import 'package:swipply/widgets/adress.dart';
+import 'package:swipply/widgets/check_mark_green_design.dart';
+import 'package:swipply/widgets/cv_chevker.dart';
+import 'package:swipply/widgets/delete_icon.dart';
+import 'package:swipply/widgets/edit_education_sheet.dart';
+import 'package:swipply/widgets/education_section.dart';
+import 'package:swipply/widgets/language_chips.dart';
+import 'package:swipply/widgets/loading_bars.dart';
+import 'package:swipply/widgets/wave_wipe_cv_name.dart';
 
-class InterestsSection extends StatefulWidget {
+class InterestsSection extends StatelessWidget {
   final List<String> interests;
+  final bool showAll;
+  final VoidCallback onToggleShowAll;
+  final VoidCallback onEdit;
 
-  const InterestsSection({super.key, required this.interests});
-
-  @override
-  State<InterestsSection> createState() => _InterestsSectionState();
-}
-
-class _InterestsSectionState extends State<InterestsSection> {
-  bool showAll = false;
-
-  void _openEditSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => EditInterestsSheet(
-        interests: widget.interests,
-        onSave: (updated) {
-          setState(() {
-            widget.interests.addAll(updated);
-          });
-        },
-      ),
-    );
-  }
+  const InterestsSection({
+    Key? key,
+    required this.interests,
+    required this.showAll,
+    required this.onToggleShowAll,
+    required this.onEdit,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final count = interests.length;
+    final toShow = showAll ? interests : interests.take(3).toList();
+
     return Container(
       decoration: BoxDecoration(
         color: blue_gray,
         borderRadius: BorderRadius.circular(16),
       ),
       padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'Interests',
-                style: TextStyle(
-                  color: white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: _openEditSheet,
-                child: const Icon(Icons.edit, color: white_gray, size: 20),
-              ),
-            ],
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text(
+            'Intérêts',
+            style: TextStyle(
+              color: white,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          const SizedBox(height: 15),
-
-          // 🧠 Display bullet points
-          ...List.generate(
-            showAll
-                ? widget.interests.length
-                : (widget.interests.length > 3 ? 3 : widget.interests.length),
-            (index) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 6),
-                    child: Icon(Icons.circle, color: blue, size: 6),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      widget.interests[index],
-                      style: const TextStyle(
-                        color: white_gray,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w400,
+          const Spacer(),
+          GestureDetector(
+            onTap: onEdit,
+            child: const Icon(Icons.edit, color: white_gray, size: 20),
+          ),
+        ]),
+        const SizedBox(height: 15),
+        if (count == 0)
+          const Text(
+            'Aucun intérêt ajouté',
+            style: TextStyle(color: white_gray, fontSize: 15),
+          )
+        else
+          ...toShow.map((i) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 6),
+                        child: Icon(Icons.circle, color: blue, size: 6),
                       ),
-                    ),
-                  ),
-                ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                          child: Text(
+                        i,
+                        style: const TextStyle(color: white_gray, fontSize: 15),
+                      )),
+                    ]),
+              )),
+        if (count > 3)
+          GestureDetector(
+            onTap: onToggleShowAll,
+            child: Text(
+              showAll ? 'Voir moins' : 'Voir plus',
+              style: const TextStyle(
+                color: blue,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
-
-          // 🔁 Read More / Less
-          if (widget.interests.length > 3)
-            GestureDetector(
-              onTap: () => setState(() => showAll = !showAll),
-              child: Text(
-                showAll ? 'Read less' : 'Read more',
-                style: const TextStyle(
-                  color: blue,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-        ],
-      ),
+      ]),
     );
   }
 }
@@ -141,12 +122,282 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
   TextEditingController? resumeController;
   List<String> educations = [];
   String? phone;
+  List<String> softSkills = [];
   String? address;
-
+  String userFullName = '';
   String? userId;
+  String _jobTitle = '';
+  bool _showAllEdu = false;
   late List<String> languages;
-  String _uploadedFileName = 'Upload a Doc/Docx/PDF';
+  String _uploadedFileName = 'Importer un Doc/Docx/PDF';
   late AnimationController _checkmarkController;
+  Future<void> fetchUserData() async {
+    final id = await getUserId();
+    final token = await getAuthToken();
+
+    if (id == null || token == null) return;
+
+    final response = await http.get(
+      Uri.parse('$BASE_URL_AUTH/users/$id'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        userFullName = data['full_name'] ?? '';
+        userEmail = data['email'] ?? '';
+        phone = data['phone_number'] ?? '';
+        address = data['address'] ?? '';
+        _jobTitle = data['job_title'] ?? '';
+        // ✅ Only use default text if no interests are saved
+        if (data['interests'] != null && data['interests'].isNotEmpty) {
+          selectedInterests = List<String>.from(data['interests']);
+        } else {
+          selectedInterests = ['Aucun intérêt ajouté'];
+        }
+      });
+      resumeController?.text = data['personalized_resume'] ?? '';
+      if (data['skillsAndProficiency'] != null &&
+          data['skillsAndProficiency'].isNotEmpty) {
+        skills = List<Map<String, dynamic>>.from(data['skillsAndProficiency']);
+      } else {
+        skills = [];
+      } // ✅ Fetch Soft Skills
+      if (data['softSkills'] != null && data['softSkills'].isNotEmpty) {
+        softSkills = List<String>.from(data['softSkills']);
+      } else {
+        softSkills = [];
+      } // ✅ Fetch Languages
+      if (data['languages'] != null && data['languages'].isNotEmpty) {
+        selectedLanguages = Set<String>.from(data['languages']);
+      } else {
+        selectedLanguages = {};
+      }
+    }
+  }
+
+  void _openEditInterestsSheet() async {
+    final updated = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => EditInterestsSheet(
+        initialInterests: selectedInterests,
+        onSave: (newList) => Navigator.pop(context, newList),
+      ),
+    );
+    if (updated != null) {
+      setState(() {
+        selectedInterests = updated;
+      });
+    }
+  }
+
+  Future<void> fetchEmployeeData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    if (userId == null) return;
+    final userResponse = await http.get(
+      Uri.parse('$BASE_URL_AUTH/users/$userId'),
+    );
+    final userData = jsonDecode(userResponse.body);
+    try {
+      final resp = await http.get(
+        Uri.parse('$BASE_URL_AUTH/api/get-employee/$userId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (resp.statusCode != 200) {
+        print('Failed to load employee: ${resp.statusCode}');
+        return;
+      }
+
+      final employeeData = jsonDecode(resp.body) as Map<String, dynamic>;
+
+      // 🔍 Normalize the `experience` field:
+      final rawExp = employeeData['experience'];
+      List<String> fetchedExperiences;
+
+      if (rawExp is String) {
+        final str = rawExp.trim();
+
+        if (str.startsWith('{') && str.endsWith('}')) {
+          // Postgres array literal: extract values between quotes
+          final matches = RegExp(r'"([^"]*)"').allMatches(str);
+          fetchedExperiences = matches.map((m) => m.group(1)!.trim()).toList();
+        } else {
+          // Fallback: newline‐separated
+          fetchedExperiences = str
+              .split('\n')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+      } else if (rawExp is List) {
+        fetchedExperiences = rawExp.map((e) => e.toString().trim()).toList();
+      } else {
+        fetchedExperiences = [];
+      }
+
+      final data = jsonDecode(resp.body) as Map<String, dynamic>;
+      final rawEdu = data['education'];
+      List<String> fetchedEducations;
+      if (rawEdu is String) {
+        final str = rawEdu.trim();
+        if (str.startsWith('{') && str.endsWith('}')) {
+          fetchedEducations = RegExp(r'"([^"]*)"')
+              .allMatches(str)
+              .map((m) => m.group(1)!.trim())
+              .toList();
+        } else {
+          fetchedEducations = str
+              .split('\n')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+      } else if (rawEdu is List) {
+        fetchedEducations = rawEdu.map((e) => e.toString().trim()).toList();
+      } else {
+        fetchedEducations = [];
+      }
+      final rawSkills = employeeData['skills_and_proficiency'];
+      List<Map<String, dynamic>> fetchedSkills;
+
+      if (rawSkills is String) {
+        final str = rawSkills.trim();
+        if (str.startsWith('{') && str.endsWith('}')) {
+          // array‐literal: extract each JSON‐ish fragment
+          final matches = RegExp(r'\{([^}]*)\}').allMatches(str);
+          fetchedSkills = matches.map((m) {
+            // each m.group(1) is like '"skill": "Dart", "proficiency": 0.8'
+            final inner = '{${m.group(1)}}';
+            return Map<String, dynamic>.from(jsonDecode(inner));
+          }).toList();
+        } else {
+          // fallback: newline separated JSON objects
+          fetchedSkills = str
+              .split('\n')
+              .map((line) => line.trim())
+              .where((line) => line.isNotEmpty)
+              .map((line) => Map<String, dynamic>.from(jsonDecode(line)))
+              .toList();
+        }
+      } else if (rawSkills is List) {
+        fetchedSkills =
+            rawSkills.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      } else {
+        fetchedSkills = [];
+      }
+      for (var skill in fetchedSkills) {
+        final raw = skill['proficiency'] ?? skill['level'] ?? 0;
+        skill['level'] =
+            (raw is num) ? raw.toDouble() : double.parse(raw.toString());
+      }
+// t
+
+      print('✅ parsedSkills: $fetchedSkills');
+      final rawInt = employeeData['interests'];
+      List<String> fetchedInterests;
+
+      if (rawInt is String) {
+        final str = rawInt.trim();
+        if (str.startsWith('{') && str.endsWith('}')) {
+          // Postgres array literal: extract values between quotes
+          fetchedInterests = RegExp(r'"([^"]*)"')
+              .allMatches(str)
+              .map((m) => m.group(1)!.trim())
+              .toList();
+        } else {
+          // Fallback: newline-separated
+          fetchedInterests = str
+              .split('\n')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+      } else if (rawInt is List) {
+        fetchedInterests = rawInt.map((e) => e.toString().trim()).toList();
+      } else {
+        fetchedInterests = [];
+      }
+      final rawSoft = employeeData['soft_skills'];
+      List<String> fetchedSoft;
+      if (rawSoft is String) {
+        final str = rawSoft.trim();
+        if (str.startsWith('{') && str.endsWith('}')) {
+          fetchedSoft = RegExp(r'"([^"]*)"')
+              .allMatches(str)
+              .map((m) => m.group(1)!.trim())
+              .toList();
+        } else {
+          fetchedSoft = str
+              .split('\n')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+      } else if (rawSoft is List) {
+        fetchedSoft = rawSoft.map((e) => e.toString().trim()).toList();
+      } else {
+        fetchedSoft = [];
+      }
+      print('✅ parsedSoftSkills: $fetchedSoft');
+      fullName = sanitizeField(userData['full_name']);
+      phone = sanitizeField(userData['phone_number']);
+      address = sanitizeField(userData['address']);
+      print('🔍 raw phone_number: ${userData['phone_number']}');
+      print('🔍 raw address:  ${userData['address']}');
+      print('✅ parsedEducations: $fetchedEducations');
+
+      setState(() {
+        experiences = fetchedExperiences;
+        educations = fetchedEducations;
+
+        // …and your other fields…
+        resume = sanitizeField(employeeData['resume']);
+        selectedInterests = fetchedInterests;
+        softSkills = fetchedSoft;
+        skills = fetchedSkills;
+        phone = sanitizeField(userData['phone_number']);
+        address = sanitizeField(userData['address']);
+        // etc.
+      });
+    } catch (e) {
+      print('Error fetching employee data: $e');
+    }
+  }
+
+  String? sanitizeField(dynamic value) {
+    if (value == null) return null;
+    final str = value.toString().trim();
+    if (str.isEmpty || str == '{}' || str == 'null') return null;
+    return str;
+  }
+
+  /// Helper to parse fields stored as either Postgres‐array literal or newline/string
+  List<String> _parsePossiblyArrayOrString(dynamic raw) {
+    if (raw is String) {
+      final str = raw.trim();
+      if (str.startsWith('{') && str.endsWith('}')) {
+        return RegExp(r'"([^"]*)"')
+            .allMatches(str)
+            .map((m) => m.group(1)!.trim())
+            .toList();
+      } else {
+        return str
+            .split('\n')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+    } else if (raw is List) {
+      return raw.map((e) => e.toString().trim()).toList();
+    }
+    return [];
+  }
 
   void fetchUserId() async {
     final id = await getUserId();
@@ -156,7 +407,30 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
     print("🟢 Logged-in user_id: $userId");
   }
 
-  String startDateText = 'Immediately';
+  // 1) Drop the async/await
+  void _openEditSoftSkillsSheet() {
+    showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => EditSoftSkillsSheet(
+        initialSoftSkills: softSkills,
+        // onSave no longer pops
+        onSave: (newList) => setState(() {
+          softSkills = newList;
+        }),
+      ),
+    ).then((updated) {
+      // This .then will receive updated only if the sheet popped with a value.
+      if (updated != null) {
+        setState(() {
+          softSkills = updated;
+        });
+      }
+    });
+  }
+
+  String startDateText = 'Immédiatement';
   List<String> interests = [];
   void showSuccessCheckPopup() {
     _checkmarkController = AnimationController(
@@ -202,22 +476,53 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
   }
 
   List<Map<String, dynamic>> skills = [];
+  Future<String?> _fetchAnyJobId() async {
+    final token = await getAuthToken();
+    if (token == null) return null;
+
+    final uri = Uri.parse('$BASE_URL_AUTH/api/job-listings/any');
+    try {
+      final resp = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (resp.statusCode != 200) {
+        print('❌ Could not fetch any job_id: ${resp.statusCode} ${resp.body}');
+        return null;
+      }
+      final data = json.decode(resp.body) as Map<String, dynamic>;
+      return data['job_id'] as String?;
+    } catch (e) {
+      print('❌ Exception fetching any job_id: $e');
+      return null;
+    }
+  }
+
   Future<void> saveCV() async {
-    userId ??= await getUserId(); // ✅ assigns only if null
-
-    final token =
-        await getAuthToken(); // no need to assign globally if you only use it inside
-
+    userId ??= await getUserId();
+    final token = await getAuthToken();
     if (userId == null || token == null) {
-      showUploadPopup(context, errorMessage: "Missing user ID or token");
+      showUploadPopup(context, errorMessage: "ID ou jeton manquant");
       return;
     }
 
-    showUploadPopup(context); // Show loading popup
+    showUploadPopup(context); // display loading popup
 
+    // 1) Fetch one existing job_id from the backend
+    final anyJobId = await _fetchAnyJobId();
+    if (anyJobId == null) {
+      Navigator.of(context).pop(); // close loading
+      showUploadPopup(context,
+          errorMessage: "Impossible de récupérer un job_id.");
+      return;
+    }
+
+    // 2) Build your payload using that job_id
     final safePhone = phone?.trim();
     final safeAddress = address?.trim();
-
     final data = {
       'email': userEmail,
       if (safePhone != null && safePhone.isNotEmpty) 'phone': safePhone,
@@ -227,14 +532,17 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
       'education': educations,
       'availability': startDateText,
       'weeklyAvailability': weeklyAvailability,
-      'interests': selectedInterests,
+      'interests': selectedInterests.isEmpty ? null : selectedInterests,
       'softSkills': softSkills.toList(),
       'skillsAndProficiency': skills,
       'languages': selectedLanguages.toList(),
       'certificates': certificates,
       'linkedin_url': null,
       'lettre_de_motivation': null,
+      'fullName': userFullName,
       'available_start_date': null,
+      'job_title': _jobTitle,
+      'job_id': anyJobId, // ← dynamically inserted from the endpoint
     };
 
     final body = {
@@ -244,7 +552,6 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
 
     try {
       print("📦 Sending saveCV body: ${jsonEncode(body)}");
-
       final response = await http.post(
         Uri.parse("$BASE_URL_AUTH/api/save-cv"),
         headers: {
@@ -256,18 +563,22 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
       print("📨 Save CV Response: ${response.statusCode}");
       print("📨 Save CV Body: ${response.body}");
 
-      Navigator.of(context).pop(); // Close loading
+      Navigator.of(context).pop(); // close loading
 
       if (response.statusCode == 200) {
-        showSuccessCheckPopup(); // ✅ Success animation
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('cv_complete', true);
+        showSuccessCheckPopup();
         await Future.delayed(const Duration(seconds: 2));
         if (mounted) Navigator.of(context).pop();
       } else {
-        showUploadPopup(context, errorMessage: "Error saving CV");
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('cv_complete', false);
+        showUploadPopup(context, errorMessage: "Erreur d’enregistrement");
       }
     } catch (e) {
       Navigator.of(context).pop();
-      showUploadPopup(context, errorMessage: "Error: ${e.toString()}");
+      showUploadPopup(context, errorMessage: "Erreur: ${e.toString()}");
     }
   }
 
@@ -281,8 +592,6 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
     return prefs.getString('token');
   }
 
-  List<String> softSkills = [];
-
   UploadStatus _status = UploadStatus.idle;
   double _uploadProgress = 0;
   Map<String, dynamic>? parsedCVData;
@@ -290,8 +599,9 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
   List<Map<String, dynamic>> certificates = [];
   String userEmail = '';
   String userPhone = '';
+  final Set<String> incompleteFields = {};
 
-  String? selectedFileName = 'Upload a Doc/Docx/PDF';
+  String? selectedFileName = 'Importer un Doc/Docx/PDF';
   Map<String, List<String>> weeklyAvailability = {};
   List<String> selectedInterests = [];
   void showUploadPopup(BuildContext context, {String? errorMessage}) {
@@ -358,12 +668,14 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
 
       final file = File(result.files.single.path!);
       final fileName = result.files.single.name;
+      final userId = await getUserId(); // already declared in your code
 
       final request = http.MultipartRequest(
         'POST',
         Uri.parse('$BASE_URL_AUTH/api/parse-cv'),
       );
 
+      request.fields['user_id'] = userId ?? ''; // ⬅️ this is the fix
       request.files.add(
         await http.MultipartFile.fromPath('cv', file.path, filename: fileName),
       );
@@ -442,7 +754,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
           Navigator.of(context).pop(); // Close loading
           showUploadPopup(
             context,
-            errorMessage: "Error parsing CV",
+            errorMessage: "	Erreur d’analyse",
           );
           Navigator.of(context).pop();
         }
@@ -453,11 +765,144 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
         Navigator.of(context).pop(); // Close loading
         showUploadPopup(
           context,
-          errorMessage: "Error parsing CV. Please try again.",
+          errorMessage: "Échec analyse du CV. Réessayez.",
         );
         Navigator.of(context).pop();
       }
     }
+  }
+
+  Future<void> showIncompleteFieldsDialog(
+      BuildContext context, List<String> fields) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        backgroundColor: const Color.fromARGB(255, 27, 27, 27),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          constraints: const BoxConstraints(minHeight: 200),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Transform.scale(
+                scale: 1.5, // Increase the scale factor as needed
+                child: Lottie.asset(
+                  warningicon,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                "	Champs incomplets",
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "Complétez les champs suivants:\n\n${fields.join(', ')}",
+                style: const TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: MediaQuery.of(context).size.width,
+                    decoration: BoxDecoration(
+                        color: Color(0xFF00C2C2),
+                        borderRadius: BorderRadius.circular(12)),
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: const Text("OK",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> showMissingFieldsDialog(
+      BuildContext context, Set<String> fields) async {
+    final String formattedFields = missingFields.map((f) => "• $f").join('\n');
+
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: const Color.fromARGB(255, 27, 27, 27),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            constraints: const BoxConstraints(minHeight: 200),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.warning_amber_rounded,
+                    color: Color(0xFFFFC107), size: 40),
+                const SizedBox(height: 20),
+                const Text(
+                  "	CV incomplet",
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Remplissez ces champs avant de sauvegarder:\n\n$formattedFields",
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFFCCCCCC),
+                  ),
+                  textAlign: TextAlign.left,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      backgroundColor: const Color(0xFF2B2B2B),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      "OK",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   List<Map<String, String>> parsedExperiences = [];
@@ -495,7 +940,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
       }
     });
 
-    return parts.isEmpty ? 'No availability selected' : parts.join("  •  ");
+    return parts.isEmpty ? 'Aucune dispo choisie' : parts.join("  •  ");
   }
 
   @override
@@ -504,6 +949,8 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
     selectedLanguages = {};
     resumeController = TextEditingController();
     fetchUserId();
+    fetchUserData();
+    fetchEmployeeData();
     _checkmarkController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -515,11 +962,30 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
 // If it's a Set<String>
   }
 
+  bool _showAllInterests = false;
+  void _openEditEducationSheet() async {
+    final updated = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => EditEducationSheet(
+        onSave: (newList) {
+          Navigator.pop(context, newList);
+        },
+        educations: educations,
+      ),
+    );
+    if (updated != null) {
+      setState(() {
+        educations = updated;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
-    print('🧠 experiences: ${parsedCVData?['experiences']}');
-    print('🧠 softSkills: ${parsedCVData?['softSkills']}');
+
     final width = MediaQuery.of(context).size.width;
     return Scaffold(
       backgroundColor: black,
@@ -567,7 +1033,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                       const Padding(
                         padding: EdgeInsets.only(right: 37),
                         child: Text(
-                          'Apply',
+                          'Postuler',
                           style: TextStyle(
                               color: white,
                               fontSize: 18,
@@ -590,7 +1056,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                   child: Row(
                     children: [
                       Text(
-                        'Resume or CV',
+                        'CV ou Résumé',
                         textAlign: TextAlign.start,
                         style: TextStyle(
                             color: white,
@@ -629,7 +1095,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                                   right:
                                       MediaQuery.of(context).size.width * 0.14),
                               child: const Text(
-                                "Upload your CV or resume and use it when you apply for jobs",
+                                "Importez votre CV puis utilisez-le pour vos candidatures",
                                 style: TextStyle(
                                     color: white_gray,
                                     fontSize: 14,
@@ -716,7 +1182,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                                         color: Colors.red),
                                     const SizedBox(width: 6),
                                     const Text(
-                                      "Error while uploading",
+                                      "Erreur lors de l'envoi",
                                       style: TextStyle(
                                           color: Colors.red,
                                           fontWeight: FontWeight.w600),
@@ -752,7 +1218,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                                     children: [
                                       Expanded(child: SizedBox(width: 1)),
                                       Text(
-                                        'Upload',
+                                        'Importer',
                                         style: TextStyle(
                                             color: white,
                                             fontSize: 16,
@@ -781,7 +1247,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                     Padding(
                       padding: EdgeInsets.only(left: 15),
                       child: Text(
-                        'Languages I Know',
+                        'Mes langues',
                         style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 17,
@@ -803,7 +1269,15 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (_) => const _LanguageDetailsSheet(),
+                      builder: (_) => // From parent:
+                          LanguageDetailsSheet(
+                        initialSelection: selectedLanguages,
+                        onSelectionChanged: (newSet) {
+                          setState(() {
+                            selectedLanguages = newSet;
+                          });
+                        },
+                      ),
                     );
                     setState(() {}); // 👈 Refresh to show new language list
                   },
@@ -825,7 +1299,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                             Expanded(
                               child: Text(
                                 selectedLanguages.isEmpty
-                                    ? 'No language selected'
+                                    ? 'Aucune langue'
                                     : selectedLanguages.join(', '),
                                 style: const TextStyle(
                                   color: white,
@@ -846,7 +1320,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                           ],
                         ),
                       ),
-                    ),
+                    ), //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                   ),
                 ),
                 const SizedBox(
@@ -857,7 +1331,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                     Padding(
                       padding: EdgeInsets.only(left: 15),
                       child: Text(
-                        'Resume',
+                        'Résumé',
                         style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 17,
@@ -904,7 +1378,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                         Row(
                           children: [
                             const Text(
-                              'Experience',
+                              'Expérience',
                               style: TextStyle(
                                 color: white,
                                 fontSize: 18,
@@ -913,19 +1387,15 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                             ),
                             const Spacer(),
                             GestureDetector(
-                              onTap: () {
-                                // TODO: Open bottom sheet or editable modal
-                                showModalBottomSheet(
+                              onTap: () async {
+                                await showModalBottomSheet(
                                   context: context,
                                   isScrollControlled: true,
                                   backgroundColor: Colors.transparent,
                                   builder: (_) => EditExperienceSheet(
-                                    experiences: experiences,
-                                    onSave: (updatedList) {
-                                      setState(() {
-                                        experiences = updatedList;
-                                      });
-                                    },
+                                    initialExperiences: experiences,
+                                    onSave: (updated) =>
+                                        setState(() => experiences = updated),
                                   ),
                                 );
                               },
@@ -969,7 +1439,6 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                           ),
                         ),
 
-                        // 🔽 Read More
                         // 🔽 Read More / 🔼 Read Less toggle
                         if (experiences.length > 3)
                           GestureDetector(
@@ -979,7 +1448,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                               });
                             },
                             child: Text(
-                              showAll ? 'Read less' : 'Read more',
+                              showAll ? 'Voir moins' : 'Voir plus',
                               style: const TextStyle(
                                 color: blue,
                                 fontSize: 15,
@@ -996,6 +1465,26 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                 ),
                 EducationSection(
                   educations: educations,
+                  showAll: _showAllEdu,
+                  onToggleShowAll: () =>
+                      setState(() => _showAllEdu = !_showAllEdu),
+                  onEdit: () async {
+                    final updated = await showModalBottomSheet<List<String>>(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => EditEducationSheet(
+                        educations: educations,
+                        onSave: (_) {}, // not used anymore
+                      ),
+                    );
+
+                    if (updated != null) {
+                      setState(() {
+                        educations = updated;
+                      });
+                    }
+                  },
                 ),
                 const SizedBox(
                   height: 15,
@@ -1023,68 +1512,72 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                       // 🧠 Section Title
                       InterestsSection(
                         interests: selectedInterests,
+                        showAll: _showAllInterests,
+                        onToggleShowAll: () => setState(
+                            () => _showAllInterests = !_showAllInterests),
+                        onEdit: _openEditInterestsSheet,
                       ),
 
                       const SizedBox(height: 25),
-                      GestureDetector(
-                        onTap: () async {
-                          await showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.transparent,
-                            builder: (_) => EditSoftSkillsSheet(
-                              initialSoftSkills: softSkills,
-                              onSave: (updated) {
-                                setState(() {
-                                  softSkills = updated;
-                                });
-                              },
-                            ),
-                          );
 
-                          setState(() {}); // refresh UI with updated softSkills
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(15),
-                          decoration: BoxDecoration(
-                            color: blue_gray,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.extension, color: white_gray),
-                              SizedBox(width: 10),
-                              Text(
-                                'Select Soft Skills',
-                                style: TextStyle(color: white),
+                      // Soft Skills chips + edit
+                      Container(
+                        decoration: BoxDecoration(
+                          color: blue_gray,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              const Text(
+                                'Soft Skills',
+                                style: TextStyle(
+                                    color: white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600),
                               ),
-                            ],
-                          ),
+                              const Spacer(),
+                              GestureDetector(
+                                onTap: _openEditSoftSkillsSheet,
+                                child: const Icon(Icons.edit,
+                                    color: white_gray, size: 20),
+                              ),
+                            ]),
+                            const SizedBox(height: 15),
+                            if (softSkills.isEmpty)
+                              const Text(
+                                'Aucune compétence douce',
+                                style:
+                                    TextStyle(color: white_gray, fontSize: 15),
+                              )
+                            else
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                children: softSkills.map((skill) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: black_gray,
+                                      border: Border.all(color: white_gray),
+                                      borderRadius: BorderRadius.circular(100),
+                                    ),
+                                    child: Text(
+                                      skill,
+                                      style: const TextStyle(
+                                          color: white, fontSize: 14),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 15),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: softSkills
-                            .map((skill) => Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: black_gray,
-                                    border: Border.all(color: white_gray),
-                                    borderRadius: BorderRadius.circular(100),
-                                  ),
-                                  child: Text(
-                                    skill,
-                                    style: const TextStyle(
-                                      color: white,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ))
-                            .toList(),
-                      ),
+
                       const SizedBox(height: 15),
                       SkillsSection(skills: skills), const SizedBox(height: 15),
                       ContactInfoSection(
@@ -1111,7 +1604,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                             Row(
                               children: [
                                 const Text(
-                                  'Certificates',
+                                  'Certificats',
                                   style: TextStyle(
                                     color: white,
                                     fontSize: 18,
@@ -1129,7 +1622,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                             const SizedBox(height: 15),
                             if (certificates.isEmpty)
                               const Text(
-                                'No certificates added yet.',
+                                'Aucun certificat ajouté',
                                 style: TextStyle(color: white_gray),
                               )
                             else
@@ -1155,7 +1648,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                                             const SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
-                                                cert['title'] ?? 'Untitled',
+                                                cert['title'] ?? 'Sans titre',
                                                 style: const TextStyle(
                                                   color: white,
                                                   fontWeight: FontWeight.w600,
@@ -1200,7 +1693,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                                                         size: 14, color: black),
                                                     SizedBox(width: 4),
                                                     Text(
-                                                      'Verified',
+                                                      'Vérifié',
                                                       style: TextStyle(
                                                         color: black,
                                                         fontSize: 12,
@@ -1215,13 +1708,13 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                                         ),
                                         const SizedBox(height: 6),
                                         Text(
-                                          cert['issuer'] ?? 'Unknown issuer',
+                                          cert['issuer'] ?? 'Émetteur inconnu',
                                           style: const TextStyle(
                                               color: white_gray, fontSize: 14),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          cert['date'] ?? 'No date',
+                                          cert['date'] ?? 'Sans date',
                                           style: const TextStyle(
                                               color: white_gray, fontSize: 13),
                                         ),
@@ -1248,7 +1741,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                                       Icon(Icons.add, color: white),
                                       SizedBox(width: 6),
                                       Text(
-                                        'Add Certificate',
+                                        '	Ajouter un certificat',
                                         style: TextStyle(
                                           color: white,
                                           fontWeight: FontWeight.w600,
@@ -1299,6 +1792,30 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
               padding: const EdgeInsets.only(left: 30, right: 30, bottom: 20),
               child: GestureDetector(
                 onTap: () async {
+                  final Set<String> incompleteFields = {};
+
+                  incompleteFields.clear();
+
+                  if (selectedLanguages.isEmpty)
+                    incompleteFields.add("Langues");
+                  if ((resumeController?.text.trim().isEmpty ?? true))
+                    incompleteFields.add("Résumé");
+                  if (experiences.isEmpty) incompleteFields.add("Expérience");
+                  if (educations.isEmpty) incompleteFields.add("Formation");
+                  if (selectedInterests.isEmpty)
+                    incompleteFields.add("Intérêts");
+                  if (softSkills.isEmpty)
+                    incompleteFields.add("Compétences douces");
+                  if ((phone?.trim().isEmpty ?? true))
+                    incompleteFields.add("N° de téléphone");
+                  if ((address?.trim().isEmpty ?? true))
+                    incompleteFields.add("Adresse");
+
+                  if (incompleteFields.isNotEmpty) {
+                    await showIncompleteFieldsDialog(
+                        context, incompleteFields.toList());
+                    return;
+                  }
                   await saveCV();
                 },
                 child: Container(
@@ -1311,7 +1828,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   child: const Center(
                     child: Text(
-                      'Save',
+                      'Enregistrer',
                       style: TextStyle(
                         color: white,
                         fontSize: 17,
@@ -1367,7 +1884,7 @@ class CertificatesSection extends StatelessWidget {
             Row(
               children: [
                 const Text(
-                  'Certificates',
+                  'Certificats',
                   style: TextStyle(
                     color: white,
                     fontSize: 18,
@@ -1384,7 +1901,7 @@ class CertificatesSection extends StatelessWidget {
             const SizedBox(height: 15),
             if (certificates.isEmpty)
               const Text(
-                'No certificates added yet.',
+                'Aucun certificat ajouté',
                 style: TextStyle(color: white_gray),
               )
             else
@@ -1408,7 +1925,7 @@ class CertificatesSection extends StatelessWidget {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                cert['title'] ?? 'Untitled',
+                                cert['title'] ?? 'Sans titre',
                                 style: const TextStyle(
                                   color: white,
                                   fontWeight: FontWeight.w600,
@@ -1434,7 +1951,7 @@ class CertificatesSection extends StatelessWidget {
                                         size: 14, color: black),
                                     SizedBox(width: 4),
                                     Text(
-                                      'Verified',
+                                      'Vérifié',
                                       style: TextStyle(
                                         color: black,
                                         fontSize: 12,
@@ -1448,13 +1965,13 @@ class CertificatesSection extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          cert['issuer'] ?? 'Unknown issuer',
+                          cert['issuer'] ?? 'Émetteur inconnu',
                           style:
                               const TextStyle(color: white_gray, fontSize: 14),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          cert['date'] ?? 'No date',
+                          cert['date'] ?? 'Sans date',
                           style:
                               const TextStyle(color: white_gray, fontSize: 13),
                         ),
@@ -1569,19 +2086,20 @@ class _EditCertificatesSheetState extends State<EditCertificatesSheet> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Add a New Certificate',
+                'Ajouter un certificat',
                 style: TextStyle(
                     color: white, fontSize: 20, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 20),
-              _buildTextField(_titleController, 'Certificate Title'),
+              _buildTextField(_titleController, 'Titre du certificat'),
               const SizedBox(height: 12),
-              _buildTextField(_issuerController, 'Issuer (e.g. Coursera)'),
+              _buildTextField(_issuerController, 'Émetteur (ex. Coursera)'),
               const SizedBox(height: 12),
-              _buildTextField(_dateController, 'Date (Optional)', hint: '2024'),
+              _buildTextField(_dateController, 'Date (facultatif)',
+                  hint: '2024'),
               const SizedBox(height: 12),
-              _buildTextField(_tagController, 'Tag (Optional)',
-                  hint: 'e.g. UI/UX'),
+              _buildTextField(_tagController, 'Tag (facultatif)',
+                  hint: 'ex. UI/UX'),
               const SizedBox(height: 12),
               GestureDetector(
                 onTap: _pickFile,
@@ -1600,7 +2118,7 @@ class _EditCertificatesSheetState extends State<EditCertificatesSheet> {
                       Text(
                         selectedFile != null
                             ? selectedFile!.name
-                            : 'Upload PDF/Image',
+                            : 'Importer PDF/Image',
                         style: const TextStyle(
                             color: white, fontWeight: FontWeight.w500),
                       ),
@@ -1614,7 +2132,7 @@ class _EditCertificatesSheetState extends State<EditCertificatesSheet> {
                 value: verified,
                 onChanged: (val) => setState(() => verified = val),
                 title: const Text(
-                  'Verified Certificate (Coursera, Google etc)',
+                  'Certificat vérifié (Coursera, Google etc)',
                   style: TextStyle(color: white, fontSize: 14),
                 ),
               ),
@@ -1628,7 +2146,7 @@ class _EditCertificatesSheetState extends State<EditCertificatesSheet> {
                   ),
                 ),
                 onPressed: _addCertificate,
-                child: const Text('Add Certificate',
+                child: const Text('	Ajouter certificat',
                     style: TextStyle(
                         color: white,
                         fontSize: 16,
@@ -1636,7 +2154,7 @@ class _EditCertificatesSheetState extends State<EditCertificatesSheet> {
               ),
               const SizedBox(height: 25),
               const Text(
-                'Certificates Added',
+                'Certificats ajoutés',
                 style: TextStyle(
                     color: white, fontWeight: FontWeight.w600, fontSize: 16),
               ),
@@ -1681,7 +2199,7 @@ class _EditCertificatesSheetState extends State<EditCertificatesSheet> {
                             ),
                           IconButton(
                             splashRadius: 24,
-                            tooltip: 'Delete Certificate',
+                            tooltip: 'Supprimer certificat',
                             onPressed: () =>
                                 setState(() => certificates.removeAt(index)),
                             icon: const Icon(Icons.delete_outline,
@@ -1734,7 +2252,7 @@ class _EditCertificatesSheetState extends State<EditCertificatesSheet> {
                   ),
                   child: const Center(
                     child: Text(
-                      'Save All',
+                      'Enregistrer tout',
                       style: TextStyle(
                           color: black,
                           fontWeight: FontWeight.w700,
@@ -1806,8 +2324,8 @@ class _EditSkillsSheetState extends State<EditSkillsSheet> {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      maxChildSize: 0.9,
+      initialChildSize: 0.9,
+      maxChildSize: 1,
       minChildSize: 0.5,
       expand: false,
       builder: (_, controller) {
@@ -1832,7 +2350,7 @@ class _EditSkillsSheetState extends State<EditSkillsSheet> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Edit Your Skills',
+                'Modifier vos compétences',
                 style: TextStyle(
                     color: white, fontSize: 20, fontWeight: FontWeight.w600),
               ),
@@ -1843,7 +2361,7 @@ class _EditSkillsSheetState extends State<EditSkillsSheet> {
                     child: TextFormField(
                       style: const TextStyle(color: white),
                       decoration: const InputDecoration(
-                        hintText: 'New Skill',
+                        hintText: 'Nouvelle compétence',
                         hintStyle: TextStyle(color: white_gray),
                         filled: true,
                         fillColor: black_gray,
@@ -1925,7 +2443,7 @@ class _EditSkillsSheetState extends State<EditSkillsSheet> {
                   ),
                   child: const Center(
                     child: Text(
-                      'Save',
+                      'Enregistrer',
                       style: TextStyle(
                         color: white,
                         fontWeight: FontWeight.w700,
@@ -1939,54 +2457,6 @@ class _EditSkillsSheetState extends State<EditSkillsSheet> {
           ),
         );
       },
-    );
-  }
-}
-
-class GradientProgressBar extends StatelessWidget {
-  final double value;
-
-  const GradientProgressBar({super.key, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 10,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(50),
-        color: black_gray,
-      ),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(50),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: value.clamp(0.0, 1.0),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            Colors.redAccent,
-                            Colors.deepOrangeAccent,
-                            Colors.orangeAccent,
-                            Colors.blueAccent,
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -2022,8 +2492,8 @@ class _SkillsSectionState extends State<SkillsSection> {
   }
 
   String _levelLabel(double level) {
-    if (level <= 0.33) return "Beginner";
-    if (level <= 0.66) return "Intermediate";
+    if (level <= 0.33) return "Débutant";
+    if (level <= 0.66) return "Intermédiaire";
     return "Expert";
   }
 
@@ -2042,7 +2512,7 @@ class _SkillsSectionState extends State<SkillsSection> {
           Row(
             children: [
               const Text(
-                'Skills & Proficiency',
+                'Compétences & maîtrise',
                 style: TextStyle(
                   color: white,
                   fontSize: 18,
@@ -2058,43 +2528,55 @@ class _SkillsSectionState extends State<SkillsSection> {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Show your real strengths. Let recruiters know what you’re best at!',
+            'Mettez en avant vos atouts, montrez aux recruteurs vos points forts !',
             style: TextStyle(color: white_gray, fontSize: 14),
           ),
           const SizedBox(height: 20),
 
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: skills.map((skill) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: _levelToColor(skill['level']),
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.bolt,
-                      size: 16,
-                      color: black,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      skill['name'],
-                      style: const TextStyle(
-                          color: black,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
+          // Displaying Skills
+          if (skills.isEmpty)
+            const Text(
+              'Aucune compétence ajoutée.',
+              style: TextStyle(color: white_gray, fontSize: 15),
+            )
+          else
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: skills.map((skill) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: _levelToColor(skill['level']),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.bolt,
+                        size: 16,
+                        color: black,
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          skill['name'],
+                          style: const TextStyle(
+                            color: black,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
 
           const SizedBox(height: 25),
 
@@ -2102,8 +2584,8 @@ class _SkillsSectionState extends State<SkillsSection> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: const [
-              Text('Beginner', style: TextStyle(color: white)),
-              Text('Intermediate', style: TextStyle(color: white_gray)),
+              Text('Débutant', style: TextStyle(color: white)),
+              Text('Intermédiaire', style: TextStyle(color: white_gray)),
               Text('Expert', style: TextStyle(color: white)),
             ],
           ),
@@ -2138,7 +2620,7 @@ class _SkillsSectionState extends State<SkillsSection> {
                     Icon(Icons.add, color: white),
                     SizedBox(width: 6),
                     Text(
-                      'Add Skill',
+                      'Ajouter une compétence',
                       style: TextStyle(
                         color: white,
                         fontWeight: FontWeight.w600,
@@ -2157,151 +2639,170 @@ class _SkillsSectionState extends State<SkillsSection> {
 
 class EditSoftSkillsSheet extends StatefulWidget {
   final List<String> initialSoftSkills;
-  final void Function(List<String>) onSave;
+  final ValueChanged<List<String>> onSave;
 
   const EditSoftSkillsSheet({
-    super.key,
+    Key? key,
     required this.initialSoftSkills,
     required this.onSave,
-  });
+  }) : super(key: key);
 
   @override
-  State<EditSoftSkillsSheet> createState() => _EditSoftSkillsSheetState();
+  _EditSoftSkillsSheetState createState() => _EditSoftSkillsSheetState();
 }
 
 class _EditSoftSkillsSheetState extends State<EditSoftSkillsSheet> {
-  late Set<String> selected;
-
-  String searchText = '';
+  late Set<String> _selected;
+  String _searchText = '';
 
   @override
   void initState() {
     super.initState();
-    selected = Set.from(widget.initialSoftSkills);
+    _selected = Set.from(widget.initialSoftSkills);
   }
 
-  void toggleSkill(String skill) {
+  void _toggle(String skill) {
     setState(() {
-      if (selected.contains(skill)) {
-        selected.remove(skill);
-      } else {
-        selected.add(skill);
-      }
-
-      softSkills
-        ..clear()
-        ..addAll(selected);
+      if (_selected.contains(skill))
+        _selected.remove(skill);
+      else
+        _selected.add(skill);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final filtered = allSoftSkills
-        .where((s) => s.toLowerCase().contains(searchText.toLowerCase()))
+        .where((s) => s.toLowerCase().contains(_searchText.toLowerCase()))
         .toList();
 
-    return PopScope(
-      canPop: true,
-      onPopInvoked: (didPop) {
-        if (!didPop) return;
-        widget.onSave(selected.toList()); // Return selected soft skills
+    return WillPopScope(
+      onWillPop: () async {
+        widget.onSave(_selected.toList());
+        return true;
       },
       child: DraggableScrollableSheet(
         initialChildSize: 0.85,
         maxChildSize: 0.95,
         minChildSize: 0.6,
         expand: false,
-        builder: (_, controller) {
-          return Container(
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              color: blue_gray,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-            ),
-            child: ListView(
-              controller: controller,
-              children: [
-                Center(
-                  child: Container(
-                    width: 80,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: white_gray,
-                      borderRadius: BorderRadius.circular(100),
+        builder: (_, scroll) => Container(
+          padding: const EdgeInsets.all(20),
+          decoration: const BoxDecoration(
+            color: blue_gray,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          child: Column(
+            children: [
+              // handle
+              Center(
+                child: Container(
+                  width: 80,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: white_gray,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Sélectionnez vos Soft Skills',
+                style: TextStyle(
+                    color: white, fontSize: 20, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 20),
+
+              // search
+              Container(
+                decoration: BoxDecoration(
+                  color: black_gray,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: white_gray),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        style: const TextStyle(color: white),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          isCollapsed: true,
+                          hintText: 'Rechercher une compétence douce…',
+                          hintStyle: TextStyle(color: white_gray),
+                        ),
+                        onChanged: (v) => setState(() => _searchText = v),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // chips list
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scroll,
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 12,
+                    children: filtered.map((skill) {
+                      final sel = _selected.contains(skill);
+                      return GestureDetector(
+                        onTap: () => _toggle(skill),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: sel ? blue : black_gray,
+                            borderRadius: BorderRadius.circular(100),
+                            border: sel ? null : Border.all(color: white_gray),
+                          ),
+                          child: Text(
+                            skill,
+                            style: TextStyle(
+                                color: sel ? black : white_gray,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: () {
+                  widget.onSave(_selected.toList());
+                  Navigator.of(context).pop();
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: blue,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: const Center(
+                    child: Text(
+                      'Enregistrer',
+                      style: TextStyle(
+                          color: white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Select Your Soft Skills',
-                  style: TextStyle(
-                    color: white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // 🔍 Search input
-                Container(
-                  decoration: BoxDecoration(
-                    color: black_gray,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.search, color: white_gray),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          onChanged: (val) => setState(() => searchText = val),
-                          style: const TextStyle(color: white),
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            isCollapsed: true,
-                            hintText: 'Search soft skills...',
-                            hintStyle: TextStyle(color: white_gray),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 12,
-                  children: filtered.map((skill) {
-                    final isSelected = selected.contains(skill);
-                    return GestureDetector(
-                      onTap: () => toggleSkill(skill),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isSelected ? blue : black_gray,
-                          borderRadius: BorderRadius.circular(100),
-                          border:
-                              isSelected ? null : Border.all(color: white_gray),
-                        ),
-                        child: Text(
-                          skill,
-                          style: TextStyle(
-                            color: isSelected ? black : white_gray,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          );
-        },
+              )
+              // Save
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -2328,7 +2829,7 @@ class _EditStartDateSheetState extends State<EditStartDateSheet> {
   @override
   void initState() {
     super.initState();
-    isImmediate = widget.initialValue == 'Immediately';
+    isImmediate = widget.initialValue == 'Immédiatement';
   }
 
   @override
@@ -2360,7 +2861,7 @@ class _EditStartDateSheetState extends State<EditStartDateSheet> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'When can you start working?',
+                'Quand pouvez-vous commencer à travailler ?',
                 style: TextStyle(
                     color: white, fontSize: 20, fontWeight: FontWeight.w600),
               ),
@@ -2370,7 +2871,7 @@ class _EditStartDateSheetState extends State<EditStartDateSheet> {
                 value: isImmediate,
                 onChanged: (val) => setState(() => isImmediate = val),
                 title: const Text(
-                  'Immediately',
+                  'Immédiatement',
                   style: TextStyle(color: white, fontSize: 16),
                 ),
               ),
@@ -2418,7 +2919,7 @@ class _EditStartDateSheetState extends State<EditStartDateSheet> {
                         Text(
                           selectedDate != null
                               ? "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}"
-                              : 'Select start date',
+                              : 'Sélectionner la date de début',
                           style: const TextStyle(color: white, fontSize: 16),
                         ),
                         const Spacer(),
@@ -2430,7 +2931,7 @@ class _EditStartDateSheetState extends State<EditStartDateSheet> {
               GestureDetector(
                 onTap: () {
                   final output = isImmediate
-                      ? 'Immediately'
+                      ? 'Immédiatement'
                       : selectedDate != null
                           ? "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}"
                           : widget.initialValue;
@@ -2445,7 +2946,7 @@ class _EditStartDateSheetState extends State<EditStartDateSheet> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   child: const Center(
                     child: Text(
-                      'Save',
+                      'Enregistrer',
                       style: TextStyle(
                           color: white,
                           fontSize: 16,
@@ -2463,20 +2964,86 @@ class _EditStartDateSheetState extends State<EditStartDateSheet> {
 }
 
 const List<String> allSoftSkills = [
-  'Communication', 'Teamwork', 'Adaptability', 'Problem-solving',
-  'Critical thinking', 'Time management', 'Work ethic', 'Creativity',
-  'Emotional intelligence', 'Leadership', 'Responsibility', 'Decision making',
-  'Conflict resolution', 'Flexibility', 'Organization', 'Empathy',
-  'Collaboration', 'Stress management', 'Multitasking', 'Self-motivation',
-  'Listening', 'Accountability', 'Persuasion', 'Negotiation',
-  'Patience', 'Confidence', 'Delegation', 'Initiative', 'Attention to detail',
-  'Public speaking', 'Positive attitude', 'Active learning',
+  'Communication',
+  'Teamwork',
+  'Adaptability',
+  'Problem-solving',
+  'Critical thinking',
+  'Time management',
+  'Work ethic',
+  'Creativity',
+  'Emotional intelligence',
+  'Leadership',
+  'Responsibility',
+  'Decision making',
+  'Conflict resolution',
+  'Flexibility',
+  'Organization',
+  'Empathy',
+  'Collaboration',
+  'Stress management',
+  'Multitasking',
+  'Self-motivation',
+  'Listening',
+  'Accountability',
+  'Persuasion',
+  'Negotiation',
+  'Patience',
+  'Confidence',
+  'Delegation',
+  'Initiative',
+  'Attention to detail',
+  'Public speaking',
+  'Positive attitude',
+  'Active learning',
   'Strategic thinking',
-  'Constructive feedback', 'Giving feedback', 'Coaching', 'Mentoring',
-  'Discipline', 'Cultural awareness', 'Resourcefulness', 'Integrity',
-  'Goal-setting', 'Self-awareness', 'Curiosity', 'Non-verbal communication',
-  'Humility', 'Respectfulness', 'Inclusivity', 'Receptiveness',
-  // 🔥 Add more to make it 100+ — this is already premium-tier.
+  'Constructive feedback',
+  'Giving feedback',
+  'Coaching',
+  'Mentoring',
+  'Discipline',
+  'Cultural awareness',
+  'Resourcefulness',
+  'Integrity',
+  'Goal-setting',
+  'Self-awareness',
+  'Curiosity',
+  'Non-verbal communication',
+  'Humility',
+  'Respectfulness',
+  'Inclusivity',
+  'Receptiveness',
+  'Mindfulness',
+  'Self-regulation',
+  'Stress tolerance',
+  'Analytical skills',
+  'Digital literacy',
+  'Networking',
+  'Facilitation',
+  'Service orientation',
+  'Relationship building',
+  'Diplomacy',
+  'Assertiveness',
+  'Boundary setting',
+  'Change management',
+  'Persuasive writing',
+  'Storytelling',
+  'Visioning',
+  'Influencing',
+  'Crisis management',
+  'Customer empathy',
+  'Ethical judgment',
+  'Risk assessment',
+  'Process improvement',
+  'Quality orientation',
+  'Global mindset',
+  'Social responsibility',
+  'Data-driven decision making',
+  'Resilience',
+  'Tolerance for ambiguity',
+  'Systems thinking',
+  'Design thinking',
+  'Problem identification',
 ];
 
 class AvailabilitySection extends StatefulWidget {
@@ -2487,7 +3054,7 @@ class AvailabilitySection extends StatefulWidget {
 }
 
 class _AvailabilitySectionState extends State<AvailabilitySection> {
-  String startDateText = 'Immediately';
+  String startDateText = 'Immédiatement';
 
   void _openEditStartDate() {
     showModalBottomSheet(
@@ -2521,7 +3088,7 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
             Row(
               children: [
                 const Text(
-                  'Availability',
+                  'Disponibilité',
                   style: TextStyle(
                     color: white,
                     fontSize: 18,
@@ -2541,7 +3108,7 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
                 style: const TextStyle(fontSize: 15),
                 children: [
                   const TextSpan(
-                    text: 'Start date: ',
+                    text: 'Date de début: ',
                     style: TextStyle(color: white, fontSize: 17),
                   ),
                   TextSpan(
@@ -2625,7 +3192,7 @@ class _WeeklyAvailabilitySectionState extends State<WeeklyAvailabilitySection> {
           children: [
             // 🔹 Section title
             const Text(
-              'Weekly Availability',
+              'Disponibilité hebdomadaire',
               style: TextStyle(
                   color: white, fontSize: 18, fontWeight: FontWeight.w600),
             ),
@@ -2642,15 +3209,15 @@ class _WeeklyAvailabilitySectionState extends State<WeeklyAvailabilitySection> {
                           style: const TextStyle(color: white, fontSize: 14)),
                     ),
                     ToggleChip(
-                      label: 'Morning',
-                      selected: selected.contains('Morning'),
-                      onTap: () => toggle(day, 'Morning'),
+                      label: 'Matin',
+                      selected: selected.contains('Matin'),
+                      onTap: () => toggle(day, 'Matin'),
                     ),
                     const SizedBox(width: 10),
                     ToggleChip(
-                      label: 'Evening',
-                      selected: selected.contains('Evening'),
-                      onTap: () => toggle(day, 'Evening'),
+                      label: 'Soir',
+                      selected: selected.contains('Soir'),
+                      onTap: () => toggle(day, 'Soir'),
                     ),
                   ],
                 ),
@@ -2664,12 +3231,12 @@ class _WeeklyAvailabilitySectionState extends State<WeeklyAvailabilitySection> {
 }
 
 class EditInterestsSheet extends StatefulWidget {
-  final List<String> interests;
-  final Function(List<String>) onSave;
+  final List<String> initialInterests;
+  final ValueChanged<List<String>> onSave;
 
   const EditInterestsSheet({
     super.key,
-    required this.interests,
+    required this.initialInterests,
     required this.onSave,
   });
 
@@ -2684,8 +3251,8 @@ class _EditInterestsSheetState extends State<EditInterestsSheet> {
   @override
   void initState() {
     super.initState();
-    controllers = widget.interests
-        .map((interest) => TextEditingController(text: interest))
+    controllers = widget.initialInterests
+        .map((i) => TextEditingController(text: i))
         .toList();
   }
 
@@ -2723,9 +3290,9 @@ class _EditInterestsSheetState extends State<EditInterestsSheet> {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.7,
+      initialChildSize: 0.9,
       minChildSize: 0.4,
-      maxChildSize: 0.95,
+      maxChildSize: 1,
       builder: (_, controller) {
         return Container(
           padding: const EdgeInsets.all(20),
@@ -2748,7 +3315,7 @@ class _EditInterestsSheetState extends State<EditInterestsSheet> {
               ),
               const SizedBox(height: 15),
               const Text(
-                'Edit Interests',
+                'Modifier vos centres d’intérêt',
                 style: TextStyle(
                   color: white,
                   fontSize: 18,
@@ -2768,7 +3335,7 @@ class _EditInterestsSheetState extends State<EditInterestsSheet> {
                           maxLines: null,
                           style: const TextStyle(color: white),
                           decoration: InputDecoration(
-                            hintText: 'Interest ${index + 1}',
+                            hintText: 'Intérêt ${index + 1}',
                             hintStyle: const TextStyle(color: white_gray),
                             filled: true,
                             fillColor: black_gray,
@@ -2793,7 +3360,7 @@ class _EditInterestsSheetState extends State<EditInterestsSheet> {
                 onPressed: _addInterest,
                 icon: const Icon(Icons.add, color: blue),
                 label: const Text(
-                  'Add Interest',
+                  'Ajouter un intérêt',
                   style: TextStyle(color: blue),
                 ),
               ),
@@ -2803,7 +3370,7 @@ class _EditInterestsSheetState extends State<EditInterestsSheet> {
               // 🔍 Preview
               if (controllers.any((c) => c.text.trim().isNotEmpty)) ...[
                 const Text(
-                  'Preview:',
+                  'Aperçu:',
                   style: TextStyle(
                       color: white, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
@@ -2856,13 +3423,12 @@ class _EditInterestsSheetState extends State<EditInterestsSheet> {
                 onPressed: () {
                   final updated = controllers
                       .map((c) => c.text.trim())
-                      .where((text) => text.isNotEmpty)
+                      .where((s) => s.isNotEmpty)
                       .toList();
                   widget.onSave(updated);
-                  Navigator.pop(context);
                 },
                 child: const Text(
-                  'Save',
+                  'Enregistrer',
                   style: TextStyle(
                     color: white,
                     fontWeight: FontWeight.w700,
@@ -2891,7 +3457,7 @@ class ToggleChip extends StatelessWidget {
   });
 
   IconData get icon =>
-      label == 'Morning' ? Icons.wb_sunny_rounded : Icons.nightlight_round;
+      label == 'Matin' ? Icons.wb_sunny_rounded : Icons.nightlight_round;
 
   @override
   Widget build(BuildContext context) {
@@ -2908,130 +3474,16 @@ class ToggleChip extends StatelessWidget {
         child: Row(
           children: [
             Icon(icon, color: selected ? black : white_gray, size: 16),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                color: selected ? black : white_gray,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+                  color: selected ? black : white_gray,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 1.2),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class EducationSection extends StatefulWidget {
-  final List<String> educations;
-
-  const EducationSection({super.key, required this.educations});
-
-  @override
-  State<EducationSection> createState() => _EducationSectionState();
-}
-
-class _EducationSectionState extends State<EducationSection> {
-  bool showAll = false;
-
-  void _openEditSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => EditEducationSheet(
-        educations: widget.educations, // ✅ correct usage
-
-        onSave: (updated) {
-          setState(() {
-            widget.educations.clear();
-            widget.educations.addAll(updated);
-          });
-        },
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      child: Container(
-        decoration: BoxDecoration(
-          color: blue_gray,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 🎓 Title row
-            Row(
-              children: [
-                const Text(
-                  'Education',
-                  style: TextStyle(
-                    color: white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: _openEditSheet,
-                  child: const Icon(Icons.edit, color: white_gray, size: 20),
-                ),
-              ],
-            ),
-            const SizedBox(height: 15),
-
-            // 📋 Education items
-            ...List.generate(
-              showAll
-                  ? widget.educations.length
-                  : (widget.educations.length > 3
-                      ? 3
-                      : widget.educations.length),
-              (index) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(top: 6),
-                      child: Icon(Icons.school, color: blue, size: 16),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        widget.educations[index],
-                        style: const TextStyle(
-                          color: white_gray,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // 🔁 Read more / less
-            if (widget.educations.length > 3)
-              GestureDetector(
-                onTap: () => setState(() => showAll = !showAll),
-                child: Text(
-                  showAll ? 'Read less' : 'Read more',
-                  style: const TextStyle(
-                    color: blue,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
+            const SizedBox(width: 4),
           ],
         ),
       ),
@@ -3040,14 +3492,14 @@ class _EducationSectionState extends State<EducationSection> {
 }
 
 class EditExperienceSheet extends StatefulWidget {
-  final List<String> experiences;
-  final Function(List<String>) onSave;
+  final List<String> initialExperiences;
+  final ValueChanged<List<String>> onSave;
 
   const EditExperienceSheet({
-    super.key,
-    required this.experiences,
+    Key? key,
+    required this.initialExperiences,
     required this.onSave,
-  });
+  }) : super(key: key);
 
   @override
   State<EditExperienceSheet> createState() => _EditExperienceSheetState();
@@ -3060,8 +3512,10 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
   @override
   void initState() {
     super.initState();
-    controllers =
-        widget.experiences.map((e) => TextEditingController(text: e)).toList();
+    // Initialize controllers from passed-in experiences
+    controllers = widget.initialExperiences
+        .map((e) => TextEditingController(text: e))
+        .toList();
   }
 
   @override
@@ -3077,7 +3531,7 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
     setState(() {
       controllers.add(TextEditingController());
     });
-
+    // Scroll to new field
     Future.delayed(const Duration(milliseconds: 300), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -3098,9 +3552,10 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.7,
+      initialChildSize: 0.9,
       minChildSize: 0.4,
-      maxChildSize: 0.95,
+      maxChildSize: 1,
+      expand: false,
       builder: (context, scrollController) {
         return Container(
           padding: const EdgeInsets.all(20),
@@ -3123,7 +3578,7 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
               ),
               const SizedBox(height: 15),
               const Text(
-                'Edit Experiences',
+                'Modifier vos expériences',
                 style: TextStyle(
                   color: white,
                   fontSize: 18,
@@ -3132,7 +3587,7 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
               ),
               const SizedBox(height: 20),
 
-              // 🔁 Dynamic experience fields with delete icon
+              // Dynamic experience fields
               ...List.generate(controllers.length, (index) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -3144,7 +3599,7 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
                           maxLines: null,
                           style: const TextStyle(color: white),
                           decoration: InputDecoration(
-                            hintText: 'Experience ${index + 1}',
+                            hintText: 'Expérience ${index + 1}',
                             hintStyle: const TextStyle(color: white_gray),
                             filled: true,
                             fillColor: black_gray,
@@ -3153,36 +3608,33 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
                               borderSide: BorderSide.none,
                             ),
                           ),
-                          onChanged: (_) {
-                            setState(() {}); // Refresh live preview
-                          },
+                          onChanged: (_) => setState(() {}),
                         ),
                       ),
                       const SizedBox(width: 10),
-                      DeleteIconButton(
-                        onPressed: () => _removeExperience(index),
+                      GestureDetector(
+                        onTap: () => _removeExperience(index),
+                        child: const Icon(Icons.delete, color: white_gray),
                       ),
                     ],
                   ),
                 );
               }),
 
-              // ➕ Add new button
+              // Add new
               TextButton.icon(
                 onPressed: _addExperience,
                 icon: const Icon(Icons.add, color: blue),
-                label: const Text(
-                  'Add Experience',
-                  style: TextStyle(color: blue),
-                ),
+                label: const Text('Ajouter une expérience',
+                    style: TextStyle(color: blue)),
               ),
 
               const SizedBox(height: 20),
 
-              // 🔍 Live Preview (optional)
+              // Preview
               if (controllers.any((c) => c.text.trim().isNotEmpty)) ...[
                 const Text(
-                  'Preview:',
+                  'Aperçu :',
                   style: TextStyle(
                       color: white, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
@@ -3197,243 +3649,24 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: controllers
                         .where((c) => c.text.trim().isNotEmpty)
-                        .map((c) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.circle,
-                                      color: blue, size: 6),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      c.text.trim(),
-                                      style: const TextStyle(
-                                        color: white_gray,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ))
-                        .toList(),
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 25),
-
-              // ✅ Save
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: () {
-                  final updated = controllers
-                      .map((c) => c.text.trim())
-                      .where((text) => text.isNotEmpty)
-                      .toList();
-                  widget.onSave(updated);
-                  Navigator.pop(context);
-                },
-                child: const Text(
-                  'Save',
-                  style: TextStyle(
-                    color: white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class EditEducationSheet extends StatefulWidget {
-  final List<String> educations;
-  final Function(List<String>) onSave;
-
-  const EditEducationSheet({
-    super.key,
-    required this.educations,
-    required this.onSave,
-  });
-
-  @override
-  State<EditEducationSheet> createState() => _EditEducationSheetState();
-}
-
-class _EditEducationSheetState extends State<EditEducationSheet> {
-  late List<TextEditingController> controllers;
-  final ScrollController _scrollController = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    controllers =
-        widget.educations.map((e) => TextEditingController(text: e)).toList();
-  }
-
-  @override
-  void dispose() {
-    for (var controller in controllers) {
-      controller.dispose();
-    }
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _addExperience() {
-    setState(() {
-      controllers.add(TextEditingController());
-    });
-
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent + 80,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
-
-  void _removeExperience(int index) {
-    setState(() {
-      controllers.removeAt(index);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      minChildSize: 0.4,
-      maxChildSize: 0.95,
-      builder: (context, scrollController) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: blue_gray,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: ListView(
-            controller: _scrollController,
-            children: [
-              Center(
-                child: Container(
-                  width: 70,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: white_gray,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 15),
-              const Text(
-                'Edit Experiences',
-                style: TextStyle(
-                  color: white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // 🔁 Dynamic experience fields with delete icon
-              ...List.generate(controllers.length, (index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: controllers[index],
-                          maxLines: null,
-                          style: const TextStyle(color: white),
-                          decoration: InputDecoration(
-                            hintText: 'Experience ${index + 1}',
-                            hintStyle: const TextStyle(color: white_gray),
-                            filled: true,
-                            fillColor: black_gray,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
+                        .map(
+                          (c) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.circle, color: blue, size: 6),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    c.text.trim(),
+                                    style: const TextStyle(
+                                        color: white_gray, fontSize: 14),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          onChanged: (_) {
-                            setState(() {}); // Refresh live preview
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      DeleteIconButton(
-                        onPressed: () => _removeExperience(index),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-
-              // ➕ Add new button
-              TextButton.icon(
-                onPressed: _addExperience,
-                icon: const Icon(Icons.add, color: blue),
-                label: const Text(
-                  'Add Experience',
-                  style: TextStyle(color: blue),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // 🔍 Live Preview (optional)
-              if (controllers.any((c) => c.text.trim().isNotEmpty)) ...[
-                const Text(
-                  'Preview:',
-                  style: TextStyle(
-                      color: white, fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  decoration: BoxDecoration(
-                    color: black_gray,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.all(15),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: controllers
-                        .where((c) => c.text.trim().isNotEmpty)
-                        .map((c) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.circle,
-                                      color: blue, size: 6),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      c.text.trim(),
-                                      style: const TextStyle(
-                                        color: white_gray,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ))
+                        )
                         .toList(),
                   ),
                 ),
@@ -3441,13 +3674,12 @@ class _EditEducationSheetState extends State<EditEducationSheet> {
 
               const SizedBox(height: 25),
 
-              // ✅ Save
+              // Save
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: blue,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                      borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 onPressed: () {
@@ -3458,14 +3690,11 @@ class _EditEducationSheetState extends State<EditEducationSheet> {
                   widget.onSave(updated);
                   Navigator.pop(context);
                 },
-                child: const Text(
-                  'Save',
-                  style: TextStyle(
-                    color: white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
+                child: const Text('Enregistrer',
+                    style: TextStyle(
+                        color: white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16)),
               ),
             ],
           ),
@@ -3475,85 +3704,114 @@ class _EditEducationSheetState extends State<EditEducationSheet> {
   }
 }
 
-class DeleteIconButton extends StatefulWidget {
-  final VoidCallback onPressed;
-
-  const DeleteIconButton({super.key, required this.onPressed});
-
-  @override
-  State<DeleteIconButton> createState() => _DeleteIconButtonState();
+String? resume;
+List<String> experience = [];
+List<String> education = [];
+List<String> languages = [];
+List<String> interests = [];
+List<String> softSkills = [];
+List<dynamic> certificates = [];
+List<dynamic> skillsAndProficiency = [];
+String? fullName;
+bool isCVIncomplete = false;
+List<String> missingFields = [];
+Map<String, dynamic>? weeklyAvailability;
+String? availability;
+String? sanitizeField(dynamic value) {
+  if (value == null) return null;
+  final str = value.toString().trim();
+  if (str.isEmpty || str == '{}' || str == 'null') return null;
+  return str;
 }
 
-class _DeleteIconButtonState extends State<DeleteIconButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnim;
+// Future<void> fetchEmployeeData() async {
+//   final prefs = await SharedPreferences.getInstance();
+//   final userId = prefs.getString('user_id');
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 100),
-      lowerBound: 0.0,
-      upperBound: 0.1,
-    );
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.9).animate(_controller);
-  }
+//   if (userId == null) {
+//     print("❌ No user ID found");
+//     return;
+//   }
 
-  void _onTapDown(_) => _controller.forward();
-  void _onTapUp(_) => _controller.reverse();
+//   try {
+//     final employeeResponse = await http.get(
+//       Uri.parse('$BASE_URL_AUTH/api/get-employee/$userId'),
+//     );
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: _onTapDown,
-      onTapUp: _onTapUp,
-      onTapCancel: () => _controller.reverse(),
-      onTap: widget.onPressed,
-      child: ScaleTransition(
-        scale: _scaleAnim,
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [
-                Colors.redAccent.withOpacity(0.4),
-                Colors.red.withOpacity(0.2),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.red.withOpacity(0.3),
-                blurRadius: 6,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.delete_forever_rounded,
-            color: Colors.redAccent,
-            size: 20,
-          ),
-        ),
-      ),
-    );
-  }
+//     final userResponse = await http.get(
+//       Uri.parse('$BASE_URL_AUTH/users/$userId'),
+//     );
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-}
+//     if (employeeResponse.statusCode == 200 &&
+//         userResponse.statusCode == 200) {
+//       final employeeData = jsonDecode(employeeResponse.body);
+//       final userData = jsonDecode(userResponse.body);
+
+//       setState(() {
+//         fullName = sanitizeField(userData['full_name']);
+//         resume = sanitizeField(employeeData['resume']);
+
+//         experience = (employeeData['experience'] as List?)
+//                 ?.map((e) => e.toString())
+//                 .toList() ??
+//             [];
+//         education = (employeeData['education'] as List?)
+//                 ?.map((e) => e.toString())
+//                 .toList() ??
+//             [];
+
+//         languages = (employeeData['languages'] as List?)
+//                 ?.map((e) => e.toString())
+//                 .toList() ??
+//             [];
+
+//         interests = (employeeData['interests'] as List?)
+//                 ?.map((e) => e.toString())
+//                 .toList() ??
+//             [];
+
+//         softSkills = (employeeData['soft_skills'] as List?)
+//                 ?.map((e) => e.toString())
+//                 .toList() ??
+//             [];
+
+//         certificates = employeeData['certificates'] ?? [];
+//         skillsAndProficiency = employeeData['skills_and_proficiency'] ?? [];
+
+//         weeklyAvailability = employeeData['weekly_availability'];
+//         availability = employeeData['availability'];
+//       });
+
+//       await CVChecker.updateCVStatus(employeeData);
+//       final status = await CVChecker.isCVIncomplete();
+//       final missing = await CVChecker.getMissingFields();
+
+//       setState(() {
+//         isCVIncomplete = status;
+//         missingFields = missing;
+//       });
+
+//       print("✅ Employee and user data loaded successfully");
+//     } else {
+//       print(
+//           "❌ Failed to fetch data: ${employeeResponse.body} | ${userResponse.body}");
+//     }
+//   } catch (e) {
+//     print("❌ Error fetching profile data: $e");
+//   }
+// }
 
 class ExpandingResumeField extends StatefulWidget {
   final TextEditingController controller;
 
-  const ExpandingResumeField({super.key, required this.controller});
+  /// Optional initial resume text from your fetchUserCV()
+  final String? initialResume;
+
+  const ExpandingResumeField({
+    super.key,
+    required this.controller,
+    this.initialResume,
+  });
 
   @override
   State<ExpandingResumeField> createState() => _ExpandingResumeFieldState();
@@ -3563,57 +3821,117 @@ class _ExpandingResumeFieldState extends State<ExpandingResumeField> {
   final int maxChars = 700;
   final _focusNode = FocusNode();
 
+  String? resume;
+  // other fields...
+
+  @override
+  void initState() {
+    super.initState();
+    fetchEmployeeData(); // ← load resume + all CV fields
+  }
+
   @override
   void dispose() {
     _focusNode.dispose();
     super.dispose();
   }
 
+  Future<void> fetchEmployeeData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    if (userId == null) return;
+
+    try {
+      final empRes =
+          await http.get(Uri.parse('$BASE_URL_AUTH/api/get-employee/$userId'));
+      final usrRes = await http.get(Uri.parse('$BASE_URL_AUTH/users/$userId'));
+      if (empRes.statusCode == 200 && usrRes.statusCode == 200) {
+        final emp = jsonDecode(empRes.body);
+        // final usr = jsonDecode(usrRes.body); // if you need fullName, etc.
+
+        final fetchedResume = sanitizeField(emp['resume']);
+        // parse other lists similarly...
+
+        setState(() {
+          resume = fetchedResume;
+          widget.controller.text = resume ?? '';
+          // e.g. experience = parseList(emp['experience']);
+          // education = parseList(emp['education']);
+          // languages = parseList(emp['languages']);
+          // interests = parseList(emp['interests']);
+          // softSkills = parseList(emp['soft_skills']);
+          // certificates = emp['certificates'] ?? [];
+          // skillsAndProficiency = emp['skills_and_proficiency'] ?? [];
+          // availability = sanitizeField(emp['availability']);
+          // weeklyAvailability = emp['weekly_availability'];
+        });
+
+        await CVChecker.updateCVStatus(emp);
+        final status = await CVChecker.isCVIncomplete();
+        final missing = await CVChecker.getMissingFields();
+        setState(() {
+          isCVIncomplete = status;
+          missingFields = missing;
+        });
+      }
+    } catch (e) {
+      print("❌ Error fetching profile data: $e");
+    }
+  }
+
+  String? sanitizeField(dynamic value) {
+    if (value == null) return null;
+    final str = value.toString().trim();
+    if (str.isEmpty || str == '{}' || str == 'null') return null;
+    return str;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isEmpty = (resume ?? '').isEmpty;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       decoration: BoxDecoration(
         color: blue_gray,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Stack(
         children: [
-          // 📝 TextField
           ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 70),
-            child: TextFormField(
-              controller: widget.controller, // ✅ use controller
-              focusNode: _focusNode,
-              maxLines: null,
-              maxLength: maxChars,
-              buildCounter: (_,
-                      {required currentLength,
-                      required isFocused,
-                      required maxLength}) =>
-                  const SizedBox.shrink(),
-              style: const TextStyle(color: white, fontSize: 15),
-              cursorColor: white,
-              decoration: const InputDecoration(
-                isCollapsed: true,
-                border: InputBorder.none,
-                hintText: 'Write a short resume or summary...',
-                hintStyle: TextStyle(
-                  fontSize: 15,
-                  color: white_gray,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: TextFormField(
+                controller: widget.controller,
+                focusNode: _focusNode,
+                maxLines: null,
+                maxLength: maxChars,
+                buildCounter: (_,
+                        {required currentLength,
+                        required isFocused,
+                        maxLength}) =>
+                    const SizedBox.shrink(),
+                style: const TextStyle(color: white_gray, fontSize: 15),
+                cursorColor: white,
+                decoration: InputDecoration(
+                  isCollapsed: true,
+                  border: InputBorder.none,
+                  hintText: isEmpty
+                      ? 'Écrivez un court résumé ou une synthèse…'
+                      : null,
+                  hintStyle: const TextStyle(fontSize: 15, color: white_gray),
                 ),
+                onChanged: (_) => setState(() {
+                  resume = widget.controller.text;
+                }),
               ),
-              onChanged: (_) {
-                setState(() {}); // ✅ To update character counter below
-              },
             ),
           ),
-
-          // 🔢 Custom character counter
           Positioned(
             right: 0,
-            bottom: -5,
+            bottom: 0,
             child: Padding(
               padding: const EdgeInsets.only(right: 4, bottom: 2),
               child: AnimatedDefaultTextStyle(
@@ -3626,7 +3944,8 @@ class _ExpandingResumeFieldState extends State<ExpandingResumeField> {
                   fontWeight: FontWeight.w500,
                 ),
                 child: Text(
-                    '${maxChars - widget.controller.text.length} characters left'),
+                  '${maxChars - widget.controller.text.length} caractères restants',
+                ),
               ),
             ),
           ),
@@ -3636,193 +3955,37 @@ class _ExpandingResumeFieldState extends State<ExpandingResumeField> {
   }
 }
 
-class LanguageChipsSelector extends StatefulWidget {
-  final String searchText;
-  final Set<String> selectedLanguages; // ✅ Add this
-  final Function(Set<String>) onSelectionChanged; // ✅ Callback to parent
+class LanguageDetailsSheet extends StatefulWidget {
+  final Set<String> initialSelection;
+  final ValueChanged<Set<String>> onSelectionChanged;
 
-  const LanguageChipsSelector({
-    super.key,
-    required this.searchText,
-    required this.selectedLanguages,
+  const LanguageDetailsSheet({
+    Key? key,
+    required this.initialSelection,
     required this.onSelectionChanged,
-  });
+  }) : super(key: key);
 
   @override
-  State<LanguageChipsSelector> createState() => _LanguageChipsSelectorState();
+  State<LanguageDetailsSheet> createState() => _LanguageDetailsSheetState();
 }
 
-const List<String> allLanguages = [
-  'Albanais',
-  'Amharique',
-  'Arabe',
-  'Arménien',
-  'Azéri',
-  'Baloutche',
-  'Bengali',
-  'Berbère',
-  'Biélorusse',
-  'Bhojpouri',
-  'Bulgare',
-  'Birman',
-  'Catalan',
-  'Chewa',
-  'Chichewa',
-  'Chittagonien',
-  'Corse',
-  'Tchèque',
-  'Danois',
-  'Néerlandais',
-  'Anglais',
-  'Fidjien',
-  'Finnois',
-  'Français',
-  'Peul',
-  'Galicien',
-  'Géorgien',
-  'Allemand',
-  'Grec',
-  'Groenlandais',
-  'Gujarati',
-  'Créole haïtien',
-  'Haoussa',
-  'Hébreu',
-  'Hindi',
-  'Hmong',
-  'Hongrois',
-  'Igbo',
-  'Ilocano',
-  'Indonésien',
-  'Italien',
-  'Japonais',
-  'Javanais',
-  'Kabyle',
-  'Kannada',
-  'Kazakh',
-  'Khmer',
-  'Kinyarwanda',
-  'Coréen',
-  'Kurde',
-  'Laotien',
-  'Luxembourgeois',
-  'Madurais',
-  'Malais',
-  'Malayalam',
-  'Macédonien',
-  'Maori',
-  'Marathi',
-  'Mongol',
-  'Mossi',
-  'Népalais',
-  'Norvégien',
-  'Oromo',
-  'Pachto',
-  'Persan',
-  'Polonais',
-  'Portugais',
-  'Pendjabi',
-  'Quechua',
-  'Roumain',
-  'Russe',
-  'Samoan',
-  'Serbo-croate',
-  'Shona',
-  'Sindhi',
-  'Singhalais',
-  'Slovaque',
-  'Somali',
-  'Espagnol',
-  'Swahili',
-  'Suédois',
-  'Soundanais',
-  'Tagalog',
-  'Tamoul',
-  'Télougou',
-  'Thaï',
-  'Tigré',
-  'Tigrinya',
-  'Turc',
-  'Ukrainien',
-  'Ourdou',
-  'Ouzbek',
-  'Vietnamien',
-  'Wolof',
-  'Xhosa',
-  'Yiddish',
-  'Yoruba',
-  'Zoulou'
-];
-
-class _LanguageChipsSelectorState extends State<LanguageChipsSelector> {
+class _LanguageDetailsSheetState extends State<LanguageDetailsSheet> {
+  String _searchText = '';
   late Set<String> localSelection;
 
   @override
   void initState() {
     super.initState();
-    localSelection = {...widget.selectedLanguages}; // copy
+    // Initialize with passed-in selection
+    localSelection = {...widget.initialSelection};
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredLanguages = allLanguages
-        .where((lang) =>
-            lang.toLowerCase().contains(widget.searchText.toLowerCase()))
+    final filtered = allLanguages
+        .where((lang) => lang.toLowerCase().contains(_searchText.toLowerCase()))
         .toList();
 
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: filteredLanguages.map((language) {
-        final isSelected = localSelection.contains(language);
-
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              if (selectedLanguages.contains(language)) {
-                selectedLanguages.remove(language);
-              } else {
-                selectedLanguages.add(language);
-              }
-              widget.onSelectionChanged(localSelection); // notify parent
-            });
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: isSelected ? blue : blue_gray,
-              borderRadius: BorderRadius.circular(100),
-              border:
-                  isSelected ? null : Border.all(color: white_gray, width: 1),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
-            child: Text(
-              language,
-              style: TextStyle(
-                color: isSelected ? black : white_gray,
-                fontSize: 15,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _LanguageDetailsSheet extends StatefulWidget {
-  const _LanguageDetailsSheet({super.key});
-
-  @override
-  State<_LanguageDetailsSheet> createState() => _LanguageDetailsSheetState();
-}
-
-Set<String> tempSelectedLanguages =
-    Set.from(selectedLanguages); // Clone initial state
-
-class _LanguageDetailsSheetState extends State<_LanguageDetailsSheet> {
-  String _searchText = '';
-
-  @override
-  Widget build(BuildContext context) {
     return DraggableScrollableSheet(
       initialChildSize: 0.4,
       minChildSize: 0.4,
@@ -3843,59 +4006,44 @@ class _LanguageDetailsSheetState extends State<_LanguageDetailsSheet> {
                   width: 80,
                   height: 7,
                   decoration: BoxDecoration(
-                      color: white_gray,
-                      borderRadius: BorderRadius.circular(100)),
+                    color: white_gray,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
               Row(
                 children: [
-                  // ❌ Cancel button
+                  // Cancel button
                   GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                      setState(() {}); // Close the bottom sheet
-                    },
-                    child: const Icon(
-                      Icons.close,
-                      color: white_gray,
-                    ),
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.close, color: white_gray),
                   ),
-
-                  const Expanded(child: SizedBox(width: 1)),
-
-                  // ✅ Confirm button
+                  const Spacer(),
+                  // Confirm button
                   GestureDetector(
                     onTap: () {
-                      Navigator.pop(context); // Close the sheet
-                      setState(() {}); // Refresh parent if needed
+                      widget.onSelectionChanged(localSelection);
+                      Navigator.pop(context);
                     },
-                    child: const Icon(
-                      Icons.check,
-                      color: white_gray,
-                    ),
+                    child: const Icon(Icons.check, color: white_gray),
                   ),
                 ],
               ),
-
+              const SizedBox(height: 16),
               const Center(
                 child: Text(
-                  'Languages Spoken',
+                  'Langues parlées',
                   style: TextStyle(
                       color: white, fontSize: 22, fontWeight: FontWeight.w600),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               const Text(
-                'Select languages you know to add them to your profile',
-                style: TextStyle(
-                  color: white_gray,
-                  fontSize: 16,
-                ),
+                'Sélectionnez vos langues pour mettre à jour votre profil',
+                style: TextStyle(color: white_gray, fontSize: 16),
               ),
-              const SizedBox(
-                height: 10,
-              ),
+              const SizedBox(height: 20),
               Container(
                 decoration: BoxDecoration(
                   color: black_gray,
@@ -3909,17 +4057,14 @@ class _LanguageDetailsSheetState extends State<_LanguageDetailsSheet> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextFormField(
-                        onChanged: (value) {
-                          setState(() {
-                            _searchText = value;
-                          });
-                        },
+                        onChanged: (value) =>
+                            setState(() => _searchText = value),
                         style: const TextStyle(color: white, fontSize: 16),
                         cursorColor: white_gray,
                         decoration: const InputDecoration(
                           isCollapsed: true,
                           border: InputBorder.none,
-                          hintText: 'Search languages',
+                          hintText: 'Rechercher une langue',
                           hintStyle: TextStyle(color: white_gray, fontSize: 16),
                         ),
                       ),
@@ -3927,228 +4072,39 @@ class _LanguageDetailsSheetState extends State<_LanguageDetailsSheet> {
                   ],
                 ),
               ),
-              const SizedBox(
-                height: 20,
-              ), //here there should be a wrap or something this is the default container
-              LanguageChipsSelector(
-                searchText: _searchText,
-                selectedLanguages: selectedLanguages,
-                onSelectionChanged: (updatedSelection) {
-                  setState(() {
-                    selectedLanguages = updatedSelection;
-                  });
-                },
-              )
-
-              // 🔥 Add more widgets below as needed...
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-final Set<String> softSkills = {};
-
-class AnimatedCheckMark extends StatefulWidget {
-  final double size;
-
-  const AnimatedCheckMark({super.key, this.size = 60});
-
-  @override
-  State<AnimatedCheckMark> createState() => _AnimatedCheckMarkState();
-}
-
-class _AnimatedCheckMarkState extends State<AnimatedCheckMark>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    )..forward();
-
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: widget.size,
-      height: widget.size,
-      child: CustomPaint(
-        painter: CheckMarkPainter(_animation),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-}
-
-class CheckMarkPainter extends CustomPainter {
-  final Animation<double> animation;
-
-  CheckMarkPainter(this.animation) : super(repaint: animation);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
-      ..color = Colors.greenAccent
-      ..strokeWidth = 5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final double progress = animation.value;
-
-    final double radius = (size.width / 2) - 6;
-    final Offset center = Offset(size.width / 2, size.height / 2);
-
-    // 1. Draw circular progress arc (0.0 to 0.6)
-    if (progress <= 0.6) {
-      final double sweepAngle = 2 * pi * (progress / 0.6);
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        -pi / 2,
-        sweepAngle,
-        false,
-        paint,
-      );
-    }
-
-    // 2. Draw checkmark after 0.6
-    if (progress > 0.6) {
-      // Draw full circle first
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        -pi / 2,
-        2 * pi,
-        false,
-        paint,
-      );
-
-      final double t = (progress - 0.6) / 0.4;
-      final Offset start = Offset(size.width * 0.28, size.height * 0.52);
-      final Offset mid = Offset(size.width * 0.45, size.height * 0.68);
-      final Offset end = Offset(size.width * 0.72, size.height * 0.38);
-
-      final Path path = Path();
-      if (t < 0.5) {
-        final Offset current = Offset.lerp(start, mid, t * 2)!;
-        path.moveTo(start.dx, start.dy);
-        path.lineTo(current.dx, current.dy);
-      } else {
-        final Offset current = Offset.lerp(mid, end, (t - 0.5) * 2)!;
-        path.moveTo(start.dx, start.dy);
-        path.lineTo(mid.dx, mid.dy);
-        path.lineTo(current.dx, current.dy);
-      }
-
-      canvas.drawPath(path, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CheckMarkPainter oldDelegate) => true;
-}
-
-class WaveWipeTextSwitcher extends StatefulWidget {
-  final String text;
-
-  const WaveWipeTextSwitcher({super.key, required this.text});
-
-  @override
-  State<WaveWipeTextSwitcher> createState() => _WaveWipeTextSwitcherState();
-}
-
-class _WaveWipeTextSwitcherState extends State<WaveWipeTextSwitcher>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  String _currentText = '';
-  String _previousText = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _currentText = widget.text;
-    _previousText = '';
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
-    _controller.forward(); // ✅ Trigger animation on first load
-  }
-
-  @override
-  void didUpdateWidget(covariant WaveWipeTextSwitcher oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.text != oldWidget.text) {
-      _previousText = _currentText;
-      _currentText = widget.text;
-      _controller.forward(from: 0); // ✅ Trigger animation on new upload
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width * 0.6;
-    const height = 24.0;
-
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, _) {
-        final progress = _animation.value;
-        final splitX = width * progress;
-
-        return SizedBox(
-          width: width,
-          height: height,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: ClipRect(
-                  clipper: _LeftClipper(x: splitX),
-                  child: Text(
-                    _previousText,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: white_gray,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: ClipRect(
-                  clipper: _RightClipper(x: splitX),
-                  child: Opacity(
-                    opacity: progress,
-                    child: Text(
-                      _currentText,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: white_gray,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: filtered.map((language) {
+                  final selected = localSelection.contains(language);
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (selected)
+                          localSelection.remove(language);
+                        else
+                          localSelection.add(language);
+                      });
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: selected ? blue : blue_gray,
+                        borderRadius: BorderRadius.circular(100),
+                        border: selected
+                            ? null
+                            : Border.all(color: white_gray, width: 1),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 15, vertical: 6),
+                      child: Text(
+                        language,
+                        style: TextStyle(
+                            color: selected ? black : white_gray, fontSize: 15),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                }).toList(),
               ),
             ],
           ),
@@ -4156,166 +4112,6 @@ class _WaveWipeTextSwitcherState extends State<WaveWipeTextSwitcher>
       },
     );
   }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-}
-
-class LoadingBars extends StatefulWidget {
-  const LoadingBars({super.key});
-
-  @override
-  State<LoadingBars> createState() => _LoadingBarsState();
-}
-
-class _LoadingBarsState extends State<LoadingBars>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  final int barCount = 4;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
-  }
-
-  double _barValue(double controllerValue, int index) {
-    final delay = index * 0.15;
-    final t = (controllerValue + delay) % 1.0;
-    return TweenSequence([
-      TweenSequenceItem(
-        tween: Tween(begin: 0.4, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeInOutCubic)),
-        weight: 50,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 0.4)
-            .chain(CurveTween(curve: Curves.easeInOutCubic)),
-        weight: 50,
-      ),
-    ]).transform(t);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 60,
-      height: 60,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(barCount, (i) {
-              final scaleY = _barValue(_controller.value, i);
-              return Transform.scale(
-                scaleY: scaleY,
-                child: Container(
-                  width: 6,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              );
-            }),
-          );
-        },
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-}
-
-class _LoadingBar extends AnimatedWidget {
-  const _LoadingBar({required Animation<double> animation})
-      : super(listenable: animation);
-
-  Animation<double> get animation => listenable as Animation<double>;
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform.scale(
-      scaleY: animation.value,
-      child: Container(
-        width: 6,
-        height: 30,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(4),
-        ),
-      ),
-    );
-  }
-}
-
-class _LeftClipper extends CustomClipper<Rect> {
-  final double x;
-  _LeftClipper({required this.x});
-
-  @override
-  Rect getClip(Size size) => Rect.fromLTWH(x, 0, size.width - x, size.height);
-
-  @override
-  bool shouldReclip(covariant _LeftClipper oldClipper) => oldClipper.x != x;
-}
-
-class _RightClipper extends CustomClipper<Rect> {
-  final double x;
-  _RightClipper({required this.x});
-
-  @override
-  Rect getClip(Size size) => Rect.fromLTWH(0, 0, x, size.height);
-
-  @override
-  bool shouldReclip(covariant _RightClipper oldClipper) => oldClipper.x != x;
-}
-
-class DashedBorderPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    const dashWidth = 14;
-    const dashSpace = 6;
-
-    final paint = Paint()
-      ..color = blue
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-
-    final RRect rRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      const Radius.circular(12),
-    );
-
-    final Path path = Path()..addRRect(rRect);
-    final PathMetrics pathMetrics = path.computeMetrics();
-    for (final PathMetric pathMetric in pathMetrics) {
-      double distance = 0.0;
-      while (distance < pathMetric.length) {
-        final Path extractPath = pathMetric.extractPath(
-          distance,
-          distance + dashWidth,
-        );
-        canvas.drawPath(extractPath, paint);
-        distance += dashWidth + dashSpace;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
 class ContactInfoSection extends StatefulWidget {
@@ -4343,6 +4139,18 @@ class _ContactInfoSectionState extends State<ContactInfoSection> {
     super.initState();
     phone = widget.phoneNumber;
     address = widget.address;
+  }
+
+  @override
+  void didUpdateWidget(covariant ContactInfoSection old) {
+    super.didUpdateWidget(old);
+    if (old.phoneNumber != widget.phoneNumber ||
+        old.address != widget.address) {
+      setState(() {
+        phone = widget.phoneNumber;
+        address = widget.address;
+      });
+    }
   }
 
   void _openEditModal() {
@@ -4378,7 +4186,7 @@ class _ContactInfoSectionState extends State<ContactInfoSection> {
           Row(
             children: [
               const Text(
-                'Contact Information',
+                'Informations de contact',
                 style: TextStyle(
                   color: white,
                   fontSize: 18,
@@ -4393,151 +4201,13 @@ class _ContactInfoSectionState extends State<ContactInfoSection> {
             ],
           ),
           const SizedBox(height: 15),
-          Text(
-            'Phone: $phone',
-            style: const TextStyle(color: white_gray, fontSize: 15),
-          ),
+          Text('Téléphone : $phone',
+              style: const TextStyle(color: white_gray, fontSize: 15)),
           const SizedBox(height: 8),
-          Text(
-            'Address: $address',
-            style: const TextStyle(color: white_gray, fontSize: 15),
-          ),
+          Text('Adresse : $address',
+              style: const TextStyle(color: white_gray, fontSize: 15)),
         ],
       ),
-    );
-  }
-}
-
-class EditContactInfoSheet extends StatefulWidget {
-  final String initialPhone;
-  final String initialAddress;
-  final void Function(String phone, String address) onSave;
-
-  const EditContactInfoSheet({
-    super.key,
-    required this.initialPhone,
-    required this.initialAddress,
-    required this.onSave,
-  });
-
-  @override
-  State<EditContactInfoSheet> createState() => _EditContactInfoSheetState();
-}
-
-class _EditContactInfoSheetState extends State<EditContactInfoSheet> {
-  late TextEditingController phoneController;
-  late TextEditingController addressController;
-
-  @override
-  void initState() {
-    super.initState();
-    phoneController = TextEditingController(text: widget.initialPhone);
-    addressController = TextEditingController(text: widget.initialAddress);
-  }
-
-  @override
-  void dispose() {
-    phoneController.dispose();
-    addressController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.6,
-      maxChildSize: 0.9,
-      minChildSize: 0.4,
-      expand: false,
-      builder: (_, scrollController) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: blue_gray,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-          ),
-          child: ListView(
-            controller: scrollController,
-            children: [
-              Center(
-                child: Container(
-                  width: 70,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: white_gray,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Edit Contact Info',
-                style: TextStyle(
-                  color: white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: phoneController,
-                style: const TextStyle(color: white),
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number',
-                  labelStyle: TextStyle(color: white_gray),
-                  filled: true,
-                  fillColor: black_gray,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: addressController,
-                style: const TextStyle(color: white),
-                decoration: const InputDecoration(
-                  labelText: 'Address',
-                  labelStyle: TextStyle(color: white_gray),
-                  filled: true,
-                  fillColor: black_gray,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 25),
-              ElevatedButton(
-                onPressed: () {
-                  widget.onSave(
-                    phoneController.text.trim(),
-                    addressController.text.trim(),
-                  );
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: const Text(
-                  'Save',
-                  style: TextStyle(
-                    color: white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

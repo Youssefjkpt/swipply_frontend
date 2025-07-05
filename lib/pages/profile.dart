@@ -2,24 +2,29 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:lorem_ipsum/lorem_ipsum.dart';
+import 'package:lottie/lottie.dart';
 import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
 import 'package:swipply/pages/cv.dart';
+import 'package:swipply/pages/gold_purchase_plan.dart';
+import 'package:swipply/pages/settings.dart';
+import 'package:swipply/pages/sign_in.dart';
 import 'package:swipply/pages/subscriptions.dart';
+import 'package:swipply/pages/welcoming_pages.dart';
 import 'package:swipply/widgets/auto_apply_card.dart';
+import 'package:swipply/widgets/contact_us.dart';
 import 'package:swipply/widgets/cv_chevker.dart';
 import 'package:swipply/widgets/like_container_profile.dart';
 import 'package:swipply/widgets/mini_subsciption_plans.dart';
 import 'package:swipply/widgets/subscription_profile_container.dart';
-import 'package:swipply/widgets/subscriptions_profile.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Profile extends StatefulWidget {
-  const Profile({super.key});
+  final ValueNotifier<int> currentTabIndex;
+  const Profile({super.key, required this.currentTabIndex});
 
   @override
   State<Profile> createState() => _ProfileState();
@@ -32,6 +37,40 @@ class _ProfileState extends State<Profile> {
     final str = value.toString().trim();
     if (str.isEmpty || str == '{}' || str == 'null') return null;
     return str;
+  }
+
+  bool _hasFetchedOnThisView = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Always fetch once on first appearance:
+    _fetchIfVisible();
+
+    // And listen for tab changes:
+    widget.currentTabIndex.addListener(_fetchIfVisible);
+    fetchEmployeeData();
+  }
+
+  @override
+  void dispose() {
+    widget.currentTabIndex.removeListener(_fetchIfVisible);
+    super.dispose();
+  }
+
+  void _fetchIfVisible() {
+    // If the current tab index is 2 (Profile), fetch data
+    // and reset the flag if needed.
+    if (widget.currentTabIndex.value == 2) {
+      // Optionally debounce so you don't hit the server repeatedly:
+      if (!_hasFetchedOnThisView) {
+        fetchEmployeeData();
+        _hasFetchedOnThisView = true;
+      }
+    } else {
+      // Reset when switching away, so returning will fetch again:
+      _hasFetchedOnThisView = false;
+    }
   }
 
   String? resume;
@@ -69,7 +108,7 @@ class _ProfileState extends State<Profile> {
 
         setState(() {
           _jobTitle = sanitizeField(userData['job_title']) ?? '';
-          profilePicturePath = sanitizeField(userData['profile_photo_url']);
+          profilePicturePath = userData['profile_photo_url'];
 
           fullName = sanitizeField(userData['full_name']);
           resume = sanitizeField(employeeData['resume']);
@@ -154,11 +193,138 @@ class _ProfileState extends State<Profile> {
     }
   }
 
+  Future showLoadingPopup(BuildContext context) {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => WillPopScope(
+        onWillPop: () async => false,
+        child: Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: blue_gray,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.all(20),
+              child: const LoadingBars(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void hideLoadingPopup(BuildContext context) {
+    Navigator.of(context, rootNavigator: true).pop();
+  }
+
   Future<void> _refreshProfile() async {
     setState(() {
       _hasLoadedOnce = false;
     });
     await fetchEmployeeData();
+  }
+// Ajoute ça dans la classe _ProfileState
+
+  Future<void> _deleteAccount() async {
+    // 1️⃣  Affiche le loader
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const LoadingPopup(),
+    );
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jwt = prefs.getString('token');
+
+      if (jwt == null) throw Exception('JWT manquant dans SharedPreferences');
+
+      // 2️⃣  Appel API
+      final res = await http.delete(
+        Uri.parse('$BASE_URL_AUTH/auth/delete-account'),
+        headers: {'Authorization': 'Bearer $jwt'},
+      );
+
+      // 3️⃣  Succès
+      if (res.statusCode == 204) {
+        debugPrint('✅ Compte supprimé avec succès');
+        await prefs.clear();
+
+        if (!mounted) return;
+        Navigator.pop(context); // ferme le loader
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => OnboardingScreen()),
+          (_) => false,
+        );
+        return;
+      }
+
+      // 4️⃣  Réponse serveur ≠ 204  → on logge, on déclenche l’erreur
+      debugPrint(
+        '❌ Delete account — code ${res.statusCode}\nBody:\n${res.body}',
+      );
+      throw Exception('Erreur serveur (${res.statusCode})');
+    } catch (e, stack) {
+      // 5️⃣  Gestion d’erreur : on logge TOUT pour le debug
+      debugPrint('❌ Exception deleteAccount: $e');
+      debugPrintStack(stackTrace: stack);
+
+      if (mounted) Navigator.pop(context); // ferme le loader
+
+      // 6️⃣  Popup UX générique (pas de détails techniques pour l’utilisateur)
+      showErrorDialog(
+        context,
+        'Suppression impossible',
+        'Une erreur est survenue. Veuillez réessayer plus tard.',
+      );
+    }
+  }
+
+  void showErrorDialog(BuildContext context, String title, [String? message]) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: blue_gray,
+        title: Row(
+          children: [
+            Transform.scale(
+              scale: 1.5, // Increase the scale factor as needed
+              child: Lottie.asset(
+                warningicon,
+              ),
+            ),
+            SizedBox(
+              width: 10,
+            ),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold, color: white),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message ?? 'Une erreur est survenue. Veuillez réessayer.',
+          style: const TextStyle(fontSize: 16, color: white),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Fermer", style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _uploadProfilePhoto() async {
@@ -197,14 +363,208 @@ class _ProfileState extends State<Profile> {
     }
   }
 
+  Future<void> showLogoutOrDeleteDialog(BuildContext context) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: const Color.fromARGB(255, 27, 27, 27),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            constraints: const BoxConstraints(minHeight: 200),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.warning_amber_rounded,
+                    color: Color(0xFFFFC107), size: 40),
+                const SizedBox(height: 20),
+                const Text(
+                  "Déconnexion ou suppression",
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Souhaitez-vous vous déconnecter ou supprimer votre compte ?",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFFCCCCCC),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF4C4C),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          showConfirmDeleteAccountDialog(context);
+                        },
+                        child: const Text(
+                          "Supprimer le compte",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00C2C2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => SignIn()));
+                        },
+                        child: const Text(
+                          "Se déconnecter",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> showConfirmDeleteAccountDialog(BuildContext context) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: const Color.fromARGB(255, 27, 27, 27),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            constraints: const BoxConstraints(minHeight: 200),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.warning_amber_rounded,
+                    color: Color(0xFFFFC107), size: 40),
+                const SizedBox(height: 20),
+                const Text(
+                  "Confirmation requise",
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFFCCCCCC),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: const Color(0xFF2B2B2B),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          "Annuler",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF4C4C),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          await _deleteAccount();
+                          // Later: handle delete account logic here
+                        },
+                        child: const Text(
+                          "Supprimer",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   final List<String> features = [
-    "Preference job selection",
-    "Filter by salary",
-    "1h AI auto-apply / day",
-    "Rewind likes/jobs",
-    "Priority applications",
-    "No ads",
-    "Top job picks",
+    "Préférence de type d'emploi",
+    "Filtrer par salaire",
+    "Candidature automatique IA: 1h/jour",
+    "Annuler likes/offres",
+    "Candidatures prioritaires",
+    "Aucune publicité",
+    "Meilleures offres pour vous",
   ];
 
   final List<bool> includedInFree = [
@@ -234,11 +594,6 @@ class _ProfileState extends State<Profile> {
     true,
     true
   ];
-  @override
-  void initState() {
-    super.initState();
-    fetchEmployeeData(); // always runs
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -264,7 +619,7 @@ class _ProfileState extends State<Profile> {
                             backgroundColor: blue_gray,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20)),
-                            title: const Text("Missing Fields",
+                            title: const Text("Champs manquants",
                                 style: TextStyle(
                                     color: white, fontWeight: FontWeight.bold)),
                             content: Column(
@@ -287,7 +642,7 @@ class _ProfileState extends State<Profile> {
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context),
-                                child: const Text("Close",
+                                child: const Text("Fermer",
                                     style: TextStyle(color: Colors.white)),
                               )
                             ],
@@ -309,7 +664,7 @@ class _ProfileState extends State<Profile> {
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
-                          "Your CV is incomplete. Tap to view missing sections.",
+                          "Votre CV est incomplet. Touchez pour voir les sections manquantes.",
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -330,13 +685,16 @@ class _ProfileState extends State<Profile> {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    const Icon(Icons.arrow_back_ios_new_rounded,
-                        color: white, size: 30),
+                    IconButton(
+                      icon: const Icon(Icons.logout,
+                          color: Colors.white, size: 30),
+                      onPressed: () => showLogoutOrDeleteDialog(context),
+                    ),
                     const Spacer(),
                     GestureDetector(
                       onTap: _showEditBottomSheet,
                       child: const Text(
-                        'Edit',
+                        'Modifier',
                         style: TextStyle(
                           color: white_gray,
                           fontSize: 15,
@@ -445,10 +803,10 @@ class _ProfileState extends State<Profile> {
                 const Row(
                   children: [
                     Text(
-                      'Resume',
+                      'CV',
                       style: TextStyle(
                         color: white,
-                        fontSize: 17,
+                        fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -457,7 +815,7 @@ class _ProfileState extends State<Profile> {
                       width: 1,
                     )),
                     Text(
-                      'Make a resume',
+                      'Créer un CV',
                       style:
                           TextStyle(color: Color.fromARGB(217, 36, 120, 255)),
                     )
@@ -571,7 +929,8 @@ class _ProfileState extends State<Profile> {
                             right: MediaQuery.of(context).size.width * 0.05,
                           ),
                           child: Text(
-                            sanitizeField(resume) ?? 'No resume added yet.',
+                            sanitizeField(resume) ??
+                                'Aucun CV ajouté pour le moment.',
                             style: const TextStyle(
                               color: white_gray,
                               fontSize: 12,
@@ -587,6 +946,14 @@ class _ProfileState extends State<Profile> {
                 ),
 
                 const MiniSubscriptionSwiper(),
+
+                SizedBox(
+                  height: 10,
+                ),
+
+                SizedBox(
+                  height: 20,
+                )
               ],
             ),
           )
@@ -602,7 +969,7 @@ class _ProfileState extends State<Profile> {
           : 'Mon nom',
     );
     final jobController = TextEditingController(
-      text: (_jobTitle != null && _jobTitle.trim().isNotEmpty) ? _jobTitle : '',
+      text: (_jobTitle.trim().isNotEmpty) ? _jobTitle : '',
     );
 
     showModalBottomSheet(
@@ -635,7 +1002,7 @@ class _ProfileState extends State<Profile> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text("Edit Profile",
+                          const Text("Modifier le profil",
                               style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
@@ -653,7 +1020,7 @@ class _ProfileState extends State<Profile> {
                         style:
                             const TextStyle(color: Colors.white, fontSize: 16),
                         decoration: InputDecoration(
-                          labelText: "Name",
+                          labelText: "Nom",
                           labelStyle:
                               const TextStyle(color: white_gray, fontSize: 14),
                           enabledBorder: OutlineInputBorder(
@@ -674,7 +1041,7 @@ class _ProfileState extends State<Profile> {
                         style:
                             const TextStyle(color: Colors.white, fontSize: 16),
                         decoration: InputDecoration(
-                          labelText: "Job Title",
+                          labelText: "Intitulé de poste",
                           labelStyle:
                               const TextStyle(color: white_gray, fontSize: 14),
                           enabledBorder: OutlineInputBorder(
@@ -706,11 +1073,16 @@ class _ProfileState extends State<Profile> {
                           );
 
                           if (response.statusCode == 200) {
-                            setState(() {
-                              fullName = nameController.text;
-                              _jobTitle = jobController.text;
-                            });
-                            Navigator.pop(context);
+                            if (mounted) {
+                              setState(() {
+                                fullName = nameController.text;
+                                _jobTitle = jobController.text;
+                              });
+
+                              if (Navigator.canPop(context)) {
+                                Navigator.pop(context);
+                              }
+                            }
                           } else {
                             print("❌ Failed to update user: ${response.body}");
                           }
@@ -732,7 +1104,7 @@ class _ProfileState extends State<Profile> {
                             ],
                           ),
                           child: const Center(
-                            child: Text("Save",
+                            child: Text("Enregistrer",
                                 style: TextStyle(
                                     color: black,
                                     fontWeight: FontWeight.w700,
@@ -746,6 +1118,25 @@ class _ProfileState extends State<Profile> {
               },
             ));
       },
+    );
+  }
+}
+
+class LoadingPopup extends StatelessWidget {
+  const LoadingPopup({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF1B1B1B),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: SizedBox(
+        width: 160,
+        height: 160,
+        child: Center(
+          child: LoadingBars(), // ton animation personnalisée ici
+        ),
+      ),
     );
   }
 }

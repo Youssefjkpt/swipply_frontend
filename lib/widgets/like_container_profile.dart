@@ -65,7 +65,7 @@ class _SuperLikeBadgeState extends State<SuperLikeBadge>
                       color: Color(0xFFFF5C5C), size: 20),
                   SizedBox(height: 6),
                   Text(
-                    "My likes",
+                    "Mes likes",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -74,9 +74,9 @@ class _SuperLikeBadgeState extends State<SuperLikeBadge>
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: 2),
                   Text(
-                    "Add more",
+                    "Ajouter plus",
                     style: TextStyle(
                       fontSize: 10,
                       color: Colors.white70,

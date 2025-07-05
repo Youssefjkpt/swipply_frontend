@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:swipply/constants/themes.dart';
+import 'package:swipply/pages/subscriptions.dart';
 
 class AutoApplyBadge extends StatefulWidget {
   const AutoApplyBadge({super.key});
@@ -38,48 +39,51 @@ class _AutoApplyBadgeState extends State<AutoApplyBadge>
       clipBehavior: Clip.none,
       children: [
         // 🔲 Card background
-        Container(
-          height: 90,
-          width: 100,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1E1F24), blue_gray],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        GestureDetector(
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (context) => FullSubscriptionPage())),
+          child: Container(
+            height: 90,
+            width: 100,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1E1F24), blue_gray],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(18),
             ),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.flash_on_rounded,
-                  color: Color(0xFF00FFF7),
-                ),
-                SizedBox(
-                  height: 4,
-                ),
-                Text(
-                  "Auto Apply",
-                  style: TextStyle(
-                    color: white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.1,
+            child: const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.flash_on_rounded,
+                    color: Color(0xFF00FFF7),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 6),
-                Text(
-                  "Add more",
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w500,
+                  SizedBox(
+                    height: 4,
                   ),
-                ),
-              ],
+                  Text(
+                    "Candidature auto",
+                    style: TextStyle(
+                      color: white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  Text(
+                    "Ajouter plus",
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

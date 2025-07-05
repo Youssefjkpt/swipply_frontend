@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.8
 
 environment:
   sdk: '>=3.2.4 <4.0.0'
@@ -40,35 +40,49 @@ dependencies:
   flutter_card_swiper: ^7.0.2
   google_maps_flutter: ^2.5.3
   lorem_ipsum: ^0.0.3
-  file_picker: ^8.0.0+1
+  
 
   open_file: ^3.3.2
   shared_preferences: ^2.2.3
   image_picker: ^1.0.8
   carousel_slider: ^5.0.0
   auto_scroll_slider: ^1.0.1
-  url_launcher: ^6.3.0
-  geocoding: ^3.0.0
-  firebase_core: ^2.27.0
-  flutter_launcher_icons: ^0.13.1
+  url_launcher: ^6.3.1
+  geocoding: ^4.0.0
+  firebase_core: ^3.13.0
+  
+  file_picker: ^10.1.2
+  firebase_auth: ^5.5.2
+  cloud_firestore: ^5.6.6
+  
+  country_picker: ^2.0.27
+  lottie: ^3.3.1
+  vibration: ^3.1.3
+  permission_handler: ^12.0.0+1
+  sign_in_with_apple: ^7.0.1
+  crypto: ^3.0.6
+  in_app_purchase: ^3.2.3
+  in_app_purchase_storekit: ^0.4.2
   
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
+  
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^4.0.0
-
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
-flutter_icons:
+flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/Swipply (4).png"
+  remove_alpha_ios: true          # keeps iOS from rejecting a transparent icon
+  image_path_android: "assets/Swipply (4).png"   # ← transparent PNG you already use
+  image_path_ios:     "assets/logo.png"
 
 # The following section is specific to Flutter packages.
 flutter:

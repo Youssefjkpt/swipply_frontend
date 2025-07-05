@@ -27,7 +27,7 @@ class GoldSubscriptionCard extends StatelessWidget {
 
     return Container(
       width: width * 0.85,
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 25),
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -96,7 +96,7 @@ class GoldSubscriptionCard extends StatelessWidget {
               Expanded(
                 flex: 6,
                 child: Text(
-                  "What's Included",
+                  "Ce qui est inclus",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13.5,
@@ -107,7 +107,7 @@ class GoldSubscriptionCard extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: Text(
-                  "Free",
+                  "Gratuit",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
@@ -162,7 +162,7 @@ class GoldSubscriptionCard extends StatelessWidget {
 
           const Center(
             child: Text(
-              "See All Features",
+              "Voir toutes les options",
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,

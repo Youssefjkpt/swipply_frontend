@@ -21,8 +21,8 @@ class _MiniSubscriptionSwiperState extends State<MiniSubscriptionSwiper> {
   Timer? _pauseTimer;
 
   final List<String> liteFeatures = [
-    "Preference job selection",
-    "1h AI auto-apply / day",
+    "Sélection de poste préférée",
+    "1 h de candidature automatique IA/jour",
   ];
   final List<bool> liteFree = [true, false];
   final List<bool> liteGold = [true, true];
@@ -72,27 +72,11 @@ class _MiniSubscriptionSwiperState extends State<MiniSubscriptionSwiper> {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // 🔘 Circle indicators
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(3, (index) {
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
-              width: _currentPage == index ? 10 : 8,
-              height: _currentPage == index ? 10 : 8,
-              decoration: BoxDecoration(
-                color: _currentPage == index ? Colors.white : Colors.white30,
-                shape: BoxShape.circle,
-              ),
-            );
-          }),
-        ),
-
         // ⏩ Swipeable cards
         SizedBox(
-          height: 330,
+          height: MediaQuery.of(context).size.height * 0.4,
           child: PageView.builder(
             controller: _controller,
             itemCount: 3,
@@ -109,7 +93,7 @@ class _MiniSubscriptionSwiperState extends State<MiniSubscriptionSwiper> {
                           builder: (context) => FullSubscriptionPage())),
                   child: SubscriptionComparisonCard(
                     planName: "Swipply",
-                    badgeText: "FREE",
+                    badgeText: "GRATUIT",
                     gradientStart: blue_gray,
                     gradientEnd: black_gray,
                     features: liteFeatures,
@@ -146,7 +130,22 @@ class _MiniSubscriptionSwiperState extends State<MiniSubscriptionSwiper> {
               }
             },
           ),
-        ),
+        ), // 🔘 Circle indicators
+        // Row(
+        //   mainAxisAlignment: MainAxisAlignment.center,
+        //   children: List.generate(3, (index) {
+        //     return AnimatedContainer(
+        //       duration: const Duration(milliseconds: 300),
+        //       margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
+        //       width: _currentPage == index ? 10 : 8,
+        //       height: _currentPage == index ? 10 : 8,
+        //       decoration: BoxDecoration(
+        //         color: _currentPage == index ? Colors.white : Colors.white30,
+        //         shape: BoxShape.circle,
+        //       ),
+        //     );
+        //   }),
+        // ),
       ],
     );
   }

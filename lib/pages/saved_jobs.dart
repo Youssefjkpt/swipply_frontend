@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
@@ -18,36 +20,33 @@ class SavedJobs extends StatefulWidget {
 class _SavedJobsState extends State<SavedJobs> {
   List<Map<String, dynamic>> _jobList = [];
   bool _isLoading = true;
+  Timer? _autoRefreshTimer;
 
-  Future<List<Map<String, dynamic>>> fetchSavedJobs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString('user_id');
-
-    if (userId == null)
-      throw Exception("User ID not found in SharedPreferences");
-
-    final savedJobsRes = await http.get(
-      Uri.parse('$BASE_URL_JOBS/api/saved-jobs?user_id=$userId'),
-    );
-
-    if (savedJobsRes.statusCode != 200) {
-      print("❌ saved-jobs failed: ${savedJobsRes.statusCode}");
-      print("Response body: ${savedJobsRes.body}");
-      return [];
-    }
-
-    final List<dynamic> data = json.decode(savedJobsRes.body);
-    return List<Map<String, dynamic>>.from(data);
+  @override
+  void initState() {
+    super.initState();
+    _startAutoRefresh();
+    _loadSavedJobs();
   }
 
-  Future<void> loadSavedJobs() async {
-    setState(() => _isLoading = true);
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
+  }
 
+  void _startAutoRefresh() {
+    // Refresh every 60 seconds
+    _autoRefreshTimer = Timer.periodic(
+      const Duration(seconds: 60),
+      (_) => _loadSavedJobs(),
+    );
+  }
+
+  Future<void> _loadSavedJobs() async {
+    setState(() => _isLoading = true);
     try {
-      final jobs = await fetchSavedJobs();
-      setState(() {
-        _jobList = jobs;
-      });
+      _jobList = await fetchSavedJobs();
     } catch (e) {
       print("❌ Error fetching saved jobs: $e");
     } finally {
@@ -55,103 +54,131 @@ class _SavedJobsState extends State<SavedJobs> {
     }
   }
 
-  @override
-  void initState() {
-    loadSavedJobs();
-    super.initState();
-    fetchSavedJobs().then((jobs) {
-      setState(() {
-        _jobList = jobs;
-        _isLoading = false;
-      });
-    }).catchError((e) {
-      print("❌ Error fetching saved jobs: $e");
-      setState(() => _isLoading = false);
-    });
+  Future<List<Map<String, dynamic>>> fetchSavedJobs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    if (userId == null) {
+      throw Exception("User ID not found in SharedPreferences");
+    }
+
+    final res = await http.get(
+      Uri.parse('$BASE_URL_AUTH/api/saved-jobs?user_id=$userId'),
+    );
+    if (res.statusCode != 200) {
+      print("❌ saved-jobs failed: ${res.statusCode}");
+      print("Response body: ${res.body}");
+      return [];
+    }
+    final List<dynamic> data = json.decode(res.body);
+    return List<Map<String, dynamic>>.from(data);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: black,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(height: MediaQuery.of(context).size.height * 0.06),
-          Padding(
-            padding: const EdgeInsets.only(left: 25, right: 25),
-            child: Text(
-              'You saved ${_jobList.length} Job${_jobList.length != 1 ? 's' : ''} 👍',
-              style: const TextStyle(
-                color: white,
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
+      body: RefreshIndicator(
+        color: blue,
+        onRefresh: _loadSavedJobs,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: MediaQuery.of(context).size.height * 0.06),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 25),
+              child: Text.rich(
+                TextSpan(
+                  text:
+                      'Vous avez enregistré ${_jobList.length} offre${_jobList.length != 1 ? 's' : ''} ',
+                  style: const TextStyle(
+                    color: white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  children: [
+                    WidgetSpan(
+                      alignment: PlaceholderAlignment.middle,
+                      child: Lottie.asset(
+                        _jobList.isEmpty ? angry : congrats,
+                        width: 50,
+                        height: 50,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.only(left: 25, right: 25),
-            child: const CategoryChipsBar(),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.only(left: 25, right: 25),
+              child: const CategoryChipsBar(),
+            ),
+            const SizedBox(height: 20),
 
-          // 🔥 THIS PART scrolls only the job cards:
-          Expanded(
-              child: Padding(
-            padding: const EdgeInsets.only(left: 10, right: 10),
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : RefreshIndicator(
-                    color: blue,
-                    onRefresh: loadSavedJobs,
-                    child: _jobList.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No saved jobs found!',
-                              style: TextStyle(color: white),
+            // 🔥 THIS PART scrolls only the job cards:
+            Expanded(
+                child: Padding(
+              padding: const EdgeInsets.only(left: 10, right: 10),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _jobList.isEmpty
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.1,
                             ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.only(bottom: 20),
-                            itemCount: _jobList.length,
-                            itemBuilder: (context, index) {
-                              final job = _jobList[index];
-                              final scrapedAt =
-                                  DateTime.parse(job['scraped_at']);
-                              final now = DateTime.now();
-                              final duration = now.difference(scrapedAt);
-                              final timeAgo = duration.inHours < 24
-                                  ? '${duration.inHours} hours ago'
-                                  : '${duration.inDays} day${duration.inDays > 1 ? 's' : ''} ago';
+                            Lottie.asset(notFound,
+                                height:
+                                    MediaQuery.of(context).size.height * 0.3,
+                                width: MediaQuery.of(context).size.width),
+                          ],
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          itemCount: _jobList.length,
+                          itemBuilder: (context, index) {
+                            final job = _jobList[index];
+                            final savedAtRaw = job['saved_at'] as String? ??
+                                job['scraped_at']
+                                    as String? // fallback if you still have scraped_at
+                                ??
+                                '';
+                            final savedAt =
+                                DateTime.tryParse(savedAtRaw) ?? DateTime.now();
 
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                                child: JobCard(
-                                  title: job['title'] ?? 'UI Design',
-                                  company: job['company'] ?? 'Google',
-                                  salary: timeAgo,
-                                  location: job['location'] ?? '',
-                                  status: 'applied',
-                                  jobType: job['contract_type'] ?? '',
-                                  imagePath: job['company_logo_url']!,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => JobInformations(
-                                            job: job), // ✅ Pass job
-                                      ),
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-          )),
-        ],
+                            final now = DateTime.now();
+                            final diff = now.difference(savedAt);
+                            final timeAgo = diff.inHours < 24
+                                ? 'il y a ${diff.inHours} h'
+                                : 'il y a ${diff.inDays} jour ${diff.inDays > 1 ? 's' : ''}';
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: JobCard(
+                                title: job['title'] ?? '',
+                                company: job['company'] ?? '',
+                                salary: timeAgo,
+                                location: job['location'] ?? '',
+                                status: 'en attente',
+                                jobType: job['contract_type'] ?? '',
+                                imagePath: job['company_logo_url']!,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => JobInformations(
+                                          job: job), // ✅ Pass job
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        ),
+            )),
+          ],
+        ),
       ),
     );
   }
@@ -313,11 +340,11 @@ class JobCard extends StatelessWidget {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'applied':
+      case 'postulé':
         return Colors.green;
-      case 'closed':
+      case 'fermé':
         return Colors.red;
-      case 'pending':
+      case 'en attente':
         return Colors.blue;
       default:
         return white_gray;
@@ -326,11 +353,11 @@ class JobCard extends StatelessWidget {
 
   Color _getTintedWhite(String status) {
     switch (status.toLowerCase()) {
-      case 'applied':
+      case 'postulé':
         return const Color.fromARGB(255, 215, 255, 217).withOpacity(1);
-      case 'closed':
+      case 'fermé':
         return Color.fromARGB(255, 255, 221, 219).withOpacity(1);
-      case 'pending':
+      case 'en attente':
         return const Color.fromARGB(255, 211, 235, 255).withOpacity(1);
       default:
         return white.withOpacity(0.08);
@@ -347,16 +374,16 @@ class CategoryChipsBar extends StatefulWidget {
 
 class _CategoryChipsBarState extends State<CategoryChipsBar> {
   final List<String> categories = [
-    'All',
+    'Tout',
     'Design',
-    'Development',
+    'Développement',
     'Marketing',
-    'Sales',
+    'Ventes',
     'Finance',
-    'Product',
-    'HR',
-    'Legal',
-    'Support',
+    'Produit',
+    'RH',
+    'Juridique',
+    'Support'
   ];
 
   int selectedIndex = 0;

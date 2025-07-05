@@ -5,6 +5,8 @@ import 'package:swipply/pages/sign_in.dart';
 import 'package:swipply/widgets/welcoming_pages_content.dart';
 
 class OnboardingScreen extends StatefulWidget {
+  const OnboardingScreen({super.key});
+
   @override
   _OnboardingScreenState createState() => _OnboardingScreenState();
 }

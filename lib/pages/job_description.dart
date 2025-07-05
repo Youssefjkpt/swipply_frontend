@@ -1,17 +1,18 @@
+// ignore_for_file: unused_field
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:lorem_ipsum/lorem_ipsum.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/services/api_service.dart';
 import 'package:geocoding/geocoding.dart';
 
 class JobInformations extends StatefulWidget {
   final Map<String, dynamic> job;
-  JobInformations({super.key, required this.job});
+  const JobInformations({super.key, required this.job});
 
   @override
   State<JobInformations> createState() => _JobInformationsState();
@@ -19,6 +20,10 @@ class JobInformations extends StatefulWidget {
 
 class _JobInformationsState extends State<JobInformations> {
   int selectedTab = 1;
+  void requestLocationPermission() async {
+    await Permission.location.request();
+  }
+
   List<Map<String, dynamic>> jobs = [];
   bool isExpanded = false; // To manage "Read more" functionality
   bool showAll = false;
@@ -53,59 +58,89 @@ class _JobInformationsState extends State<JobInformations> {
 
     try {
       final List<Location> locations = await locationFromAddress(locationText);
-      if (locations.isNotEmpty) {
-        setState(() {
-          _jobLatLng =
-              LatLng(locations.first.latitude, locations.first.longitude);
-          _isGeocoding = false;
-        });
-      } else {
-        setState(() {
-          _jobLatLng = const LatLng(48.8566, 2.3522); // fallback
-          _isGeocoding = false;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _jobLatLng = locations.isNotEmpty
+            ? LatLng(locations.first.latitude, locations.first.longitude)
+            : const LatLng(48.8566, 2.3522);
+        _isGeocoding = false;
+      });
     } catch (e) {
       print("Geocoding error: $e");
+      if (!mounted) return;
       setState(() {
-        _jobLatLng = const LatLng(48.8566, 2.3522); // fallback
+        _jobLatLng = const LatLng(48.8566, 2.3522);
         _isGeocoding = false;
       });
     }
   }
 
+  String? _userId;
   final Completer<GoogleMapController> _mapController = Completer();
-  bool _isMapLoading = true;
   bool _expandedMap = false; // for single map on this page
   bool isLoading = true;
-  Map<int, bool> _expandedMaps = {};
+  final Map<int, bool> _expandedMaps = {};
   void _fetchJobs() async {
     try {
       final fetchedJobs = await ApiService.fetchAllJobs();
+      if (!mounted) return;
       setState(() {
         jobs = fetchedJobs;
         isLoading = false;
       });
 
-      // Initialize expanded maps
       for (int i = 0; i < fetchedJobs.length; i++) {
         _expandedMaps[i] = false;
       }
     } catch (e) {
       print("❌ Failed to fetch jobs: $e");
+      if (!mounted) return;
       setState(() => isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  Future<void> _initSavedState() async {
+    final prefs = await SharedPreferences.getInstance();
+    _userId = prefs.getString('user_id');
+    if (_userId != null) {
+      final saved = await ApiService.fetchSavedJobIds(_userId!);
+      setState(() => isSaved = saved.contains(widget.job['job_id'].toString()));
     }
   }
 
   @override
   void initState() {
     super.initState();
-    _fetchJobs();
-    _resolveLocation();
+    // requestLocationPermission();
+    // _resolveLocation();
+    _initSavedState();
+  }
+
+  Future<void> _toggleSave() async {
+    if (_userId == null) return;
+    final jobId = widget.job['job_id'].toString();
+    try {
+      final resp = isSaved
+          ? await ApiService.removeSaveJob(userId: _userId!, jobId: jobId)
+          : await ApiService.saveJob(userId: _userId!, jobId: jobId);
+      if (resp.statusCode == 200) {
+        setState(() => isSaved = !isSaved);
+      } else {
+        print('❌ Failed: ${resp.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error toggling save: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    print("📍 Resolved “${widget.job["location"]}” to $_jobLatLng");
     final List<String> responsibilities = (widget.job["requirements"] is List)
         ? List<String>.from(widget.job["requirements"])
         : [];
@@ -173,18 +208,17 @@ class _JobInformationsState extends State<JobInformations> {
                               onTap: saveJob,
                               child: Padding(
                                 padding: EdgeInsets.only(top: 10),
-                                child: IconButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      isSaved = !isSaved;
-                                    });
-                                  },
-                                  icon: Icon(
-                                    isSaved
-                                        ? Icons.bookmark_rounded
-                                        : Icons.bookmark_border_rounded,
-                                    color: white,
-                                    size: 28,
+                                child: Padding(
+                                  padding: EdgeInsets.only(top: 10),
+                                  child: IconButton(
+                                    onPressed: _toggleSave,
+                                    icon: Icon(
+                                      isSaved
+                                          ? Icons.bookmark_rounded
+                                          : Icons.bookmark_border_rounded,
+                                      color: white,
+                                      size: 28,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -195,19 +229,23 @@ class _JobInformationsState extends State<JobInformations> {
                           ],
                         ),
                         SizedBox(height: height * 0.04),
-                        Center(
-                          child: Text(
-                            widget.job["title"] ?? "Unknown",
-                            style: const TextStyle(
-                              color: white,
-                              fontSize: 26,
-                              fontWeight: FontWeight.w600,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Center(
+                            child: Text(
+                              widget.job["title"] ?? "Inconnu",
+                              style: const TextStyle(
+                                color: white,
+                                fontSize: 26,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
                         ),
                         const SizedBox(height: 5),
                         Text(
-                          widget.job["company_name"] ?? "Unknown",
+                          widget.job["company_name"] ?? "Inconnu",
                           style: const TextStyle(
                             color: white,
                             fontSize: 18,
@@ -280,7 +318,7 @@ class _JobInformationsState extends State<JobInformations> {
                         GestureDetector(
                           onTap: () => setState(() => selectedTab = 1),
                           child: Text(
-                            'Summary',
+                            'Résumé',
                             style: TextStyle(
                               color: selectedTab == 1 ? blue : white_gray,
                               fontSize: 17,
@@ -292,7 +330,7 @@ class _JobInformationsState extends State<JobInformations> {
                         GestureDetector(
                           onTap: () => setState(() => selectedTab = 2),
                           child: Text(
-                            'About',
+                            'À propos',
                             style: TextStyle(
                               color: selectedTab == 2 ? blue : white_gray,
                               fontSize: 17,
@@ -304,7 +342,7 @@ class _JobInformationsState extends State<JobInformations> {
                         GestureDetector(
                           onTap: () => setState(() => selectedTab = 3),
                           child: Text(
-                            'Activity',
+                            'Activité',
                             style: TextStyle(
                               color: selectedTab == 3 ? blue : white_gray,
                               fontSize: 17,
@@ -368,12 +406,7 @@ class _JobInformationsState extends State<JobInformations> {
                         Text(
                           isExpanded
                               ? (widget.job["description"] ?? "")
-                              : ((widget.job["description"] ?? "")
-                                      .toString()
-                                      .split(' ')
-                                      .take(30)
-                                      .join(' ') +
-                                  '...'),
+                              : ('${(widget.job["description"] ?? "").toString().split(' ').take(30).join(' ')}...'),
                           style: const TextStyle(
                             color: white_gray,
                             fontWeight: FontWeight.w400,
@@ -387,7 +420,7 @@ class _JobInformationsState extends State<JobInformations> {
                             });
                           },
                           child: Text(
-                            isExpanded ? 'Read less' : 'Read more',
+                            isExpanded ? 'Réduire' : 'Voir plus',
                             style: const TextStyle(
                               color: blue,
                               fontWeight: FontWeight.w500,
@@ -398,7 +431,7 @@ class _JobInformationsState extends State<JobInformations> {
                         if (responsibilities.isNotEmpty) ...[
                           const SizedBox(height: 30),
                           const Text(
-                            'Responsibilities',
+                            'Responsabilités',
                             style: TextStyle(
                               color: white,
                               fontSize: 18,
@@ -445,7 +478,7 @@ class _JobInformationsState extends State<JobInformations> {
                                 });
                               },
                               child: Text(
-                                showAll ? 'See less' : 'Read more',
+                                showAll ? 'Voir moins' : 'Voir plus',
                                 style: const TextStyle(
                                   color: blue,
                                   fontSize: 16,
@@ -455,74 +488,73 @@ class _JobInformationsState extends State<JobInformations> {
                             ),
                         ],
                         const SizedBox(height: 30),
-                        const Text(
-                          'Job Location',
-                          style: TextStyle(
-                            color: white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        GestureDetector(
-                          onTap: () =>
-                              setState(() => _expandedMap = !_expandedMap),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Container(
-                              height: _expandedMap ? 350 : 180,
-                              width: double.infinity,
-                              child: AbsorbPointer(
-                                absorbing:
-                                    !_expandedMap, // Only allow gestures when expanded
-                                child: Listener(
-                                  onPointerDown: (_) =>
-                                      setState(() => _disableScroll = true),
-                                  onPointerUp: (_) =>
-                                      setState(() => _disableScroll = false),
-                                  child: GoogleMap(
-                                    initialCameraPosition: CameraPosition(
-                                      target: _jobLatLng ??
-                                          const LatLng(48.8566, 2.3522),
-                                      zoom: 12,
-                                    ),
-                                    onMapCreated:
-                                        (GoogleMapController controller) {
-                                      if (!_mapController.isCompleted) {
-                                        _mapController.complete(controller);
-                                      }
-                                      setState(() => _isMapLoading = false);
-                                    },
-                                    zoomGesturesEnabled: true,
-                                    scrollGesturesEnabled: true,
-                                    rotateGesturesEnabled: true,
-                                    tiltGesturesEnabled: true,
-                                    myLocationEnabled: false,
-                                    myLocationButtonEnabled: false,
-                                    zoomControlsEnabled: false,
-                                    markers: _jobLatLng != null
-                                        ? {
-                                            Marker(
-                                              markerId:
-                                                  const MarkerId("jobLocation"),
-                                              position: _jobLatLng!,
-                                              infoWindow: InfoWindow(
-                                                title: widget
-                                                        .job["company_name"] ??
-                                                    "Company",
-                                                snippet:
-                                                    widget.job["location"] ??
-                                                        "",
-                                              ),
-                                            ),
-                                          }
-                                        : {},
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                        // const Text(
+                        //   'Lieu du poste',
+                        //   style: TextStyle(
+                        //     color: white,
+                        //     fontSize: 18,
+                        //     fontWeight: FontWeight.w600,
+                        //   ),
+                        // ),
+                        // const SizedBox(height: 10),
+                        // GestureDetector(
+                        //   onTap: () =>
+                        //       setState(() => _expandedMap = !_expandedMap),
+                        //   child: ClipRRect(
+                        //     borderRadius: BorderRadius.circular(20),
+                        //     child: SizedBox(
+                        //       height: _expandedMap ? 350 : 180,
+                        //       width: double.infinity,
+                        //       child: AbsorbPointer(
+                        //         absorbing:
+                        //             !_expandedMap, // Only allow gestures when expanded
+                        //         child: Listener(
+                        //           onPointerDown: (_) =>
+                        //               setState(() => _disableScroll = true),
+                        //           onPointerUp: (_) =>
+                        //               setState(() => _disableScroll = false),
+                        //           child: GoogleMap(
+                        //             initialCameraPosition: CameraPosition(
+                        //               target: _jobLatLng ??
+                        //                   const LatLng(48.8566, 2.3522),
+                        //               zoom: 12,
+                        //             ),
+                        //             onMapCreated:
+                        //                 (GoogleMapController controller) {
+                        //               if (!_mapController.isCompleted) {
+                        //                 _mapController.complete(controller);
+                        //               }
+                        //             },
+                        //             zoomGesturesEnabled: true,
+                        //             scrollGesturesEnabled: true,
+                        //             rotateGesturesEnabled: true,
+                        //             tiltGesturesEnabled: true,
+                        //             myLocationEnabled: false,
+                        //             myLocationButtonEnabled: false,
+                        //             zoomControlsEnabled: false,
+                        //             markers: _jobLatLng != null
+                        //                 ? {
+                        //                     Marker(
+                        //                       markerId:
+                        //                           const MarkerId("jobLocation"),
+                        //                       position: _jobLatLng!,
+                        //                       infoWindow: InfoWindow(
+                        //                         title: widget
+                        //                                 .job["company_name"] ??
+                        //                             "Company",
+                        //                         snippet:
+                        //                             widget.job["location"] ??
+                        //                                 "",
+                        //                       ),
+                        //                     ),
+                        //                   }
+                        //                 : {},
+                        //           ),
+                        //         ),
+                        //       ),
+                        //     ),
+                        //   ),
+                        // ),
                       ],
                     ),
                   ),

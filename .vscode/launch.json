@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter: iOS Simulator w/ StoreKit",
+      "request": "launch",
+      "type": "dart",
+      // Use the exact simulator name you want
+      "deviceId": "iPhone 16 Pro",
+      "env": {
+        // Point this at your .storekit’s relative path
+        "SIMULATOR_STOREKIT_CONFIG": "${workspaceFolder}/ios/Runner/SwipplyTests.storekit"
+      }
+    }
+  ]
+}

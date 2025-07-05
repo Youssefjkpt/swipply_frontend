@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:swipply/constants/themes.dart';
 
 class CategoryChip extends StatelessWidget {
   final String label;
@@ -9,16 +8,29 @@ class CategoryChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color.fromARGB(92, 255, 255, 255),
-        borderRadius: BorderRadius.circular(100),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFE0F2FF), Color(0xFFD1E8FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFB4D8FF).withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       child: Text(
         label,
         style: const TextStyle(
-          color: white,
-          fontSize: 15,
+          fontSize: 13.5,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF003C71),
+          letterSpacing: 0.2,
         ),
       ),
     );

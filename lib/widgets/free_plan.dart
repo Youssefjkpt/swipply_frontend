@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:swipply/constants/themes.dart';
 
 class FreeSubscriptionCard extends StatelessWidget {
   final List<String> features;
@@ -68,7 +67,7 @@ class FreeSubscriptionCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
-                      "FREE",
+                      "GRATUIT",
                       style: TextStyle(color: Colors.black87, fontSize: 10),
                     ),
                   ),
@@ -83,7 +82,7 @@ class FreeSubscriptionCard extends StatelessWidget {
                   border: Border.all(color: Colors.black12),
                 ),
                 child: const Text(
-                  "Included",
+                  "Inclus",
                   style: TextStyle(
                     color: Colors.black,
                     fontWeight: FontWeight.w700,
@@ -100,7 +99,7 @@ class FreeSubscriptionCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  "Your Features",
+                  "Vos avantages",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13.5,
@@ -140,7 +139,7 @@ class FreeSubscriptionCard extends StatelessWidget {
 
           const Center(
             child: Text(
-              "Upgrade to unlock more",
+              "Passez au plan supérieur",
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
