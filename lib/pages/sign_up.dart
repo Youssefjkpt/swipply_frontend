@@ -278,11 +278,13 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
   Future<void> _signUpWithGoogle() async {
     try {
       showLoadingPopup(context);
+      final GoogleSignIn signIn = GoogleSignIn.instance;
+      await signIn.initialize(
+          clientId:
+              '463526138738-v3ejoh5jdfd4pr1e90s58mksbak9cbdf.apps.googleusercontent.com');
 
-      final googleUser = await GoogleSignIn(
-        clientId:
-            '463526138738-v3ejoh5jdfd4pr1e90s58mksbak9cbdf.apps.googleusercontent.com',
-      ).signIn();
+// 3️⃣  Interactive login
+      final GoogleSignInAccount? googleUser = await signIn.authenticate();
 
       if (googleUser == null) {
         hideLoadingPopup(context); // user aborted

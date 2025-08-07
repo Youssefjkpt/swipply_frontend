@@ -4,4 +4,4 @@ const String BASE_URL_AUTH = 'https://swipply-backend.onrender.com';
 
 const String BASE_URL_JOBS = 'https://swipply-backend.onrender.com';
 const STRIPE_PUBLISHABLE_KEY =
-    'pk_test_51RAmkaCKzHpBcr4f0yiPm2q0EkmPQ8Bn2cBsq6gKaotSzFfapH3uunt0RgidzN2G4WFQvhepnLi2udtynhTpTQj000uFVoBKLC';
+    'pk_live_51RAmkKCEZklhkWaBiDHhiZvzBTGllvxQMNMbpzVDSczPuKVC3JC9wH3YHbPKYsQLdS8QpCj1wpJi8q1ie1IFpYlw00W568JPsV';

@@ -11,15 +11,190 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipply/constants/images.dart';
+import 'package:swipply/constants/job_categories.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
 import 'package:swipply/pages/cv.dart';
 import 'package:swipply/pages/job_description.dart';
 import 'package:swipply/pages/notification.dart';
+import 'package:swipply/pages/sign_in.dart';
 import 'package:swipply/pages/subscriptions.dart';
 import 'package:swipply/services/api_service.dart';
 import 'package:swipply/widgets/category_container.dart';
 import 'package:http/http.dart' as http;
+import 'package:characters/characters.dart';
+
+/// Returns true if [s] looks like an absolute http/https URL.
+bool _looksLikeUrl(String s) {
+  if (s.trim().isEmpty) return false;
+  final uri = Uri.tryParse(s);
+  return uri != null &&
+      uri.hasScheme &&
+      (uri.scheme == 'http' || uri.scheme == 'https');
+}
+
+String _initials(String raw) {
+  final trimmed = raw.trim();
+
+  // Nothing to work with → single “?” (or return '' if you prefer blank)
+  if (trimmed.isEmpty) return '?';
+
+  // Throw away the empty chunks that split() may create
+  final parts =
+      trimmed.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+
+  if (parts.isEmpty) return '?';
+
+  // Helper: first glyph of a word, works for composed characters
+  String firstChar(String word) => word.characters.first;
+
+  if (parts.length == 1) {
+    final word = parts.first;
+    // Pick the first *two* glyphs if the word is long enough, otherwise one.
+    final take = word.characters.take(2).toList().join();
+    return take.toUpperCase();
+  }
+
+  // Two or more words → first of first + first of last
+  return (firstChar(parts.first) + firstChar(parts.last)).toUpperCase();
+}
+
+/* ───────────────────────── reusable info dialog ────────────────────────── */
+class CompanyLogo extends StatelessWidget {
+  const CompanyLogo(this.rawValue, {super.key});
+
+  final String rawValue;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderRadius = BorderRadius.circular(12);
+    final size = const Size.square(75);
+
+    // Case 1: the string is (or at least looks like) a URL
+    if (_looksLikeUrl(rawValue)) {
+      return ClipRRect(
+        borderRadius: borderRadius,
+        child: Image.network(
+          rawValue,
+          height: size.height,
+          width: size.width,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) =>
+              const Icon(Icons.image_not_supported, size: 30),
+        ),
+      );
+    }
+
+    // Case 2: fallback “text logo”
+    return Container(
+      height: size.height,
+      width: size.width,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.black, // <- background
+        borderRadius: borderRadius,
+      ),
+      child: Text(
+        _initials(rawValue),
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 24,
+          color: Colors.white, // <- text colour
+        ),
+      ),
+    );
+  }
+}
+
+class _GenericInfoDialog extends StatelessWidget {
+  const _GenericInfoDialog({
+    super.key,
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.body,
+    required this.primaryLabel,
+    this.secondaryLabel,
+    this.onPrimary,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String body;
+  final String primaryLabel;
+  final String? secondaryLabel;
+  final VoidCallback? onPrimary;
+
+  @override
+  Widget build(BuildContext ctx) {
+    return Dialog(
+      backgroundColor: const Color(0xFF1B1B1B),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        constraints: const BoxConstraints(minHeight: 200),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: iconColor, size: 44),
+            const SizedBox(height: 20),
+            Text(title,
+                style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            Text(body,
+                style: const TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      onPrimary?.call();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: iconColor,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text(primaryLabel,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, color: Colors.white)),
+                  ),
+                ),
+                if (secondaryLabel != null) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: TextButton.styleFrom(
+                        backgroundColor: const Color(0xFF2B2B2B),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: Text(secondaryLabel!,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white70)),
+                    ),
+                  ),
+                ]
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -27,8 +202,6 @@ class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => _HomePageState();
 }
-
-ValueNotifier<bool> isSwiping = ValueNotifier(false);
 
 class _HomePageState extends State<HomePage> {
   double _swipeProgress = 0.0;
@@ -143,7 +316,7 @@ class _HomePageState extends State<HomePage> {
   List<dynamic> certificates = [], skillsAndProficiency = [];
 
   final CardSwiperController _controller = CardSwiperController();
-  Completer<GoogleMapController> _mapController = Completer();
+  final Completer<GoogleMapController> _mapController = Completer();
   ValueNotifier<bool> isSwiping = ValueNotifier(false);
   final GlobalKey<_GradientSwapButtonState> cancelBtnKey = GlobalKey();
   final GlobalKey<_GradientSwapButtonState> rewindBtnKey = GlobalKey();
@@ -153,7 +326,7 @@ class _HomePageState extends State<HomePage> {
   bool isLoading = true;
 
   int _currentPage = 0;
-  Map<int, bool> _expandedMaps = {};
+  final Map<int, bool> _expandedMaps = {};
   int _currentIndex = 0; // Track the current card index
   bool _isMapLoading = true;
   void _goToNextPage() {
@@ -202,6 +375,14 @@ class _HomePageState extends State<HomePage> {
     } catch (_) {}
 
     return [];
+  }
+
+  Future<void> _recordFirstSwipeTimestamp() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!prefs.containsKey('swipe_first_ts')) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      await prefs.setInt('swipe_first_ts', now);
+    }
   }
 
   Future<bool> canSwipeJob(String jobId) async {
@@ -320,8 +501,6 @@ class _HomePageState extends State<HomePage> {
     return str;
   }
 
-  int get _effectiveSwipeLimit => _dailySwipeLimit ?? 5; // fallback
-
   String? _planName;
 
   Future<void> showSwipeLimitReachedDialog(BuildContext context) async {
@@ -427,6 +606,10 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
+
+  bool _canUndo = false;
+
+// inside onUndo – just before `return true;`
 
   Future<void> showCustomCVDialog() async {
     await showDialog(
@@ -575,31 +758,52 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _resetDailyLimits() async {
+  /* ───────────────────────────────────────────────────────────────
+   Resets the swipe counter if its window (24 h or 7 d) is over.
+   Also downgrades the plan to Free when the subscription expires.
+   ───────────────────────────────────────────────────────────── */
+  Future<void> _maybeResetSwipeCounters() async {
     final prefs = await SharedPreferences.getInstance();
-    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final plan = prefs.getString('plan_name') ?? 'Free';
+    final winStart = prefs.getInt('swipe_window_ts') ?? 0;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final elapsedMs = nowMs - winStart;
 
-    // Swipe resets
-    if (prefs.getString('swipe_date') != today) {
+    final bool isFree = plan.toLowerCase() == 'free';
+    final int windowMs = isFree
+        ? 24 * 60 * 60 * 1000 // 24 h
+        : 7 * 24 * 60 * 60 * 1000; // 7 d
+
+    /* 1️⃣  reset the swipe counter when the window is finished */
+    if (elapsedMs >= windowMs) {
       await prefs
-        ..setString('swipe_date', today)
+        ..setInt('swipe_window_ts', nowMs)
         ..setInt('swipe_count', 0);
+      if (mounted) setState(() => _swipeCount = 0);
     }
 
-    // Personalize resets
-    if (prefs.getString('personalize_date') != today) {
-      await prefs
-        ..setString('personalize_date', today)
-        ..setInt('personalize_count', 0);
+    /* 2️⃣  downgrade the plan after its real expiry date */
+    final planEnd = prefs.getInt('plan_end_ts') ?? 0;
+    if (planEnd > 0 && nowMs >= planEnd) {
+      await prefs.setString('plan_name', 'Free');
+      // the next call to `_fetchUserCapabilities()` will
+      // pull fresh limits from the backend, but we keep UI in sync:
+      if (mounted) setState(() => _planName = 'Free');
     }
   }
 
   void _loadCategories() async {
-    final raw = await ApiService.fetchFilteredJobs(); // unfiltered
+    final raw = await ApiService.fetchFilteredJobs(); // unfiltered list
+
+    // If the user navigated away while we were waiting, bail out
+    if (!mounted) return;
+
     final set = <String>{};
     for (final j in raw) {
       set.addAll(List<String>.from(j['job_category'] ?? []));
     }
+
+    // Safe now – the State object is still alive
     setState(() => _allCategoriesFromDB = set.toList()..sort());
   }
 
@@ -624,12 +828,17 @@ class _HomePageState extends State<HomePage> {
 
   String? address;
   Future<void> _personalizeCv(String jobId) async {
-    if (!await canPersonalizeLocally()) {
-      return showSwipeLimitReachedDialog(context);
-    }
-
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
+    if (userId == null) {
+      // not signed-in
+      return showSignInRequiredDialog();
+    }
+    if (!await canPersonalizeLocally()) {
+      // daily quota hit
+      return _showPersonalizeQuotaDialog(() => _personalizeCv(jobId));
+    }
+
     if (userId == null) return;
 
     try {
@@ -845,10 +1054,15 @@ class _HomePageState extends State<HomePage> {
           interests = _safeDecodeList(empData['interests']);
           softSkills = _safeDecodeList(empData['soft_skills']);
 
-          certificates = empData['certificates'] ?? [];
-          skillsAndProficiency = empData['skills_and_proficiency'] ?? [];
+          final rawCerts = empData['certificates'];
+          certificates = rawCerts is List
+              ? rawCerts
+              : (rawCerts is Map ? rawCerts.values.toList() : []);
+          final rawSkills = empData['skills_and_proficiency'];
+          skillsAndProficiency = rawSkills is List
+              ? rawSkills
+              : (rawSkills is Map ? rawSkills.values.toList() : []);
         });
-      } catch (e) {
       } finally {
         if (mounted) {
           setState(() {
@@ -874,24 +1088,15 @@ class _HomePageState extends State<HomePage> {
 // STATE
 
 // Called once at startup (after your capabilities load)
-  Future<void> _loadSwipeCount() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString('user_id');
-    final token = prefs.getString('token');
-    if (userId == null || token == null) return;
+  // DELETE _loadSwipeCount() completely
+// ───────────────────────────────────
 
-    final res = await http.get(
-      Uri.parse('$BASE_URL_AUTH/api/swipe-count/$userId'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-    if (res.statusCode == 200) {
-      final data = jsonDecode(res.body);
-      setState(() => _swipeCount = data['count'] as int);
-      debugPrint('🖐️ You have swiped $_swipeCount today');
-    }
+// ADD THIS local helper instead
+  Future<int> _loadLocalSwipeCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final count = prefs.getInt('swipe_count') ?? 0;
+    setState(() => _swipeCount = count);
+    return count;
   }
 
   Future<bool> canPersonalizeLocally() async {
@@ -899,24 +1104,92 @@ class _HomePageState extends State<HomePage> {
         await getLocalPersonalizeCount() < _dailyPersonalizeLimit!;
   }
 
+// 1️⃣  Sign-in required
+  Future<void> showSignInRequiredDialog() async {
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => _GenericInfoDialog(
+        icon: Icons.login_rounded,
+        iconColor: const Color(0xFF00C2C2),
+        title: 'Connecte-toi pour continuer',
+        body:
+            'Tu dois être connecté pour swiper à droite ou personnaliser ton CV.',
+        primaryLabel: 'Se connecter',
+        onPrimary: () {
+          Navigator.pushReplacement(
+            context, // outer context!
+            MaterialPageRoute(builder: (_) => const SignIn()),
+          );
+        },
+      ),
+    );
+  }
+
+// 2️⃣  Daily personalisation quota hit
+  Future<void> _showPersonalizeQuotaDialog(VoidCallback _proceedAnyway) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => _GenericInfoDialog(
+        icon: Icons.hourglass_bottom_rounded,
+        iconColor: const Color(0xFFFFC107),
+        title: 'Quota de personnalisation atteint',
+        body:
+            'Même personnalisé, tu ne pourras pas postuler aujourd’hui.\nContinuer quand même ?',
+        primaryLabel: 'Personnaliser quand même',
+        secondaryLabel: 'Plus tard',
+        onPrimary: () {
+          Navigator.pop(context);
+          _proceedAnyway(); // call real fn
+        },
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
-    _resetDailyLimits();
+    SharedPreferences.getInstance().then((prefs) {
+      setState(() => _planName = prefs.getString('plan_name')); // may be null
+    });
+    _maybeResetSwipeCounters();
     _fetchUserCapabilities().then((_) {
       // now that _planName & _dailySwipeLimit are populated,
       // it's safe to load the rest of the UI
       _pullJobs();
       _fetchUserProfile();
       _loadCategories();
-      _loadSwipeCount();
+      _loadLocalSwipeCount();
     });
+  }
+
+  /// returns the max #swipes allowed in *the current window*
+  void _openGoldPlanFast() {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const FullSubscriptionPage(),
+        transitionDuration: const Duration(milliseconds: 400),
+        reverseTransitionDuration: const Duration(milliseconds: 400),
+        transitionsBuilder: (_, anim, __, child) {
+          final slide = Tween<Offset>(
+            begin: const Offset(0, 1), // starts fully off-screen bottom
+            end: Offset.zero, // ends at normal position
+          ).animate(CurvedAnimation(
+            parent: anim,
+            curve: Curves.easeOutCubic, // quick, smooth curve
+          ));
+          return SlideTransition(position: slide, child: child);
+        },
+      ),
+    );
   }
 
   Future<void> _fetchUserCapabilities() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
     final token = prefs.getString('token');
+
     if (userId == null) return;
 
     final res = await http.get(
@@ -929,10 +1202,15 @@ class _HomePageState extends State<HomePage> {
     if (res.statusCode == 200) {
       final data = json.decode(res.body);
       setState(() {
+        final plan = (data['plan_name'] as String?) ?? 'Free';
+        final planEnds = data['plan_end_ts'] as int?;
+
         _planName = data['plan_name'] as String?;
         _dailySwipeLimit = data['daily_swipe_limit']; // ← ADD THIS
         _canPersonalize = data['can_personalize_cv'];
-
+        prefs
+          ..setString('plan_name', plan)
+          ..setInt('plan_end_ts', planEnds ?? 0);
         _autoApply = (data['has_auto_apply'] as bool?) ?? false;
         _dailyPersonalizeLimit = data['daily_personalize_limit']; // NEW
       });
@@ -1021,20 +1299,22 @@ class _HomePageState extends State<HomePage> {
                                   cardsCount: jobs.length,
                                   onSwipe: (int previousIndex, int? targetIndex,
                                       CardSwiperDirection direction) async {
+                                    await _maybeResetSwipeCounters();
+                                    await _loadLocalSwipeCount();
                                     if (!await _checkCvComplete()) {
                                       await showCustomCVDialog();
                                       return false;
                                     }
                                     // 2) enforce server limit
-                                    if (_swipeCount >=
-                                        (_dailySwipeLimit ?? 0)) {
-                                      await showSwipeLimitReachedDialog(
-                                          context);
-                                      return false;
-                                    }
 
                                     if (direction ==
                                         CardSwiperDirection.right) {
+                                      if (_swipeCount >=
+                                          (_dailySwipeLimit ?? 0)) {
+                                        await showSwipeLimitReachedDialog(
+                                            context);
+                                        return false;
+                                      }
                                       // ✅ Swipe now, handle backend after
                                       final jobId =
                                           jobs[previousIndex]['job_id'];
@@ -1046,8 +1326,9 @@ class _HomePageState extends State<HomePage> {
                                                     CardSwiperDirection.right
                                                 ? 'right'
                                                 : 'left');
-                                        await _loadSwipeCount();
+                                        await _loadLocalSwipeCount();
                                         _autoRegisterAndApply(jobId);
+                                        await _recordFirstSwipeTimestamp();
                                       });
                                       setState(() {
                                         _currentIndex =
@@ -1114,6 +1395,7 @@ class _HomePageState extends State<HomePage> {
                                       _currentPage = 0;
                                       _expandedMaps.clear();
                                     });
+                                    _canUndo = true;
                                     return true;
                                   },
                                   onUndo: (int? previousIndex,
@@ -1130,9 +1412,11 @@ class _HomePageState extends State<HomePage> {
                                       _currentPage = 0;
                                       _expandedMaps.clear();
                                     });
+                                    _canUndo = false;
                                     return true;
                                   },
-                                  numberOfCardsDisplayed: 2,
+                                  numberOfCardsDisplayed:
+                                      max(1, min(2, jobs.length)),
                                   allowedSwipeDirection:
                                       const AllowedSwipeDirection.only(
                                     left: true,
@@ -1429,16 +1713,19 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ],
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      jobs[index]["company_logo_url"] ?? '',
-                      height: 75,
-                      width: 75,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.image_not_supported, size: 30),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
                     ),
+                    child: CompanyLogo(jobs[index]['company_logo_url'] ?? ''),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -1782,8 +2069,9 @@ class _HomePageState extends State<HomePage> {
                                       fit: BoxFit.cover,
                                       loadingBuilder:
                                           (context, child, loadingProgress) {
-                                        if (loadingProgress == null)
+                                        if (loadingProgress == null) {
                                           return child;
+                                        }
                                         return const Center(
                                           child: CircularProgressIndicator(
                                             strokeWidth: 2.5,
@@ -1995,7 +2283,7 @@ class _HomePageState extends State<HomePage> {
                             Padding(
                               padding: const EdgeInsets.only(
                                   top: 35, bottom: 4, left: 20, right: 20),
-                              child: Container(
+                              child: SizedBox(
                                 width: double.infinity,
                                 child: Text(
                                   fullName!.toUpperCase(),
@@ -2014,7 +2302,7 @@ class _HomePageState extends State<HomePage> {
                             Padding(
                               padding: const EdgeInsets.only(
                                   bottom: 5, left: 20, right: 20),
-                              child: Container(
+                              child: SizedBox(
                                 width: double.infinity,
                                 child: Text(
                                   jobTitle!.toUpperCase(),
@@ -2256,6 +2544,17 @@ class _HomePageState extends State<HomePage> {
             ),
             size: 50,
             onPressed: () {
+              final bool isFree = (_planName ?? '').toLowerCase() == 'free' ||
+                  _planName == null;
+              if (isFree) {
+                // ← only block when FREE
+                _openGoldPlanFast(); //   show upgrade
+                return;
+              }
+              // ② Premium but already rewound once → do nothing
+              if (!_canUndo) return;
+
+              // ③ Allowed: play animation & undo exactly one card
               rewindBtnKey.currentState?.triggerSwapExternally();
               Future.delayed(const Duration(milliseconds: 150), () {
                 _controller.undo();
@@ -2276,7 +2575,7 @@ class _HomePageState extends State<HomePage> {
             onPressed: () async {
               final currentJob = jobs[_currentIndex];
               final jobId = currentJob['job_id'];
-              void _runFlyingAnimation(Offset start, Offset end) {
+              void runFlyingAnimation(Offset start, Offset end) {
                 final overlay = Overlay.of(context, rootOverlay: false);
                 late OverlayEntry entry;
 
@@ -2305,7 +2604,12 @@ class _HomePageState extends State<HomePage> {
                 return;
               }
 
-              await _loadSwipeCount();
+              await _loadLocalSwipeCount();
+              if ((await SharedPreferences.getInstance())
+                      .getString('user_id') ==
+                  null) {
+                return showSignInRequiredDialog();
+              }
 
               likeBtnKey.currentState?.triggerSwapExternally();
               Future.delayed(const Duration(milliseconds: 150), () {
@@ -2320,16 +2624,23 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _postSwipe(String jobId, {required String action}) async {
-    final prefs = await SharedPreferences.getInstance();
+    // keep the http.post if you still need analytics, or remove it entirely
     await http.post(
       Uri.parse('$BASE_URL_AUTH/api/swipe-job'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({
-        'user_id': prefs.getString('user_id'),
+        'user_id': (await SharedPreferences.getInstance()).getString('user_id'),
         'job_id': jobId,
         'action': action,
       }),
     );
+
+    final prefs = await SharedPreferences.getInstance();
+    final local = prefs.getInt('swipe_count') ?? 0;
+    await prefs.setInt('swipe_count', local + 1);
+
+    setState(() => _swipeCount = local + 1); // immediate UI feedback
+    await _recordFirstSwipeTimestamp();
   }
 }
 
@@ -2350,7 +2661,7 @@ void showStripeErrorPopup(BuildContext context) {
 }
 
 class _StripeErrorContent extends StatelessWidget {
-  const _StripeErrorContent({Key? key}) : super(key: key);
+  const _StripeErrorContent({super.key});
 
   @override
   Widget build(BuildContext ctx) {
@@ -2633,214 +2944,250 @@ class _JobFilterSheetState extends State<JobFilterSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final cats = widget.allCategories
-        .where((c) => c.toLowerCase().contains(_search.text.toLowerCase()))
-        .take(6)
-        .toList();
+    // Accent-insensitive query
+    String _norm(String s) => s
+        .toLowerCase()
+        .replaceAll(RegExp(r'[áàâä]'), 'a')
+        .replaceAll(RegExp(r'[éèêë]'), 'e')
+        .replaceAll(RegExp(r'[íìîï]'), 'i')
+        .replaceAll(RegExp(r'[óòôö]'), 'o')
+        .replaceAll(RegExp(r'[úùûü]'), 'u')
+        .replaceAll('ç', 'c');
+
+    final String query = _norm(_search.text);
+    final cats = query.isEmpty
+        ? kJobCategoryKeywords.keys.take(8).toList() // default suggestions
+        : kKeywordToCategory.entries // synonym lookup
+            .where((e) => e.key.contains(query))
+            .map((e) => e.value)
+            .toSet() // unique
+            .take(8)
+            .toList();
 
     return WillPopScope(
-      onWillPop: () async {
-        widget.onApply(
-          categories: _selCat.toList(),
-          employment: _selEmp.toList(),
-          contract: _selContr.toList(),
-          sinceHours: _sinceH,
-        );
-        return true;
-      },
-      child: DraggableScrollableSheet(
-        initialChildSize: 0.85,
-        maxChildSize: 0.95,
-        minChildSize: 0.6,
-        expand: false,
-        builder: (_, scroll) => Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: blue_gray,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-          ),
-          child: Column(
-            children: [
-              Center(
-                child: Container(
-                  width: 80,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    color: white_gray,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Filtrer les offres',
-                style: TextStyle(
-                    color: white, fontSize: 20, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                decoration: BoxDecoration(
-                  color: black_gray,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    const Icon(Icons.search, color: white_gray),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: _search,
-                        style: const TextStyle(color: white),
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          isCollapsed: true,
-                          hintText: 'Catégorie…',
-                          hintStyle: TextStyle(color: white_gray),
-                        ),
-                        onChanged: (_) => setState(() {}),
+        onWillPop: () async {
+          widget.onApply(
+            categories: _selCat.toList(),
+            employment: _selEmp.toList(),
+            contract: _selContr.toList(),
+            sinceHours: _sinceH,
+          );
+          return true;
+        },
+        child: DraggableScrollableSheet(
+            initialChildSize: 0.85,
+            maxChildSize: 0.95,
+            minChildSize: 0.6,
+            expand: false,
+            builder: (_, scroll) => GestureDetector(
+                  onTap: () =>
+                      FocusScope.of(context).unfocus(), // hide keyboard
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context)
+                          .viewInsets
+                          .bottom, // lift above KB
+                    ),
+                    child: Container(
+                      // ← the original
+
+                      padding: const EdgeInsets.all(20),
+                      decoration: const BoxDecoration(
+                        color: blue_gray,
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(25)),
+                      ),
+                      child: Column(
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 80,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: white_gray,
+                                borderRadius: BorderRadius.circular(100),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            'Filtrer les offres',
+                            style: TextStyle(
+                                color: white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 20),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: black_gray,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.search, color: white_gray),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: TextField(
+                                    controller: _search,
+                                    style: const TextStyle(color: white),
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      isCollapsed: true,
+                                      hintText: 'Catégorie…',
+                                      hintStyle: TextStyle(color: white_gray),
+                                    ),
+                                    onChanged: (_) => setState(() {}),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              controller: scroll,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Wrap(
+                                    spacing: 10,
+                                    runSpacing: 8,
+                                    children: cats
+                                        .map((c) => _chip(
+                                              c,
+                                              _selCat.contains(c),
+                                              () => setState(() {
+                                                _selCat.contains(c)
+                                                    ? _selCat.remove(c)
+                                                    : _selCat.add(c);
+                                              }),
+                                            ))
+                                        .toList(),
+                                  ),
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 20),
+                                    child:
+                                        Divider(color: white_gray, height: 1),
+                                  ),
+                                  const Text(
+                                    'Type de contrat',
+                                    style: TextStyle(
+                                        color: white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 10,
+                                    runSpacing: 8,
+                                    children: contrTypes
+                                        .map((c) => _chip(
+                                              c,
+                                              _selContr.contains(c),
+                                              () => setState(() {
+                                                _selContr.contains(c)
+                                                    ? _selContr.remove(c)
+                                                    : _selContr.add(c);
+                                              }),
+                                            ))
+                                        .toList(),
+                                  ),
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 20),
+                                    child:
+                                        Divider(color: white_gray, height: 1),
+                                  ),
+                                  const Text(
+                                    'Temps de travail',
+                                    style: TextStyle(
+                                        color: white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 10,
+                                    runSpacing: 8,
+                                    children: empTypes
+                                        .map((e) => _chip(
+                                              e,
+                                              _selEmp.contains(e),
+                                              () => setState(() {
+                                                _selEmp.contains(e)
+                                                    ? _selEmp.remove(e)
+                                                    : _selEmp.add(e);
+                                              }),
+                                            ))
+                                        .toList(),
+                                  ),
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 20),
+                                    child:
+                                        Divider(color: white_gray, height: 1),
+                                  ),
+                                  const Text(
+                                    'Récence',
+                                    style: TextStyle(
+                                        color: white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 10,
+                                    runSpacing: 8,
+                                    children: recencyOpt
+                                        .map((h) => _chip(
+                                              h == null ? 'Tout' : '≤ $h h',
+                                              _sinceH == h,
+                                              () => setState(() => _sinceH = h),
+                                            ))
+                                        .toList(),
+                                  ),
+                                  const SizedBox(height: 40),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 40),
+                            child: GestureDetector(
+                              onTap: () {
+                                widget.onApply(
+                                  categories: _selCat.toList(),
+                                  employment: _selEmp.toList(),
+                                  contract: _selContr.toList(),
+                                  sinceHours: _sinceH,
+                                );
+                                Navigator.of(context).pop();
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: blue,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                child: const Center(
+                                  child: Text(
+                                    'Appliquer les filtres',
+                                    style: TextStyle(
+                                        color: white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: scroll,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 8,
-                        children: cats
-                            .map((c) => _chip(
-                                  c,
-                                  _selCat.contains(c),
-                                  () => setState(() {
-                                    _selCat.contains(c)
-                                        ? _selCat.remove(c)
-                                        : _selCat.add(c);
-                                  }),
-                                ))
-                            .toList(),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Divider(color: white_gray, height: 1),
-                      ),
-                      const Text(
-                        'Type de contrat',
-                        style: TextStyle(
-                            color: white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 8,
-                        children: contrTypes
-                            .map((c) => _chip(
-                                  c,
-                                  _selContr.contains(c),
-                                  () => setState(() {
-                                    _selContr.contains(c)
-                                        ? _selContr.remove(c)
-                                        : _selContr.add(c);
-                                  }),
-                                ))
-                            .toList(),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Divider(color: white_gray, height: 1),
-                      ),
-                      const Text(
-                        'Temps de travail',
-                        style: TextStyle(
-                            color: white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 8,
-                        children: empTypes
-                            .map((e) => _chip(
-                                  e,
-                                  _selEmp.contains(e),
-                                  () => setState(() {
-                                    _selEmp.contains(e)
-                                        ? _selEmp.remove(e)
-                                        : _selEmp.add(e);
-                                  }),
-                                ))
-                            .toList(),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 20),
-                        child: Divider(color: white_gray, height: 1),
-                      ),
-                      const Text(
-                        'Récence',
-                        style: TextStyle(
-                            color: white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 8,
-                        children: recencyOpt
-                            .map((h) => _chip(
-                                  h == null ? 'Tout' : '≤ $h h',
-                                  _sinceH == h,
-                                  () => setState(() => _sinceH = h),
-                                ))
-                            .toList(),
-                      ),
-                      const SizedBox(height: 40),
-                    ],
                   ),
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  widget.onApply(
-                    categories: _selCat.toList(),
-                    employment: _selEmp.toList(),
-                    contract: _selContr.toList(),
-                    sinceHours: _sinceH,
-                  );
-                  Navigator.of(context).pop();
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: blue,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  child: const Center(
-                    child: Text(
-                      'Appliquer les filtres',
-                      style: TextStyle(
-                          color: white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+                )));
   }
 }
 
@@ -2942,7 +3289,7 @@ class _PulseButtonState extends State<PulseButton>
 
 class RingingBellButton extends StatefulWidget {
   final GlobalKey bellKey;
-  const RingingBellButton({required this.bellKey, Key? key}) : super(key: key);
+  const RingingBellButton({required this.bellKey, super.key});
   @override
   _RingingBellButtonState createState() => _RingingBellButtonState();
 }
@@ -3004,6 +3351,7 @@ class AnimatedFlyingCircle extends StatefulWidget {
   final VoidCallback onComplete;
 
   const AnimatedFlyingCircle({
+    super.key,
     required this.start,
     required this.end,
     required this.onComplete,

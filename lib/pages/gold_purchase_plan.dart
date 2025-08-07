@@ -35,9 +35,9 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
 
   final String plan = 'Gold';
   final List<String> stripePriceIds = [
-    "price_1RWi4jCKzHpBcr4fu6S7WEZl", // Gold 1 week (8.99 €)
-    "price_1RWi5FCKzHpBcr4frzSI5jOh", // Gold 1 month (17.99 €)
-    "price_1RWi3vCKzHpBcr4fIcPiTSHP", // Gold 6 months (84.99 €)
+    "price_1RsCAVCEZklhkWaBmJi0mezA", // Gold 1 week (8.99 €)
+    "price_1RsCBxCEZklhkWaB2fiGBnab", // Gold 1 month (17.99 €)
+    "price_1RsCDMCEZklhkWaBiG0TOWgB", // Gold 6 months (84.99 €)
   ];
   bool _showCelebration = false;
 

@@ -27,7 +27,7 @@
         android:value="legacy" />
     <meta-data
         android:name="com.google.android.geo.API_KEY"
-        android:value="AIzaSyBY0PSA9t-sOWTDD0GlvJbMoVoCFvamqYo" />
+        android:value="AIzaSyABCE9Q2b4HmaIXA1LiFXxwwR2Ep9230lg" />
 
     <!-- Main Flutter Activity -->
     <activity

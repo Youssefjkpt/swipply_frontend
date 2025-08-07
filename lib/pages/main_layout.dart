@@ -8,10 +8,11 @@ import 'package:swipply/pages/home_page.dart';
 import 'package:swipply/pages/profile.dart';
 import 'package:swipply/pages/saved_jobs.dart';
 import 'package:http/http.dart' as http;
+import 'package:swipply/pages/settings.dart';
 import 'package:swipply/widgets/cv_chevker.dart';
 
 class MainLayout extends StatefulWidget {
-  MainLayout({super.key});
+  const MainLayout({super.key});
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
@@ -31,6 +32,9 @@ class _MainLayoutState extends State<MainLayout> {
   String? fullName;
   String? profilePicturePath;
 
+  final CupertinoTabController _tabController =
+      CupertinoTabController(initialIndex: 0);
+
   String? sanitizeField(dynamic value) {
     if (value == null) return null;
     final str = value.toString().trim();
@@ -41,6 +45,8 @@ class _MainLayoutState extends State<MainLayout> {
   String _jobTitle = 'Etudiant';
   final ValueNotifier<int> currentTabIndex = ValueNotifier(0);
   bool _hasLoadedOnce = false;
+  final ValueNotifier<ProfileData?> _profileNotifier =
+      ValueNotifier<ProfileData?>(null);
   Future<void> fetchEmployeeData() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
@@ -133,33 +139,41 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   void initState() {
     super.initState();
-    // Listen for tab changes:
-    currentTabIndex.addListener(_onTabChanged);
+
+    // 1️⃣ notifier → controller _and_ refresh Profile when value == 2
+    currentTabIndex.addListener(() {
+      final newIdx = currentTabIndex.value;
+      if (_tabController.index != newIdx) {
+        _tabController.index = newIdx;
+      }
+      if (newIdx == 2) fetchEmployeeData();
+    });
+
+    // 2️⃣ controller → notifier (keeps your pages in sync when user taps)
+    _tabController.addListener(() {
+      final idx = _tabController.index;
+      if (currentTabIndex.value != idx) {
+        currentTabIndex.value = idx;
+      }
+    });
   }
 
   @override
   void dispose() {
-    currentTabIndex.removeListener(_onTabChanged);
+    _tabController.dispose();
+    currentTabIndex.dispose();
     super.dispose();
-  }
-
-  void _onTabChanged() {
-    // If user tapped into the Profile tab (index 2), refresh immediately:
-    if (currentTabIndex.value == 2) {
-      fetchEmployeeData();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return CupertinoTabScaffold(
+      controller: _tabController,
       tabBar: CupertinoTabBar(
         activeColor: white,
-        inactiveColor: black_gray,
+        inactiveColor: const Color.fromARGB(255, 95, 102, 120),
         backgroundColor: black,
-        onTap: (index) {
-          currentTabIndex.value = index; // ✅ Update selected tab
-        },
+        onTap: (i) => _tabController.index = i,
         items: [
           BottomNavigationBarItem(
             icon: NavIcon(CupertinoIcons.house_fill,
@@ -176,19 +190,32 @@ class _MainLayoutState extends State<MainLayout> {
                 index: 2, currentTabIndex: currentTabIndex),
             label: 'Profile',
           ),
+          BottomNavigationBarItem(
+            // NEW
+            icon: NavIcon(CupertinoIcons.settings, // NEW
+                index: 3,
+                currentTabIndex: currentTabIndex), // NEW
+            label: 'Settings', // NEW
+          ),
         ],
       ),
-      tabBuilder: (context, index) {
-        return ValueListenableBuilder(
+      tabBuilder: (context, _) {
+        return ValueListenableBuilder<int>(
           valueListenable: currentTabIndex,
-          builder: (context, currentIndex, _) {
-            switch (index) {
+          builder: (_, currentIndex, __) {
+            switch (currentIndex) {
               case 0:
                 return const HomePage();
               case 1:
                 return const SavedJobs();
               case 2:
-                return Profile(currentTabIndex: currentTabIndex);
+                return Profile(
+                  currentTabIndex: currentTabIndex,
+                  dataListenable: _profileNotifier,
+                  onRefreshRequested: fetchEmployeeData,
+                );
+              case 3:
+                return MainSettings(currentTabIndex: currentTabIndex);
               default:
                 return const Center(child: Text('Unknown tab'));
             }
@@ -205,7 +232,7 @@ class NavIcon extends StatelessWidget {
   final ValueNotifier<int> currentTabIndex; // ✅ Pass the same notifier
 
   const NavIcon(this.icon,
-      {required this.index, required this.currentTabIndex});
+      {super.key, required this.index, required this.currentTabIndex});
 
   @override
   Widget build(BuildContext context) {
@@ -216,9 +243,26 @@ class NavIcon extends StatelessWidget {
         return Icon(
           icon,
           size: isSelected ? 28 : 24,
-          color: isSelected ? white : black_gray,
+          color: isSelected ? white : const Color.fromARGB(255, 95, 102, 120),
         );
       },
     );
   }
+}
+
+// ───── profile_data.dart-ish (put it in this file for now) ─────────
+class ProfileData {
+  const ProfileData({
+    required this.fullName,
+    required this.jobTitle,
+    this.photoUrl,
+    required this.cvIncomplete,
+    required this.missingFields,
+  });
+
+  final String fullName;
+  final String jobTitle;
+  final String? photoUrl;
+  final bool cvIncomplete;
+  final List<String> missingFields;
 }

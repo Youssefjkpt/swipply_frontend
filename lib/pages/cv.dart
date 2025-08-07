@@ -19,6 +19,96 @@ import 'package:swipply/widgets/language_chips.dart';
 import 'package:swipply/widgets/loading_bars.dart';
 import 'package:swipply/widgets/wave_wipe_cv_name.dart';
 
+/// Alerte générique : l’utilisateur n’est pas authentifié
+class _AuthRequiredContent extends StatelessWidget {
+  const _AuthRequiredContent({super.key});
+
+  @override
+  Widget build(BuildContext ctx) {
+    return Center(
+      child: Container(
+        width: MediaQuery.of(ctx).size.width * 0.80,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: blue_gray,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black45,
+              blurRadius: 12,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Illustration (vous pouvez conserver votre Lottie ou une icône)
+            SizedBox(
+              height: 130,
+              width: 130,
+              child: Lottie.asset(
+                errorBox, // gardez votre asset
+                fit: BoxFit.contain,
+              ),
+            ),
+            const Text(
+              "Vous n’êtes pas connecté(e)",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                decoration: TextDecoration.none,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "Connectez-vous à votre compte pour profiter de cette fonctionnalité.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 15,
+                decoration: TextDecoration.none,
+              ),
+            ),
+            const SizedBox(height: 28),
+            GestureDetector(
+              onTap: () => Navigator.of(ctx).pop(),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 14, horizontal: 30),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  "Fermer",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.none,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+void _showAuthRequiredDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    builder: (_) => const _AuthRequiredContent(),
+  );
+}
+
 class InterestsSection extends StatelessWidget {
   final List<String> interests;
   final bool showAll;
@@ -505,7 +595,7 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
     userId ??= await getUserId();
     final token = await getAuthToken();
     if (userId == null || token == null) {
-      showUploadPopup(context, errorMessage: "ID ou jeton manquant");
+      _showAuthRequiredDialog(context);
       return;
     }
 
@@ -669,7 +759,12 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
       final file = File(result.files.single.path!);
       final fileName = result.files.single.name;
       final userId = await getUserId(); // already declared in your code
-
+      final id = await getUserId();
+      final token = await getAuthToken();
+      if (id == null || token == null) {
+        _showAuthRequiredDialog(context);
+        return;
+      }
       final request = http.MultipartRequest(
         'POST',
         Uri.parse('$BASE_URL_AUTH/api/parse-cv'),
@@ -2061,209 +2156,222 @@ class _EditCertificatesSheetState extends State<EditCertificatesSheet> {
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
       initialChildSize: 0.9,
-      maxChildSize: 0.95,
       minChildSize: 0.5,
+      maxChildSize: 1,
       expand: false,
-      builder: (_, controller) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: blue_gray,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-          ),
-          child: ListView(
-            controller: _scrollController,
-            children: [
-              Center(
+      builder: (_, scrollController) {
+        return GestureDetector(
+            // optional: tap outside to hide keyboard
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
                 child: Container(
-                  width: 80,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: white_gray,
-                    borderRadius: BorderRadius.circular(100),
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: blue_gray,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20)),
                   ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Ajouter un certificat',
-                style: TextStyle(
-                    color: white, fontSize: 20, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 20),
-              _buildTextField(_titleController, 'Titre du certificat'),
-              const SizedBox(height: 12),
-              _buildTextField(_issuerController, 'Émetteur (ex. Coursera)'),
-              const SizedBox(height: 12),
-              _buildTextField(_dateController, 'Date (facultatif)',
-                  hint: '2024'),
-              const SizedBox(height: 12),
-              _buildTextField(_tagController, 'Tag (facultatif)',
-                  hint: 'ex. UI/UX'),
-              const SizedBox(height: 12),
-              GestureDetector(
-                onTap: _pickFile,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: black_gray,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: white_gray),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: ListView(
+                    controller: scrollController,
                     children: [
-                      const Icon(Icons.upload_file, color: white),
-                      const SizedBox(width: 10),
-                      Text(
-                        selectedFile != null
-                            ? selectedFile!.name
-                            : 'Importer PDF/Image',
-                        style: const TextStyle(
-                            color: white, fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile.adaptive(
-                activeColor: blue,
-                value: verified,
-                onChanged: (val) => setState(() => verified = val),
-                title: const Text(
-                  'Certificat vérifié (Coursera, Google etc)',
-                  style: TextStyle(color: white, fontSize: 14),
-                ),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: blue,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: _addCertificate,
-                child: const Text('	Ajouter certificat',
-                    style: TextStyle(
-                        color: white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600)),
-              ),
-              const SizedBox(height: 25),
-              const Text(
-                'Certificats ajoutés',
-                style: TextStyle(
-                    color: white, fontWeight: FontWeight.w600, fontSize: 16),
-              ),
-              const SizedBox(height: 10),
-              ...certificates.asMap().entries.map((entry) {
-                int index = entry.key;
-                final cert = entry.value;
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: black_gray,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.workspace_premium,
-                              color: blue, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              cert['title'] ?? '',
-                              style: const TextStyle(
-                                color: white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                              ),
-                            ),
+                      Center(
+                        child: Container(
+                          width: 80,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: white_gray,
+                            borderRadius: BorderRadius.circular(100),
                           ),
-                          if (cert['verified'] == 'true')
-                            Container(
-                              margin: const EdgeInsets.only(right: 2),
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.verified,
-                                  color: Colors.greenAccent, size: 18),
-                            ),
-                          IconButton(
-                            splashRadius: 24,
-                            tooltip: 'Supprimer certificat',
-                            onPressed: () =>
-                                setState(() => certificates.removeAt(index)),
-                            icon: const Icon(Icons.delete_outline,
-                                color: Colors.redAccent, size: 20),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      if ((cert['issuer'] ?? '').isNotEmpty ||
-                          (cert['date'] ?? '').isNotEmpty)
-                        Text(
-                          '${cert['issuer'] ?? ''}${cert['issuer'] != null && cert['date'] != null ? ' • ' : ''}${cert['date'] ?? ''}',
-                          style:
-                              const TextStyle(color: white_gray, fontSize: 13),
                         ),
-                      if ((cert['file'] ?? '').isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Ajouter un certificat',
+                        style: TextStyle(
+                            color: white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 20),
+                      _buildTextField(_titleController, 'Titre du certificat'),
+                      const SizedBox(height: 12),
+                      _buildTextField(
+                          _issuerController, 'Émetteur (ex. Coursera)'),
+                      const SizedBox(height: 12),
+                      _buildTextField(_dateController, 'Date (facultatif)',
+                          hint: '2024'),
+                      const SizedBox(height: 12),
+                      _buildTextField(_tagController, 'Tag (facultatif)',
+                          hint: 'ex. UI/UX'),
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: _pickFile,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: black_gray,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: white_gray),
+                          ),
                           child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.picture_as_pdf,
-                                  size: 16, color: white_gray),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  cert['file']!,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      color: white_gray, fontSize: 13),
-                                ),
+                              const Icon(Icons.upload_file, color: white),
+                              const SizedBox(width: 10),
+                              Text(
+                                selectedFile != null
+                                    ? selectedFile!.name
+                                    : 'Importer PDF/Image',
+                                style: const TextStyle(
+                                    color: white, fontWeight: FontWeight.w500),
                               ),
                             ],
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 12),
+                      SwitchListTile.adaptive(
+                        activeColor: blue,
+                        value: verified,
+                        onChanged: (val) => setState(() => verified = val),
+                        title: const Text(
+                          'Certificat vérifié (Coursera, Google etc)',
+                          style: TextStyle(color: white, fontSize: 14),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: blue,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: _addCertificate,
+                        child: const Text('	Ajouter certificat',
+                            style: TextStyle(
+                                color: white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                      const SizedBox(height: 25),
+                      const Text(
+                        'Certificats ajoutés',
+                        style: TextStyle(
+                            color: white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16),
+                      ),
+                      const SizedBox(height: 10),
+                      ...certificates.asMap().entries.map((entry) {
+                        int index = entry.key;
+                        final cert = entry.value;
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: black_gray,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.workspace_premium,
+                                      color: blue, size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      cert['title'] ?? '',
+                                      style: const TextStyle(
+                                        color: white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ),
+                                  if (cert['verified'] == 'true')
+                                    Container(
+                                      margin: const EdgeInsets.only(right: 2),
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(Icons.verified,
+                                          color: Colors.greenAccent, size: 18),
+                                    ),
+                                  IconButton(
+                                    splashRadius: 24,
+                                    tooltip: 'Supprimer certificat',
+                                    onPressed: () => setState(
+                                        () => certificates.removeAt(index)),
+                                    icon: const Icon(Icons.delete_outline,
+                                        color: Colors.redAccent, size: 20),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              if ((cert['issuer'] ?? '').isNotEmpty ||
+                                  (cert['date'] ?? '').isNotEmpty)
+                                Text(
+                                  '${cert['issuer'] ?? ''}${cert['issuer'] != null && cert['date'] != null ? ' • ' : ''}${cert['date'] ?? ''}',
+                                  style: const TextStyle(
+                                      color: white_gray, fontSize: 13),
+                                ),
+                              if ((cert['file'] ?? '').isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.picture_as_pdf,
+                                          size: 16, color: white_gray),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          cert['file']!,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                              color: white_gray, fontSize: 13),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      const SizedBox(height: 20),
+                      GestureDetector(
+                        onTap: () {
+                          widget.onSave(certificates);
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Enregistrer tout',
+                              style: TextStyle(
+                                  color: black,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-                );
-              }).toList(),
-              const SizedBox(height: 20),
-              GestureDetector(
-                onTap: () {
-                  widget.onSave(certificates);
-                  Navigator.pop(context);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'Enregistrer tout',
-                      style: TextStyle(
-                          color: black,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
+                )));
       },
     );
   }
@@ -2324,8 +2432,8 @@ class _EditSkillsSheetState extends State<EditSkillsSheet> {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      maxChildSize: 0.9,
+      initialChildSize: 0.9,
+      maxChildSize: 1,
       minChildSize: 0.5,
       expand: false,
       builder: (_, controller) {
@@ -3290,155 +3398,167 @@ class _EditInterestsSheetState extends State<EditInterestsSheet> {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.7,
+      initialChildSize: 0.9,
       minChildSize: 0.4,
-      maxChildSize: 0.95,
-      builder: (_, controller) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: blue_gray,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: ListView(
-            controller: _scrollController,
-            children: [
-              Center(
+      maxChildSize: 1,
+      expand: false,
+      builder: (_, scrollController) {
+        return GestureDetector(
+            // optional: tap outside to hide keyboard
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
                 child: Container(
-                  width: 70,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: white_gray,
-                    borderRadius: BorderRadius.circular(100),
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: blue_gray,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20)),
                   ),
-                ),
-              ),
-              const SizedBox(height: 15),
-              const Text(
-                'Modifier vos centres d’intérêt',
-                style: TextStyle(
-                  color: white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              ...List.generate(controllers.length, (index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
+                  child: ListView(
+                    controller: scrollController,
                     children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: controllers[index],
-                          maxLines: null,
-                          style: const TextStyle(color: white),
-                          decoration: InputDecoration(
-                            hintText: 'Intérêt ${index + 1}',
-                            hintStyle: const TextStyle(color: white_gray),
-                            filled: true,
-                            fillColor: black_gray,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
+                      Center(
+                        child: Container(
+                          width: 70,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: white_gray,
+                            borderRadius: BorderRadius.circular(100),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      DeleteIconButton(
-                        onPressed: () => _removeInterest(index),
+                      const SizedBox(height: 15),
+                      const Text(
+                        'Modifier vos centres d’intérêt',
+                        style: TextStyle(
+                          color: white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      ...List.generate(controllers.length, (index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: controllers[index],
+                                  maxLines: null,
+                                  style: const TextStyle(color: white),
+                                  decoration: InputDecoration(
+                                    hintText: 'Intérêt ${index + 1}',
+                                    hintStyle:
+                                        const TextStyle(color: white_gray),
+                                    filled: true,
+                                    fillColor: black_gray,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              DeleteIconButton(
+                                onPressed: () => _removeInterest(index),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+
+                      // ➕ Add Interest Button
+                      TextButton.icon(
+                        onPressed: _addInterest,
+                        icon: const Icon(Icons.add, color: blue),
+                        label: const Text(
+                          'Ajouter un intérêt',
+                          style: TextStyle(color: blue),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // 🔍 Preview
+                      if (controllers.any((c) => c.text.trim().isNotEmpty)) ...[
+                        const Text(
+                          'Aperçu:',
+                          style: TextStyle(
+                              color: white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: black_gray,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.all(15),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: controllers
+                                .where((c) => c.text.trim().isNotEmpty)
+                                .map((c) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 8),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.circle,
+                                              color: blue, size: 6),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              c.text.trim(),
+                                              style: const TextStyle(
+                                                color: white_gray,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                                    ))
+                                .toList(),
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 25),
+
+                      // ✅ Save Button
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: blue,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onPressed: () {
+                          final updated = controllers
+                              .map((c) => c.text.trim())
+                              .where((s) => s.isNotEmpty)
+                              .toList();
+                          widget.onSave(updated);
+                        },
+                        child: const Text(
+                          'Enregistrer',
+                          style: TextStyle(
+                            color: white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                );
-              }),
-
-              // ➕ Add Interest Button
-              TextButton.icon(
-                onPressed: _addInterest,
-                icon: const Icon(Icons.add, color: blue),
-                label: const Text(
-                  'Ajouter un intérêt',
-                  style: TextStyle(color: blue),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // 🔍 Preview
-              if (controllers.any((c) => c.text.trim().isNotEmpty)) ...[
-                const Text(
-                  'Aperçu:',
-                  style: TextStyle(
-                      color: white, fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  decoration: BoxDecoration(
-                    color: black_gray,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.all(15),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: controllers
-                        .where((c) => c.text.trim().isNotEmpty)
-                        .map((c) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.circle,
-                                      color: blue, size: 6),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      c.text.trim(),
-                                      style: const TextStyle(
-                                        color: white_gray,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            ))
-                        .toList(),
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 25),
-
-              // ✅ Save Button
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: () {
-                  final updated = controllers
-                      .map((c) => c.text.trim())
-                      .where((s) => s.isNotEmpty)
-                      .toList();
-                  widget.onSave(updated);
-                },
-                child: const Text(
-                  'Enregistrer',
-                  style: TextStyle(
-                    color: white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
+                )));
       },
     );
   }
@@ -3552,153 +3672,167 @@ class _EditExperienceSheetState extends State<EditExperienceSheet> {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.7,
+      initialChildSize: 0.9,
       minChildSize: 0.4,
-      maxChildSize: 0.95,
+      maxChildSize: 1,
       expand: false,
-      builder: (context, scrollController) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: blue_gray,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: ListView(
-            controller: _scrollController,
-            children: [
-              Center(
+      builder: (_, scrollController) {
+        return GestureDetector(
+            // optional: tap outside to hide keyboard
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
                 child: Container(
-                  width: 70,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: white_gray,
-                    borderRadius: BorderRadius.circular(100),
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: blue_gray,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(20)),
                   ),
-                ),
-              ),
-              const SizedBox(height: 15),
-              const Text(
-                'Modifier vos expériences',
-                style: TextStyle(
-                  color: white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Dynamic experience fields
-              ...List.generate(controllers.length, (index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
+                  child: ListView(
+                    controller: scrollController,
                     children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: controllers[index],
-                          maxLines: null,
-                          style: const TextStyle(color: white),
-                          decoration: InputDecoration(
-                            hintText: 'Expérience ${index + 1}',
-                            hintStyle: const TextStyle(color: white_gray),
-                            filled: true,
-                            fillColor: black_gray,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
+                      Center(
+                        child: Container(
+                          width: 70,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: white_gray,
+                            borderRadius: BorderRadius.circular(100),
                           ),
-                          onChanged: (_) => setState(() {}),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      GestureDetector(
-                        onTap: () => _removeExperience(index),
-                        child: const Icon(Icons.delete, color: white_gray),
+                      const SizedBox(height: 15),
+                      const Text(
+                        'Modifier vos expériences',
+                        style: TextStyle(
+                          color: white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Dynamic experience fields
+                      ...List.generate(controllers.length, (index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: controllers[index],
+                                  maxLines: null,
+                                  style: const TextStyle(color: white),
+                                  decoration: InputDecoration(
+                                    hintText: 'Expérience ${index + 1}',
+                                    hintStyle:
+                                        const TextStyle(color: white_gray),
+                                    filled: true,
+                                    fillColor: black_gray,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
+                                  onChanged: (_) => setState(() {}),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              GestureDetector(
+                                onTap: () => _removeExperience(index),
+                                child:
+                                    const Icon(Icons.delete, color: white_gray),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+
+                      // Add new
+                      TextButton.icon(
+                        onPressed: _addExperience,
+                        icon: const Icon(Icons.add, color: blue),
+                        label: const Text('Ajouter une expérience',
+                            style: TextStyle(color: blue)),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Preview
+                      if (controllers.any((c) => c.text.trim().isNotEmpty)) ...[
+                        const Text(
+                          'Aperçu :',
+                          style: TextStyle(
+                              color: white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: black_gray,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.all(15),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: controllers
+                                .where((c) => c.text.trim().isNotEmpty)
+                                .map(
+                                  (c) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.circle,
+                                            color: blue, size: 6),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            c.text.trim(),
+                                            style: const TextStyle(
+                                                color: white_gray,
+                                                fontSize: 14),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 25),
+
+                      // Save
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: blue,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onPressed: () {
+                          final updated = controllers
+                              .map((c) => c.text.trim())
+                              .where((text) => text.isNotEmpty)
+                              .toList();
+                          widget.onSave(updated);
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Enregistrer',
+                            style: TextStyle(
+                                color: white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16)),
                       ),
                     ],
                   ),
-                );
-              }),
-
-              // Add new
-              TextButton.icon(
-                onPressed: _addExperience,
-                icon: const Icon(Icons.add, color: blue),
-                label: const Text('Ajouter une expérience',
-                    style: TextStyle(color: blue)),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Preview
-              if (controllers.any((c) => c.text.trim().isNotEmpty)) ...[
-                const Text(
-                  'Aperçu :',
-                  style: TextStyle(
-                      color: white, fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  decoration: BoxDecoration(
-                    color: black_gray,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.all(15),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: controllers
-                        .where((c) => c.text.trim().isNotEmpty)
-                        .map(
-                          (c) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.circle, color: blue, size: 6),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    c.text.trim(),
-                                    style: const TextStyle(
-                                        color: white_gray, fontSize: 14),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 25),
-
-              // Save
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: blue,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: () {
-                  final updated = controllers
-                      .map((c) => c.text.trim())
-                      .where((text) => text.isNotEmpty)
-                      .toList();
-                  widget.onSave(updated);
-                  Navigator.pop(context);
-                },
-                child: const Text('Enregistrer',
-                    style: TextStyle(
-                        color: white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16)),
-              ),
-            ],
-          ),
-        );
+                )));
       },
     );
   }
@@ -3723,83 +3857,6 @@ String? sanitizeField(dynamic value) {
   if (str.isEmpty || str == '{}' || str == 'null') return null;
   return str;
 }
-
-// Future<void> fetchEmployeeData() async {
-//   final prefs = await SharedPreferences.getInstance();
-//   final userId = prefs.getString('user_id');
-
-//   if (userId == null) {
-//     print("❌ No user ID found");
-//     return;
-//   }
-
-//   try {
-//     final employeeResponse = await http.get(
-//       Uri.parse('$BASE_URL_AUTH/api/get-employee/$userId'),
-//     );
-
-//     final userResponse = await http.get(
-//       Uri.parse('$BASE_URL_AUTH/users/$userId'),
-//     );
-
-//     if (employeeResponse.statusCode == 200 &&
-//         userResponse.statusCode == 200) {
-//       final employeeData = jsonDecode(employeeResponse.body);
-//       final userData = jsonDecode(userResponse.body);
-
-//       setState(() {
-//         fullName = sanitizeField(userData['full_name']);
-//         resume = sanitizeField(employeeData['resume']);
-
-//         experience = (employeeData['experience'] as List?)
-//                 ?.map((e) => e.toString())
-//                 .toList() ??
-//             [];
-//         education = (employeeData['education'] as List?)
-//                 ?.map((e) => e.toString())
-//                 .toList() ??
-//             [];
-
-//         languages = (employeeData['languages'] as List?)
-//                 ?.map((e) => e.toString())
-//                 .toList() ??
-//             [];
-
-//         interests = (employeeData['interests'] as List?)
-//                 ?.map((e) => e.toString())
-//                 .toList() ??
-//             [];
-
-//         softSkills = (employeeData['soft_skills'] as List?)
-//                 ?.map((e) => e.toString())
-//                 .toList() ??
-//             [];
-
-//         certificates = employeeData['certificates'] ?? [];
-//         skillsAndProficiency = employeeData['skills_and_proficiency'] ?? [];
-
-//         weeklyAvailability = employeeData['weekly_availability'];
-//         availability = employeeData['availability'];
-//       });
-
-//       await CVChecker.updateCVStatus(employeeData);
-//       final status = await CVChecker.isCVIncomplete();
-//       final missing = await CVChecker.getMissingFields();
-
-//       setState(() {
-//         isCVIncomplete = status;
-//         missingFields = missing;
-//       });
-
-//       print("✅ Employee and user data loaded successfully");
-//     } else {
-//       print(
-//           "❌ Failed to fetch data: ${employeeResponse.body} | ${userResponse.body}");
-//     }
-//   } catch (e) {
-//     print("❌ Error fetching profile data: $e");
-//   }
-// }
 
 class ExpandingResumeField extends StatefulWidget {
   final TextEditingController controller;

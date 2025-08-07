@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/pages/sign_in.dart';
+import 'package:swipply/pages/terms_conditions.dart';
 import 'package:swipply/widgets/welcoming_pages_content.dart';
 
 class OnboardingScreen extends StatefulWidget {
+  const OnboardingScreen({super.key});
+
   @override
   _OnboardingScreenState createState() => _OnboardingScreenState();
 }
@@ -92,8 +95,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onTap: () {
                   if (_currentPage == onboardingData.length - 1) {
                     // If last page, go to sign-in
-                    Navigator.pushReplacement(context,
-                        MaterialPageRoute(builder: (context) => SignIn()));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => TermsConditionsPage()));
                   } else {
                     _pageController.nextPage(
                       duration: Duration(milliseconds: 400),

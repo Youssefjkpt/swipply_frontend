@@ -196,8 +196,12 @@ class _SignInState extends State<SignIn> with TickerProviderStateMixin {
 
   Future<void> _signInWithGoogle() async {
     try {
+      final GoogleSignIn signIn = GoogleSignIn.instance;
+
+// 2️⃣  Must be initialised once, early in app start-up
+      await signIn.initialize();
       showLoadingPopup(context);
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignInAccount? googleUser = await signIn.authenticate();
 
       if (googleUser == null) {
         hideLoadingPopup(context);

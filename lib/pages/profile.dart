@@ -1,14 +1,21 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lottie/lottie.dart';
 import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
 import 'package:swipply/pages/cv.dart';
+import 'package:swipply/pages/gold_purchase_plan.dart';
+import 'package:swipply/pages/main_layout.dart';
+import 'package:swipply/pages/settings.dart';
+import 'package:swipply/pages/sign_in.dart';
 import 'package:swipply/pages/subscriptions.dart';
-import 'package:swipply/services/api_service.dart';
+import 'package:swipply/pages/welcoming_pages.dart';
 import 'package:swipply/widgets/auto_apply_card.dart';
+import 'package:swipply/widgets/contact_us.dart';
 import 'package:swipply/widgets/cv_chevker.dart';
 import 'package:swipply/widgets/like_container_profile.dart';
 import 'package:swipply/widgets/mini_subsciption_plans.dart';
@@ -18,8 +25,16 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Profile extends StatefulWidget {
+  const Profile({
+    super.key,
+    required this.currentTabIndex,
+    required this.dataListenable,
+    required this.onRefreshRequested,
+  });
+
   final ValueNotifier<int> currentTabIndex;
-  const Profile({super.key, required this.currentTabIndex});
+  final ValueListenable<ProfileData?> dataListenable;
+  final Future<void> Function() onRefreshRequested;
 
   @override
   State<Profile> createState() => _ProfileState();
@@ -103,7 +118,7 @@ class _ProfileState extends State<Profile> {
 
         setState(() {
           _jobTitle = sanitizeField(userData['job_title']) ?? '';
-          profilePicturePath = sanitizeField(userData['profile_photo_url']);
+          profilePicturePath = userData['profile_photo_url'];
 
           fullName = sanitizeField(userData['full_name']);
           resume = sanitizeField(employeeData['resume']);
@@ -179,6 +194,14 @@ class _ProfileState extends State<Profile> {
 
   bool _hasLoadedOnce = false;
 
+  /// Ensures we always get a valid absolute URL.
+  String makeAbsolute(String base, String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http')) return path; // already absolute
+    if (!path.startsWith('/')) path = '/$path'; // add leading slash
+    return '$base$path';
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -188,11 +211,138 @@ class _ProfileState extends State<Profile> {
     }
   }
 
+  Future showLoadingPopup(BuildContext context) {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => WillPopScope(
+        onWillPop: () async => false,
+        child: Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: blue_gray,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.all(20),
+              child: const LoadingBars(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void hideLoadingPopup(BuildContext context) {
+    Navigator.of(context, rootNavigator: true).pop();
+  }
+
   Future<void> _refreshProfile() async {
     setState(() {
       _hasLoadedOnce = false;
     });
     await fetchEmployeeData();
+  }
+// Ajoute ça dans la classe _ProfileState
+
+  Future<void> _deleteAccount() async {
+    // 1️⃣  Affiche le loader
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const LoadingPopup(),
+    );
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jwt = prefs.getString('token');
+
+      if (jwt == null) throw Exception('JWT manquant dans SharedPreferences');
+
+      // 2️⃣  Appel API
+      final res = await http.delete(
+        Uri.parse('$BASE_URL_AUTH/auth/delete-account'),
+        headers: {'Authorization': 'Bearer $jwt'},
+      );
+
+      // 3️⃣  Succès
+      if (res.statusCode == 204) {
+        debugPrint('✅ Compte supprimé avec succès');
+        await prefs.clear();
+
+        if (!mounted) return;
+        Navigator.pop(context); // ferme le loader
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => OnboardingScreen()),
+          (_) => false,
+        );
+        return;
+      }
+
+      // 4️⃣  Réponse serveur ≠ 204  → on logge, on déclenche l’erreur
+      debugPrint(
+        '❌ Delete account — code ${res.statusCode}\nBody:\n${res.body}',
+      );
+      throw Exception('Erreur serveur (${res.statusCode})');
+    } catch (e, stack) {
+      // 5️⃣  Gestion d’erreur : on logge TOUT pour le debug
+      debugPrint('❌ Exception deleteAccount: $e');
+      debugPrintStack(stackTrace: stack);
+
+      if (mounted) Navigator.pop(context); // ferme le loader
+
+      // 6️⃣  Popup UX générique (pas de détails techniques pour l’utilisateur)
+      showErrorDialog(
+        context,
+        'Suppression impossible',
+        'Une erreur est survenue. Veuillez réessayer plus tard.',
+      );
+    }
+  }
+
+  void showErrorDialog(BuildContext context, String title, [String? message]) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: blue_gray,
+        title: Row(
+          children: [
+            Transform.scale(
+              scale: 1.5, // Increase the scale factor as needed
+              child: Lottie.asset(
+                warningicon,
+              ),
+            ),
+            SizedBox(
+              width: 10,
+            ),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold, color: white),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message ?? 'Une erreur est survenue. Veuillez réessayer.',
+          style: const TextStyle(fontSize: 16, color: white),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Fermer", style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _uploadProfilePhoto() async {
@@ -200,35 +350,230 @@ class _ProfileState extends State<Profile> {
 
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
-    if (userId == null) {
-      print('❌ No user ID found');
+    final token = prefs.getString('token'); // NEW
+
+    if (userId == null || token == null) {
+      debugPrint('❌ Missing userId or token');
       return;
     }
 
-    final request = http.MultipartRequest(
+    final req = http.MultipartRequest(
       'POST',
       Uri.parse('$BASE_URL_AUTH/upload-profile-photo/$userId'),
-    );
+    )
+      ..headers['Authorization'] = 'Bearer $token' // NEW
+      ..files
+          .add(await http.MultipartFile.fromPath('photo', _profileImage!.path));
 
-    request.files
-        .add(await http.MultipartFile.fromPath('photo', _profileImage!.path));
-    final response = await request.send();
+    final res = await req.send();
+    final body = await res.stream.bytesToString();
+    debugPrint('Upload photo → ${res.statusCode}\n$body');
 
-    if (response.statusCode == 200) {
-      final resBody = await response.stream.bytesToString();
-      final jsonData = json.decode(resBody);
-      final photoPath = jsonData['path'];
-
-      await prefs.setString('profile_picture_path', photoPath);
-
-      setState(() {
-        profilePicturePath = photoPath;
-      });
-
-      print('✅ Profile photo uploaded and path saved: $photoPath');
+    if (res.statusCode == 200) {
+      // Server should have updated users.profile_photo_url.
+      // Simply refresh the whole profile so client & server stay in sync.
+      await fetchEmployeeData();
     } else {
-      print('❌ Failed to upload profile photo: ${response.statusCode}');
+      showErrorDialog(
+        context,
+        'Upload failed',
+        'Server returned ${res.statusCode}.',
+      );
     }
+  }
+
+  Future<void> showLogoutOrDeleteDialog(BuildContext context) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: const Color.fromARGB(255, 27, 27, 27),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            constraints: const BoxConstraints(minHeight: 200),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.warning_amber_rounded,
+                    color: Color(0xFFFFC107), size: 40),
+                const SizedBox(height: 20),
+                const Text(
+                  "Déconnexion ou suppression",
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Souhaitez-vous vous déconnecter ou supprimer votre compte ?",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFFCCCCCC),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF4C4C),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          showConfirmDeleteAccountDialog(context);
+                        },
+                        child: const Text(
+                          "Supprimer le compte",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00C2C2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => SignIn()));
+                        },
+                        child: const Text(
+                          "Se déconnecter",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> showConfirmDeleteAccountDialog(BuildContext context) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: const Color.fromARGB(255, 27, 27, 27),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            constraints: const BoxConstraints(minHeight: 200),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.warning_amber_rounded,
+                    color: Color(0xFFFFC107), size: 40),
+                const SizedBox(height: 20),
+                const Text(
+                  "Confirmation requise",
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFFCCCCCC),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: const Color(0xFF2B2B2B),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          "Annuler",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF4C4C),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          await _deleteAccount();
+                          // Later: handle delete account logic here
+                        },
+                        child: const Text(
+                          "Supprimer",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   final List<String> features = [
@@ -360,12 +705,9 @@ class _ProfileState extends State<Profile> {
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(
-                        Icons.logout,
-                        color: white,
-                        size: 30,
-                      ),
-                      onPressed: () => ApiService.signOut(context),
+                      icon: const Icon(Icons.logout,
+                          color: Colors.white, size: 30),
+                      onPressed: () => showLogoutOrDeleteDialog(context),
                     ),
                     const Spacer(),
                     GestureDetector(
@@ -393,32 +735,32 @@ class _ProfileState extends State<Profile> {
                         backgroundImage: _profileImage != null
                             ? FileImage(_profileImage!)
                             : null,
-                        child: _profileImage == null &&
-                                profilePicturePath != null
-                            ? ClipOval(
-                                child: SizedBox(
-                                  width: 130,
-                                  height: 130,
-                                  child: FadeInImage.assetNetwork(
-                                    placeholder:
-                                        progress, // Use a transparent loader or create one
-                                    image: '$BASE_URL_AUTH$profilePicturePath',
-                                    fit: BoxFit.cover,
-                                    imageErrorBuilder:
-                                        (context, error, stackTrace) =>
-                                            const Icon(
-                                      Icons.person,
-                                      size: 60,
-                                      color: Colors.white70,
+                        child:
+                            _profileImage == null && profilePicturePath != null
+                                ? ClipOval(
+                                    child: SizedBox(
+                                      width: 130,
+                                      height: 130,
+                                      child: FadeInImage.assetNetwork(
+                                        placeholder:
+                                            progress, // Use a transparent loader or create one
+                                        image: '$profilePicturePath',
+                                        fit: BoxFit.cover,
+                                        imageErrorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const Icon(
+                                          Icons.person,
+                                          size: 60,
+                                          color: Colors.white70,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              )
-                            : (_profileImage == null &&
-                                    profilePicturePath == null)
-                                ? const Icon(Icons.person,
-                                    size: 60, color: Colors.white70)
-                                : null,
+                                  )
+                                : (_profileImage == null &&
+                                        profilePicturePath == null)
+                                    ? const Icon(Icons.person,
+                                        size: 60, color: Colors.white70)
+                                    : null,
                       ),
                       Container(
                         decoration: BoxDecoration(
@@ -623,6 +965,14 @@ class _ProfileState extends State<Profile> {
                 ),
 
                 const MiniSubscriptionSwiper(),
+
+                SizedBox(
+                  height: 10,
+                ),
+
+                SizedBox(
+                  height: 20,
+                )
               ],
             ),
           )
@@ -651,142 +1001,175 @@ class _ProfileState extends State<Profile> {
               bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
             child: DraggableScrollableSheet(
-              expand: false,
-              initialChildSize: 0.55,
-              maxChildSize: 0.75,
+              initialChildSize: 0.6,
               minChildSize: 0.4,
-              builder: (_, controller) {
-                return Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E1E).withOpacity(0.95),
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(25)),
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
-                  child: ListView(
-                    controller: controller,
-                    shrinkWrap: true,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text("Modifier le profil",
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700)),
-                          GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: const Icon(Icons.close,
-                                color: Colors.white54, size: 24),
-                          )
-                        ],
-                      ),
-                      const SizedBox(height: 25),
-                      TextField(
-                        controller: nameController,
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 16),
-                        decoration: InputDecoration(
-                          labelText: "Nom",
-                          labelStyle:
-                              const TextStyle(color: white_gray, fontSize: 14),
-                          enabledBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(
-                                  color: white_gray, width: 1.2),
-                              borderRadius: BorderRadius.circular(12)),
-                          focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(
-                                  color: Colors.white, width: 1.5),
-                              borderRadius: BorderRadius.circular(12)),
-                          filled: true,
-                          fillColor: const Color(0xFF2A2A2A),
+              maxChildSize: 1,
+              expand: false,
+              builder: (_, scrollController) {
+                return GestureDetector(
+                    // optional: tap outside to hide keyboard
+                    onTap: () => FocusScope.of(context).unfocus(),
+                    child: Padding(
+                        padding: EdgeInsets.only(
+                          bottom: MediaQuery.of(context).viewInsets.bottom,
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      TextField(
-                        controller: jobController,
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 16),
-                        decoration: InputDecoration(
-                          labelText: "Intitulé de poste",
-                          labelStyle:
-                              const TextStyle(color: white_gray, fontSize: 14),
-                          enabledBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(
-                                  color: white_gray, width: 1.2),
-                              borderRadius: BorderRadius.circular(12)),
-                          focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(
-                                  color: Colors.white, width: 1.5),
-                              borderRadius: BorderRadius.circular(12)),
-                          filled: true,
-                          fillColor: const Color(0xFF2A2A2A),
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-                      GestureDetector(
-                        onTap: () async {
-                          final prefs = await SharedPreferences.getInstance();
-                          final userId = prefs.getString('user_id');
-                          if (userId == null) return;
-
-                          final response = await http.put(
-                            Uri.parse('$BASE_URL_AUTH/users/$userId'),
-                            headers: {'Content-Type': 'application/json'},
-                            body: jsonEncode({
-                              'full_name': nameController.text.trim(),
-                              'job_title': jobController.text.trim(),
-                            }),
-                          );
-
-                          if (response.statusCode == 200) {
-                            if (mounted) {
-                              setState(() {
-                                fullName = nameController.text;
-                                _jobTitle = jobController.text;
-                              });
-
-                              if (Navigator.canPop(context)) {
-                                Navigator.pop(context);
-                              }
-                            }
-                          } else {
-                            print("❌ Failed to update user: ${response.body}");
-                          }
-                        },
                         child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 15, horizontal: 20),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                                colors: [Color(0xFF00FFAA), Color(0xFF00C28C)]),
-                            borderRadius: BorderRadius.circular(14),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF00FFAA).withOpacity(0.3),
-                                blurRadius: 10,
-                                offset: const Offset(0, 5),
-                              )
+                          padding: const EdgeInsets.all(20),
+                          decoration: const BoxDecoration(
+                            color: blue_gray,
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(20)),
+                          ),
+                          child: ListView(
+                            controller: scrollController,
+                            shrinkWrap: true,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text("Modifier le profil",
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700)),
+                                  GestureDetector(
+                                    onTap: () => Navigator.pop(context),
+                                    child: const Icon(Icons.close,
+                                        color: Colors.white54, size: 24),
+                                  )
+                                ],
+                              ),
+                              const SizedBox(height: 25),
+                              TextField(
+                                controller: nameController,
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 16),
+                                decoration: InputDecoration(
+                                  labelText: "Nom",
+                                  labelStyle: const TextStyle(
+                                      color: white_gray, fontSize: 14),
+                                  enabledBorder: OutlineInputBorder(
+                                      borderSide: const BorderSide(
+                                          color: white_gray, width: 1.2),
+                                      borderRadius: BorderRadius.circular(12)),
+                                  focusedBorder: OutlineInputBorder(
+                                      borderSide: const BorderSide(
+                                          color: Colors.white, width: 1.5),
+                                      borderRadius: BorderRadius.circular(12)),
+                                  filled: true,
+                                  fillColor: const Color(0xFF2A2A2A),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              TextField(
+                                controller: jobController,
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 16),
+                                decoration: InputDecoration(
+                                  labelText: "Intitulé de poste",
+                                  labelStyle: const TextStyle(
+                                      color: white_gray, fontSize: 14),
+                                  enabledBorder: OutlineInputBorder(
+                                      borderSide: const BorderSide(
+                                          color: white_gray, width: 1.2),
+                                      borderRadius: BorderRadius.circular(12)),
+                                  focusedBorder: OutlineInputBorder(
+                                      borderSide: const BorderSide(
+                                          color: Colors.white, width: 1.5),
+                                      borderRadius: BorderRadius.circular(12)),
+                                  filled: true,
+                                  fillColor: const Color(0xFF2A2A2A),
+                                ),
+                              ),
+                              const SizedBox(height: 30),
+                              GestureDetector(
+                                onTap: () async {
+                                  final prefs =
+                                      await SharedPreferences.getInstance();
+                                  final userId = prefs.getString('user_id');
+                                  if (userId == null) return;
+
+                                  final response = await http.put(
+                                    Uri.parse('$BASE_URL_AUTH/users/$userId'),
+                                    headers: {
+                                      'Content-Type': 'application/json'
+                                    },
+                                    body: jsonEncode({
+                                      'full_name': nameController.text.trim(),
+                                      'job_title': jobController.text.trim(),
+                                    }),
+                                  );
+
+                                  if (response.statusCode == 200) {
+                                    if (mounted) {
+                                      setState(() {
+                                        fullName = nameController.text;
+                                        _jobTitle = jobController.text;
+                                      });
+
+                                      if (Navigator.canPop(context)) {
+                                        Navigator.pop(context);
+                                      }
+                                    }
+                                  } else {
+                                    print(
+                                        "❌ Failed to update user: ${response.body}");
+                                  }
+                                },
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 15, horizontal: 20),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(colors: [
+                                      Color(0xFF00FFAA),
+                                      Color(0xFF00C28C)
+                                    ]),
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF00FFAA)
+                                            .withOpacity(0.3),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 5),
+                                      )
+                                    ],
+                                  ),
+                                  child: const Center(
+                                    child: Text("Enregistrer",
+                                        style: TextStyle(
+                                            color: black,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 16)),
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
-                          child: const Center(
-                            child: Text("Enregistrer",
-                                style: TextStyle(
-                                    color: black,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
+                        )));
               },
             ));
       },
+    );
+  }
+}
+
+class LoadingPopup extends StatelessWidget {
+  const LoadingPopup({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF1B1B1B),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: SizedBox(
+        width: 160,
+        height: 160,
+        child: Center(
+          child: LoadingBars(), // ton animation personnalisée ici
+        ),
+      ),
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipply/constants/images.dart';
+import 'package:swipply/constants/job_categories.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
 import 'package:swipply/pages/job_description.dart';
@@ -73,8 +74,19 @@ class _SavedJobsState extends State<SavedJobs> {
     return List<Map<String, dynamic>>.from(data);
   }
 
+  String _selectedCategory = 'Tout';
   @override
   Widget build(BuildContext context) {
+    final visibleJobs = _selectedCategory == 'Tout'
+        ? _jobList
+        : _jobList
+            .where(
+              (j) =>
+                  (j['job_category'] ?? '').toString().toLowerCase() ==
+                  _selectedCategory.toLowerCase(),
+            )
+            .toList();
+
     return Scaffold(
       backgroundColor: black,
       body: RefreshIndicator(
@@ -96,14 +108,15 @@ class _SavedJobsState extends State<SavedJobs> {
                     fontWeight: FontWeight.w700,
                   ),
                   children: [
-                    WidgetSpan(
-                      alignment: PlaceholderAlignment.middle,
-                      child: Lottie.asset(
-                        _jobList.isEmpty ? angry : congrats,
-                        width: 50,
-                        height: 50,
+                    if (_jobList.isEmpty) // <- show only when 0
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Lottie.asset(
+                          angry,
+                          width: 50,
+                          height: 50,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -111,7 +124,10 @@ class _SavedJobsState extends State<SavedJobs> {
             const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.only(left: 25, right: 25),
-              child: const CategoryChipsBar(),
+              child: CategoryChipsBar(
+                onCategorySelected: (cat) =>
+                    setState(() => _selectedCategory = cat),
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -121,7 +137,7 @@ class _SavedJobsState extends State<SavedJobs> {
               padding: const EdgeInsets.only(left: 10, right: 10),
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : _jobList.isEmpty
+                  : visibleJobs.isEmpty
                       ? Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -136,9 +152,9 @@ class _SavedJobsState extends State<SavedJobs> {
                         )
                       : ListView.builder(
                           padding: const EdgeInsets.only(bottom: 20),
-                          itemCount: _jobList.length,
+                          itemCount: visibleJobs.length,
                           itemBuilder: (context, index) {
-                            final job = _jobList[index];
+                            final job = visibleJobs[index];
                             final savedAtRaw = job['saved_at'] as String? ??
                                 job['scraped_at']
                                     as String? // fallback if you still have scraped_at
@@ -366,25 +382,19 @@ class JobCard extends StatelessWidget {
 }
 
 class CategoryChipsBar extends StatefulWidget {
-  const CategoryChipsBar({super.key});
+  const CategoryChipsBar({
+    super.key,
+    required this.onCategorySelected,
+  });
+
+  final ValueChanged<String> onCategorySelected;
 
   @override
   State<CategoryChipsBar> createState() => _CategoryChipsBarState();
 }
 
 class _CategoryChipsBarState extends State<CategoryChipsBar> {
-  final List<String> categories = [
-    'Tout',
-    'Design',
-    'Développement',
-    'Marketing',
-    'Ventes',
-    'Finance',
-    'Produit',
-    'RH',
-    'Juridique',
-    'Support'
-  ];
+  final List<String> categories = kJobCategories;
 
   int selectedIndex = 0;
 
@@ -400,9 +410,8 @@ class _CategoryChipsBarState extends State<CategoryChipsBar> {
             padding: const EdgeInsets.only(right: 12),
             child: GestureDetector(
               onTap: () {
-                setState(() {
-                  selectedIndex = index;
-                });
+                setState(() => selectedIndex = index);
+                widget.onCategorySelected(categories[index]);
               },
               child: Container(
                 decoration: BoxDecoration(

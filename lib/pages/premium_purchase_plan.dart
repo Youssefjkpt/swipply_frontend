@@ -27,9 +27,9 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
   final List<String> planLabels = ["1 semaine", "1 mois", "6 mois"];
 // ─── 1) Replace your stripePriceIds with the correct Platinum IDs ─────────
   final List<String> stripePriceIds = [
-    "price_1RWhzsCKzHpBcr4fEFtyaiX6", // Platinum 1 week (12.99 €)
-    "price_1RWi22CKzHpBcr4fnln8iblK", // Platinum 1 month (24.99 €)
-    "price_1RWi89CKzHpBcr4fdsvUIZd8", // Platinum 6 months (94.99 €)
+    "price_1RsCDuCEZklhkWaBnwxL88MX", // Platinum 1 week (12.99 €)
+    "price_1RsCEPCEZklhkWaBP8ntV5wu", // Platinum 1 month (24.99 €)
+    "price_1RsCF6CEZklhkWaBzfiJ9nLA", // Platinum 6 months (94.99 €)
   ];
 
 // ─── 2) Replace your displayed prices ───────────────────────────────────────

@@ -756,9 +756,8 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
                             height: 40,
                             child: ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
-                                primary: theme.colorScheme
-                                    .secondary, // simple professional color
-                                onPrimary: Colors.white,
+                                foregroundColor: Colors.white,
+                                backgroundColor: theme.colorScheme.secondary,
                                 elevation: 2,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),

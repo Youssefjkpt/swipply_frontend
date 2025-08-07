@@ -130,21 +130,6 @@ class _MiniSubscriptionSwiperState extends State<MiniSubscriptionSwiper> {
             },
           ),
         ), // 🔘 Circle indicators
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(3, (index) {
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
-              width: _currentPage == index ? 10 : 8,
-              height: _currentPage == index ? 10 : 8,
-              decoration: BoxDecoration(
-                color: _currentPage == index ? Colors.white : Colors.white30,
-                shape: BoxShape.circle,
-              ),
-            );
-          }),
-        ),
       ],
     );
   }
