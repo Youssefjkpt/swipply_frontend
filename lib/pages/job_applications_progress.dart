@@ -6,6 +6,7 @@ import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipply/constants/images.dart';
 import 'package:swipply/env.dart';
+import 'package:swipply/pages/home_page.dart';
 
 class JobApplicationsProgress extends StatefulWidget {
   @override
@@ -561,7 +562,7 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
         stateColor = Colors.blueAccent;
         statusText = "${rawProgress.toStringAsFixed(0)}%";
     }
-
+    final String logo = job['company_logo_url'] ?? '';
     final isRetrying = _retryingIds.contains(appId);
     final retries = _retryCount[appId] ?? 0;
     final canRetry = retries < 2;
@@ -590,21 +591,12 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: (job['company_logo_url'] as String?)?.isNotEmpty ==
-                              true
-                          ? Image.network(
-                              job['company_logo_url'],
-                              width: 54,
-                              height: 54,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 54,
-                                height: 54,
-                                color: Colors.grey[800],
-                              ),
-                            )
-                          : Container(
-                              width: 54, height: 54, color: Colors.grey[800]),
+                      child: SizedBox(
+                        width: 60,
+                        height: 60,
+                        child: CompanyLogo(
+                            logo), // handles URL + text automatically
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(

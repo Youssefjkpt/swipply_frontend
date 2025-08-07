@@ -8,6 +8,7 @@ import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/job_categories.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
+import 'package:swipply/pages/home_page.dart';
 import 'package:swipply/pages/job_description.dart';
 import 'package:http/http.dart' as http;
 
@@ -238,11 +239,12 @@ class JobCard extends StatelessWidget {
               children: [
                 const SizedBox(width: 25),
                 SizedBox(
-                    height: 40,
-                    width: 40,
+                    height: 50,
+                    width: 50,
                     child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: Image.network(imagePath))),
+                      borderRadius: BorderRadius.circular(6),
+                      child: CompanyLogo(imagePath),
+                    )),
                 const SizedBox(width: 15),
                 Expanded(
                   child: Column(
