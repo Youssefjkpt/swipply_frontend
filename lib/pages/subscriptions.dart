@@ -1,5 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'package:swipply/constants/themes.dart';
+import 'package:swipply/env.dart';
 import 'package:swipply/pages/gold_purchase_plan.dart';
 import 'package:swipply/pages/premium_purchase_plan.dart';
 
@@ -14,41 +18,145 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
   int _currentPage = 0;
   final PageController _topController = PageController(viewportFraction: 0.85);
 
-  final List<Map<String, String>> features = [
+  String? _currentPlanName;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserPlan();
+  }
+
+  Future<void> _fetchUserPlan() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    if (userId == null) {
+      setState(() => _currentPlanName = 'free');
+      return;
+    }
+    final res = await http
+        .get(Uri.parse('$BASE_URL_JOBS/api/user-capabilities/$userId'));
+    if (!mounted) return;
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      setState(() {
+        _currentPlanName =
+            (data['plan_name'] as String?)?.toLowerCase() ?? 'free';
+      });
+    } else {
+      setState(() => _currentPlanName = 'free');
+    }
+  }
+
+  String getBadgeText(String cardPlan, String? userPlan) {
+    final order = ['free', 'gold', 'platinum'];
+    final cardIdx = order.indexOf(cardPlan);
+    final userIdx = order.indexOf((userPlan ?? 'free').toLowerCase());
+    if (cardIdx == userIdx) return 'Plan actuel';
+    if (cardIdx < userIdx) return 'Déjà inclus';
+    return 'Upgrade';
+  }
+
+  final List<Map<String, String>> featuresFree = [
     {
-      "title": "Préférence de type d'emploi",
+      "title": "Swipes",
       "description":
-          "Choisissez les catégories d'emploi que vous souhaitez voir en priorité.",
+          "4 swipes, recharge automatique, explorez et postulez facilement pour faire progresser vos chances d’embauche."
     },
     {
       "title": "Filtrer par salaire",
       "description":
-          "Consultez uniquement les offres au-dessus de la rémunération souhaitée.",
+          "Consultez uniquement les offres au-dessus de la rémunération souhaitée."
     },
     {
-      "title": "Candidature automatique IA 1h/jour",
-      "description":
-          "Laissez l'IA postuler automatiquement pendant 1 heure chaque jour.",
+      "title": "Candidature automatique IA",
+      "description": "Laissez l’IA postuler pour vous, automatiquement."
     },
     {
       "title": "Annuler likes/offres",
-      "description": "Rétablissez les swipes effectués par erreur.",
+      "description": "Rétablissez les swipes effectués par erreur."
     },
     {
       "title": "Candidatures prioritaires",
-      "description": "Votre profil sera mieux classé auprès des recruteurs.",
+      "description": "Votre profil sera mieux classé auprès des recruteurs."
     },
     {
       "title": "Aucune publicité",
-      "description": "Profitez d'une expérience fluide, sans interruption.",
+      "description": "Profitez d'une expérience fluide, sans interruption."
     },
     {
       "title": "Meilleures offres pour vous",
       "description":
-          "Découvrez les emplois correspondant le mieux à votre profil.",
+          "Découvrez les emplois correspondant le mieux à votre profil."
     },
   ];
-
+  final List<Map<String, String>> featuresGold = [
+    {
+      "title": "Swipes",
+      "description":
+          "50 swipes, recharge automatique, découvrez plus d’offres et augmentez nettement vos chances d’être embauché."
+    },
+    {
+      "title": "Filtrer par salaire",
+      "description":
+          "Consultez uniquement les offres au-dessus de la rémunération souhaitée."
+    },
+    {
+      "title": "Candidature automatique IA",
+      "description":
+          "Laissez l’IA postuler pour vous, automatiquement 15 fois par semaine."
+    },
+    {
+      "title": "Annuler likes/offres",
+      "description": "Rétablissez les swipes effectués par erreur."
+    },
+    {
+      "title": "Candidatures prioritaires",
+      "description": "Votre profil sera mieux classé auprès des recruteurs."
+    },
+    {
+      "title": "Aucune publicité",
+      "description": "Profitez d'une expérience fluide, sans interruption."
+    },
+    {
+      "title": "Meilleures offres pour vous",
+      "description":
+          "Découvrez les emplois correspondant le mieux à votre profil."
+    },
+  ];
+  final List<Map<String, String>> featuresPlatinum = [
+    {
+      "title": "Swipes",
+      "description":
+          "80 swipes, recharge automatique, maximisez vos chances d’être embauché grâce à davantage d’offres et de candidatures pertinentes."
+    },
+    {
+      "title": "Filtrer par salaire",
+      "description":
+          "Consultez uniquement les offres au-dessus de la rémunération souhaitée."
+    },
+    {
+      "title": "Candidature automatique IA",
+      "description":
+          "Laissez l'IA postuler pour vous, automatiquement 30 fois par semaine."
+    },
+    {
+      "title": "Annuler likes/offres",
+      "description": "Rétablissez les swipes effectués par erreur."
+    },
+    {
+      "title": "Candidatures prioritaires",
+      "description": "Votre profil sera mieux classé auprès des recruteurs."
+    },
+    {
+      "title": "Aucune publicité",
+      "description": "Profitez d'une expérience fluide, sans interruption."
+    },
+    {
+      "title": "Meilleures offres pour vous",
+      "description":
+          "Découvrez les emplois correspondant le mieux à votre profil."
+    },
+  ];
   final List<bool> includedInFree = [
     true,
     false,
@@ -56,17 +164,9 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
     false,
     false,
     false,
-    false
+    true
   ];
-  final List<bool> includedInGold = [
-    true,
-    true,
-    true,
-    true,
-    false,
-    false,
-    false
-  ];
+  final List<bool> includedInGold = [true, true, true, true, true, false, true];
   final List<bool> includedInPlatinum = [
     true,
     true,
@@ -83,7 +183,13 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
     "Passez Pro": [4, 5, 6],
   };
 
-  Widget buildSection(String title, List<int> indexes, List<bool> included) {
+  // 1) Change buildSection to accept the features list
+  Widget buildSection(
+    String title,
+    List<int> indexes,
+    List<bool> included,
+    List<Map<String, String>> features,
+  ) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -97,7 +203,7 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
           ),
           child: Column(
             children: indexes.map((i) {
-              bool isLocked = !included[i];
+              final isLocked = !included[i];
               final feature = features[i];
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
@@ -170,24 +276,26 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
     );
   }
 
-  Widget buildPlanCard(String title, bool isPlatinum, List<bool> included) {
-    IconData icon;
-    Color iconColor;
-    String label;
+  // 2) Change buildPlanCard to receive and pass the features list
+  Widget buildPlanCard(
+    String title,
+    List<bool> included,
+    List<Map<String, String>> features,
+  ) {
+    final isPlatinum = title.toLowerCase().contains("platinum");
+    final isGold = title.toLowerCase().contains("gold");
+    final planKey = isPlatinum ? 'platinum' : (isGold ? 'gold' : 'free');
 
-    if (title.toLowerCase().contains("platinum")) {
-      icon = Icons.diamond;
-      iconColor = Color(0xFF18FFFF);
-      label = "PLATINUM";
-    } else if (title.toLowerCase().contains("gold")) {
-      icon = Icons.emoji_events;
-      iconColor = Colors.amber;
-      label = "GOLD";
-    } else {
-      icon = Icons.workspace_premium;
-      iconColor = Colors.white;
-      label = "GRATUIT";
-    }
+    final icon = isPlatinum
+        ? Icons.diamond
+        : (isGold ? Icons.emoji_events : Icons.workspace_premium);
+    final iconColor = isPlatinum
+        ? const Color(0xFF18FFFF)
+        : (isGold ? Colors.amber : Colors.white);
+    final label = isPlatinum ? "PLATINUM" : (isGold ? "GOLD" : "GRATUIT");
+
+    final badge = getBadgeText(planKey, _currentPlanName);
+    final canUpgrade = badge == 'Upgrade';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -204,24 +312,23 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
                   Text(
                     label,
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                    ),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white),
                   ),
                 ],
               ),
               GestureDetector(
-                onTap: label == "GRATUIT"
+                onTap: !canUpgrade
                     ? null
                     : () {
-                        if (label == "GOLD") {
+                        if (isGold) {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (_) => const SwipplyGoldDetailsPage()),
                           );
-                        } else if (label == "PLATINUM") {
+                        } else if (isPlatinum) {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -238,7 +345,7 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: Text(
-                    label == "GRATUIT" ? "Offre actuelle" : "Mettre à niveau",
+                    badge,
                     style: const TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.w800,
@@ -250,20 +357,18 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
             ],
           ),
           const SizedBox(height: 12),
-          ...featureSections.entries.map((entry) {
-            final sectionTitle = entry.key;
-            final sectionIndexes = entry.value;
-            return buildSection(sectionTitle, sectionIndexes, included);
-          }),
+          ...featureSections.entries.map(
+            (entry) => buildSection(entry.key, entry.value, included, features),
+          ),
         ],
       ),
     );
   }
 
-  LinearGradient getButtonGradient(int index) {
-    if (index == 0) {
+  LinearGradient getButtonGradient(String planKey) {
+    if (planKey == 'free') {
       return const LinearGradient(colors: [blue_gray, black_gray]);
-    } else if (index == 1) {
+    } else if (planKey == 'gold') {
       return const LinearGradient(
           colors: [Color(0xFFFEEEC6), Color(0xFFFFD97D)]);
     } else {
@@ -272,11 +377,11 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
     }
   }
 
-  void navigateToPlan() {
-    if (_currentPage == 1) {
+  void navigateToPlan(String planKey) {
+    if (planKey == 'gold') {
       Navigator.push(context,
           MaterialPageRoute(builder: (_) => const SwipplyGoldDetailsPage()));
-    } else if (_currentPage == 2) {
+    } else if (planKey == 'platinum') {
       Navigator.push(context,
           MaterialPageRoute(builder: (_) => const SwipplyPremiumDetailsPage()));
     }
@@ -284,6 +389,33 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_currentPlanName == null) {
+      return const Scaffold(
+        backgroundColor: blue_gray,
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
+
+    final selectedPlanKey =
+        _currentPage == 0 ? 'free' : (_currentPage == 1 ? 'gold' : 'platinum');
+    final badge = getBadgeText(selectedPlanKey, _currentPlanName);
+    final canUpgrade = badge == 'Upgrade';
+
+    final selectedIncluded = _currentPage == 0
+        ? includedInFree
+        : (_currentPage == 1 ? includedInGold : includedInPlatinum);
+
+    final selectedFeatures = _currentPage == 0
+        ? featuresFree
+        : (_currentPage == 1 ? featuresGold : featuresPlatinum);
+
+    final buttonText = () {
+      if (badge == 'Plan actuel') return 'Activé';
+      if (badge == 'Déjà inclus') return 'Déjà inclus';
+      if (selectedPlanKey == 'gold') return 'Activer pour 8.99€ / semaine';
+      return 'Activer pour 12.99€ / semaine';
+    }();
+
     return Scaffold(
       backgroundColor: blue_gray,
       body: SafeArea(
@@ -294,36 +426,20 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(
-                  width: 15,
-                ),
+                const SizedBox(width: 15),
                 GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(
-                    Icons.close,
-                    color: white,
-                    size: 30,
-                  ),
-                ),
-                const Expanded(
-                    child: SizedBox(
-                  width: 1,
-                )),
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.close, color: white, size: 30)),
+                const Expanded(child: SizedBox(width: 1)),
                 const Padding(
                   padding: EdgeInsets.only(right: 45),
-                  child: Text(
-                    "Mes abonnements",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: Text("Mes abonnements",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold)),
                 ),
-                const Expanded(
-                    child: SizedBox(
-                  width: 1,
-                )),
+                const Expanded(child: SizedBox(width: 1)),
               ],
             ),
             const SizedBox(height: 12),
@@ -332,16 +448,11 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
               child: PageView.builder(
                 controller: _topController,
                 itemCount: 3,
-                onPageChanged: (index) {
-                  setState(() => _currentPage = index);
-                },
+                onPageChanged: (index) => setState(() => _currentPage = index),
                 itemBuilder: (context, index) {
                   final borderColor = index == 0
                       ? Colors.white
-                      : index == 1
-                          ? Colors.amber
-                          : Colors.cyanAccent;
-
+                      : (index == 1 ? Colors.amber : Colors.cyanAccent);
                   return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -351,14 +462,14 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
                         colors: [
                           index == 0
                               ? blue_gray
-                              : index == 1
+                              : (index == 1
                                   ? const Color(0xFFFEEEC6)
-                                  : const Color(0xFFE6E6E6),
+                                  : const Color(0xFFE6E6E6)),
                           index == 0
                               ? black_gray
-                              : index == 1
+                              : (index == 1
                                   ? const Color(0xFFFFD97D)
-                                  : const Color(0xFFFFFFFF),
+                                  : const Color(0xFFFFFFFF)),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -425,40 +536,34 @@ class _FullSubscriptionPageState extends State<FullSubscriptionPage> {
                 child: buildPlanCard(
                   _currentPage == 0
                       ? "Swipply"
-                      : _currentPage == 1
+                      : (_currentPage == 1
                           ? "Swipply Gold"
-                          : "Swipply Platinum",
-                  _currentPage == 2,
-                  _currentPage == 0
-                      ? includedInFree
-                      : _currentPage == 1
-                          ? includedInGold
-                          : includedInPlatinum,
+                          : "Swipply Platinum"),
+                  selectedIncluded,
+                  selectedFeatures,
                 ),
               ),
             ),
             GestureDetector(
-              onTap: _currentPage == 0 ? null : navigateToPlan,
+              onTap: canUpgrade ? () => navigateToPlan(selectedPlanKey) : null,
               child: Container(
                 width: double.infinity,
                 margin: const EdgeInsets.all(20),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
-                  gradient: getButtonGradient(_currentPage),
+                  gradient: getButtonGradient(selectedPlanKey),
                   borderRadius: BorderRadius.circular(14),
-                  border: _currentPage == 0
+                  border: !canUpgrade
                       ? Border.all(color: Colors.white, width: 1.6)
                       : null,
                 ),
                 child: Center(
                   child: Text(
-                    _currentPage == 0
-                        ? "Activé"
-                        : _currentPage == 1
-                            ? "Activer pour 8.99€ / semaine"
-                            : "Activer pour 12.99€ / semaine",
+                    buttonText,
                     style: TextStyle(
-                      color: _currentPage == 0 ? Colors.white : Colors.black,
+                      color: selectedPlanKey == 'free'
+                          ? Colors.white
+                          : Colors.black,
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
                     ),

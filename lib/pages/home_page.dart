@@ -37,13 +37,13 @@ String _initials(String raw) {
   final trimmed = raw.trim();
 
   // Nothing to work with → single “?” (or return '' if you prefer blank)
-  if (trimmed.isEmpty) return '?';
+  if (trimmed.isEmpty) return 'FT';
 
   // Throw away the empty chunks that split() may create
   final parts =
       trimmed.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
 
-  if (parts.isEmpty) return '?';
+  if (parts.isEmpty) return 'FT';
 
   // Helper: first glyph of a word, works for composed characters
   String firstChar(String word) => word.characters.first;
@@ -209,6 +209,10 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey bellKey = GlobalKey();
   String? fullName, email, phone, resume, jobTitle;
   bool cvLoading = false;
+  int _swipeCount = 0;
+  int? _dailySwipeLimit;
+  int _totalSwipesUsed = 0; // <-- Added to fix undefined name error
+  int _bonusSwipes = 0; // Add to state
   void _runFlyingAnimation(Offset start, Offset end) {
     final overlay = Overlay.of(context, rootOverlay: false);
     late OverlayEntry entry;
@@ -728,10 +732,8 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {}
   }
 
-  int? _dailySwipeLimit;
-
+  // ...existing code...
   Future<void> _pullJobs({
-    // <-- NEW helper
     List<String> cats = const [],
     List<String> emp = const [],
     List<String> contr = const [],
@@ -740,14 +742,25 @@ class _HomePageState extends State<HomePage> {
     setState(() => isLoading = true);
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
+    // Get list of already swiped job IDs
+    final List<String> swipedJobIds =
+        prefs.getStringList('swiped_job_ids') ?? [];
+
+    print('Swiped job IDs: ${swipedJobIds.length}'); // Debug print
+
     try {
-      jobs = await ApiService.fetchFilteredJobs(
-        categories: cats,
-        employmentTypes: emp,
-        contractTypes: contr,
-        sinceHours: sinceH,
-        userId: userId,
-      );
+      if (userId != null) {
+        jobs = await ApiService.fetchBestJobsForUser(
+          userId: userId,
+          n: 100,
+          excludeJobIds: swipedJobIds,
+          fastApiUrl: 'https://swipply-2ue1.onrender.com',
+          baseUrlJobs: 'https://swipply-backend.onrender.com',
+        );
+        print('Fetched ${jobs.length} jobs after filtering'); // Debug print
+      } else {
+        jobs = [];
+      }
     } finally {
       if (!mounted) return;
       setState(() {
@@ -758,6 +771,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+// ...existing code...
   /* ───────────────────────────────────────────────────────────────
    Resets the swipe counter if its window (24 h or 7 d) is over.
    Also downgrades the plan to Free when the subscription expires.
@@ -792,33 +806,96 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  /// Helper to recalculate _totalSwipesUsed on startup (swipe_count + bonus swipes used in window)
+  Future<void> _recalculateTotalSwipesUsed() async {
+    final prefs = await SharedPreferences.getInstance();
+    final int swipeCount = prefs.getInt('swipe_count') ?? 0;
+    final int total = swipeCount;
+    await prefs.setInt('total_swipes_used', total);
+    if (mounted) setState(() => _totalSwipesUsed = total);
+  }
+
+  // Call this after fetching user capabilities (so _bonusSwipes is set)
+// ...existing code...
+  // Track if filters are active
+  bool _filtersActive = false;
+  List<String> _activeCategories = [];
+  List<String> _activeEmployment = [];
+  List<String> _activeContract = [];
+  int? _activeSinceHours;
+
+  // Call this to fetch jobs based on current filter state
+  Future<void> _refreshJobs() async {
+    setState(() => isLoading = true);
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    final List<String> swipedJobIds =
+        prefs.getStringList('swiped_job_ids') ?? [];
+    if (_filtersActive) {
+      // Use filtered jobs
+      jobs = await ApiService.fetchFilteredJobs(
+        categories: _activeCategories,
+        employmentTypes: _activeEmployment,
+        contractTypes: _activeContract,
+        sinceHours: _activeSinceHours,
+        userId: userId,
+      );
+    } else {
+      // Use best jobs
+      if (userId != null) {
+        jobs = await ApiService.fetchBestJobsForUser(
+          userId: userId,
+          n: 100,
+          excludeJobIds: swipedJobIds,
+          fastApiUrl: 'https://swipply-2ue1.onrender.com',
+          baseUrlJobs: 'https://swipply-backend.onrender.com',
+        );
+      } else {
+        jobs = [];
+      }
+    }
+    setState(() {
+      isLoading = false;
+      _currentIndex = 0;
+      _expandedMaps.clear();
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      setState(() => _planName = prefs.getString('plan_name'));
+    });
+    _maybeResetSwipeCounters();
+    _fetchUserCapabilities().then((_) async {
+      _filtersActive = false;
+      await _refreshJobs();
+      _fetchUserProfile();
+      _loadCategories();
+      _loadLocalSwipeCount();
+    });
+  }
+
+// ...existing code...
   void _loadCategories() async {
     final raw = await ApiService.fetchFilteredJobs(); // unfiltered list
-
-    // If the user navigated away while we were waiting, bail out
     if (!mounted) return;
-
     final set = <String>{};
     for (final j in raw) {
       set.addAll(List<String>.from(j['job_category'] ?? []));
     }
-
-    // Safe now – the State object is still alive
     setState(() => _allCategoriesFromDB = set.toList()..sort());
   }
 
   List<String> parsePostgresArray(dynamic raw) {
     if (raw == null) return [];
     if (raw is List) return raw.map((e) => e.toString()).toList();
-
     String s = raw.toString().trim();
-    // strip outer braces if present
     if (s.startsWith('{') && s.endsWith('}')) {
       s = s.substring(1, s.length - 1);
     }
     if (s.isEmpty) return [];
-
-    // split on commas, then strip any wrapping quotes and whitespace
     return s
         .split(RegExp(r','))
         .map((e) => e.trim().replaceAll(RegExp(r'^"|"$'), ''))
@@ -888,18 +965,6 @@ class _HomePageState extends State<HomePage> {
           // );
           // DEFENSIVELY PARSE THE ERROR MESSAGE
           // …inside your cvRes.statusCode != 200 block…
-          String errMsg;
-          try {
-            final decoded = json.decode(cvRes.body);
-            if (decoded is Map && decoded['error'] is String) {
-              errMsg = decoded['error'];
-            } else {
-              errMsg = decoded.toString();
-            }
-          } catch (_) {
-            errMsg = cvRes.body;
-          }
-
           showStripeErrorPopup(
             context,
           );
@@ -1010,8 +1075,6 @@ class _HomePageState extends State<HomePage> {
       setState(() => cvLoading = false);
     }
   }
-
-  int _swipeCount = 0;
 
   Future<void> _fetchUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
@@ -1147,23 +1210,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    SharedPreferences.getInstance().then((prefs) {
-      setState(() => _planName = prefs.getString('plan_name')); // may be null
-    });
-    _maybeResetSwipeCounters();
-    _fetchUserCapabilities().then((_) {
-      // now that _planName & _dailySwipeLimit are populated,
-      // it's safe to load the rest of the UI
-      _pullJobs();
-      _fetchUserProfile();
-      _loadCategories();
-      _loadLocalSwipeCount();
-    });
-  }
-
   /// returns the max #swipes allowed in *the current window*
   void _openGoldPlanFast() {
     Navigator.of(context).push(
@@ -1189,9 +1235,7 @@ class _HomePageState extends State<HomePage> {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
     final token = prefs.getString('token');
-
     if (userId == null) return;
-
     final res = await http.get(
       Uri.parse('$BASE_URL_AUTH/api/user-capabilities/$userId'),
       headers: {
@@ -1204,22 +1248,42 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         final plan = (data['plan_name'] as String?) ?? 'Free';
         final planEnds = data['plan_end_ts'] as int?;
-
         _planName = data['plan_name'] as String?;
-        _dailySwipeLimit = data['daily_swipe_limit']; // ← ADD THIS
+        _dailySwipeLimit = data['daily_swipe_limit'];
+        _bonusSwipes = data['bonus_swipes'] ?? 0;
         _canPersonalize = data['can_personalize_cv'];
         prefs
           ..setString('plan_name', plan)
           ..setInt('plan_end_ts', planEnds ?? 0);
         _autoApply = (data['has_auto_apply'] as bool?) ?? false;
-        _dailyPersonalizeLimit = data['daily_personalize_limit']; // NEW
+        _dailyPersonalizeLimit = data['daily_personalize_limit'];
       });
       debugPrint('📝 Plan: $_planName');
       debugPrint('📝 Daily swipe limit: $_dailySwipeLimit ');
       debugPrint('📝 Daily CV‐personalize limit: $_dailyPersonalizeLimit');
       debugPrint('📝 Auto‐apply enabled: $_autoApply');
       debugPrint('📝 Can personalize CV: $_canPersonalize');
-      // persist them
+      debugPrint('📝 Bonus swipes: $_bonusSwipes');
+    }
+  }
+
+  Future<void> _decrementBonusSwipes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    if (userId == null) return;
+    final res = await http.post(
+      Uri.parse('$BASE_URL_AUTH/api/decrement-bonus-swipes/$userId'),
+      headers: {'Content-Type': 'application/json'},
+    );
+    if (res.statusCode == 200) {
+      final data = json.decode(res.body);
+      setState(() {
+        _bonusSwipes = data['bonus_swipes'] ?? (_bonusSwipes - 1);
+      });
+    } else {
+      setState(() {
+        if (_bonusSwipes > 0) _bonusSwipes--;
+      });
     }
   }
 
@@ -1241,7 +1305,6 @@ class _HomePageState extends State<HomePage> {
           centerTitle: false,
           actions: [
             RingingBellButton(bellKey: bellKey),
-            // inside AppBar actions:
             IconButton(
               icon: const Icon(CupertinoIcons.slider_horizontal_3,
                   color: Colors.white),
@@ -1250,8 +1313,7 @@ class _HomePageState extends State<HomePage> {
                   context: context,
                   isScrollControlled: true,
                   builder: (_) => JobFilterSheet(
-                    allCategories:
-                        _allCategoriesFromDB, // cache it once at start
+                    allCategories: _allCategoriesFromDB,
                     onApply: (
                         {required categories,
                         required employment,
@@ -1305,30 +1367,30 @@ class _HomePageState extends State<HomePage> {
                                       await showCustomCVDialog();
                                       return false;
                                     }
-                                    // 2) enforce server limit
-
                                     if (direction ==
                                         CardSwiperDirection.right) {
-                                      if (_swipeCount >=
-                                          (_dailySwipeLimit ?? 0)) {
+                                      final totalAllowed =
+                                          (_dailySwipeLimit ?? 0) +
+                                              (_bonusSwipes);
+                                      if ((_swipeCount +
+                                              (_bonusSwipes > 0 ? 0 : 1)) >=
+                                          totalAllowed) {
                                         await showSwipeLimitReachedDialog(
                                             context);
                                         return false;
                                       }
-                                      // ✅ Swipe now, handle backend after
                                       final jobId =
                                           jobs[previousIndex]['job_id'];
-
-                                      // Run post-swipe logic asynchronously
                                       Future.microtask(() async {
-                                        await _postSwipe(jobId,
-                                            action: direction ==
-                                                    CardSwiperDirection.right
-                                                ? 'right'
-                                                : 'left');
-                                        await _loadLocalSwipeCount();
-                                        _autoRegisterAndApply(jobId);
-                                        await _recordFirstSwipeTimestamp();
+                                        if (_bonusSwipes > 0) {
+                                          await _decrementBonusSwipes();
+                                        } else {
+                                          await _postSwipe(jobId,
+                                              action: 'right');
+                                          await _loadLocalSwipeCount();
+                                          _autoRegisterAndApply(jobId);
+                                          await _recordFirstSwipeTimestamp();
+                                        }
                                       });
                                       setState(() {
                                         _currentIndex =
@@ -1336,29 +1398,13 @@ class _HomePageState extends State<HomePage> {
                                         _currentPage = 0;
                                       });
                                     }
-
-                                    // ✅ allow swipe and continue
                                     if (direction == CardSwiperDirection.left) {
                                       final jobId =
                                           jobs[previousIndex]['job_id'];
                                       final prefs =
                                           await SharedPreferences.getInstance();
-                                      // record left swipe but don’t increment local count
-                                      Future.microtask(() async {
-                                        await http.post(
-                                          Uri.parse(
-                                              '$BASE_URL_AUTH/api/swipe-job'),
-                                          headers: {
-                                            'Content-Type': 'application/json'
-                                          },
-                                          body: json.encode({
-                                            'user_id':
-                                                prefs.getString('user_id'),
-                                            'job_id': jobId,
-                                            'action': 'left',
-                                          }),
-                                        );
-                                      });
+                                      Future.microtask(() =>
+                                          _postSwipe(jobId, action: 'left'));
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                         cancelBtnKey.currentState
@@ -1373,7 +1419,6 @@ class _HomePageState extends State<HomePage> {
                                             .findRenderObject() as RenderBox;
                                         final Offset start =
                                             cardBox.localToGlobal(Offset.zero);
-
                                         final RenderBox notifBox = bellKey
                                             .currentContext!
                                             .findRenderObject() as RenderBox;
@@ -1388,7 +1433,6 @@ class _HomePageState extends State<HomePage> {
                                             ?.triggerSwapExternally();
                                       });
                                     }
-
                                     setState(() {
                                       _currentIndex =
                                           targetIndex ?? _currentIndex;
@@ -1406,7 +1450,6 @@ class _HomePageState extends State<HomePage> {
                                       rewindBtnKey.currentState
                                           ?.triggerSwapExternally();
                                     });
-
                                     setState(() {
                                       _currentIndex = restoredIndex;
                                       _currentPage = 0;
@@ -1590,17 +1633,6 @@ class _HomePageState extends State<HomePage> {
                   ));
   }
 
-  static Future<List<Map<String, dynamic>>> fetchAllJobs() async {
-    final response = await http.get(Uri.parse('$BASE_URL_AUTH/api/get-jobs'));
-
-    if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
-      return data.map((e) => Map<String, dynamic>.from(e)).toList();
-    } else {
-      throw Exception('Failed to fetch jobs');
-    }
-  }
-
   Widget _buildJobCard(int index) {
     bool isCurrentCard = index == _currentIndex;
     final String salary = jobs[index]["salary"] ?? "Non précisé";
@@ -1740,7 +1772,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 Text(
-                  jobs[index]["company_name"] ?? "Inconnu ",
+                  jobs[index]["company_name"] ?? "France Travail",
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -1932,84 +1964,6 @@ class _HomePageState extends State<HomePage> {
 
   bool _disableScrollForDetails = false;
 
-  Widget _buildInfoCard(
-      {required IconData icon, required String title, required String value}) {
-    return Container(
-      width: MediaQuery.of(context).size.width * 0.44,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFF7F8FA),
-            Color(0xFFECEFF1),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                )
-              ],
-            ),
-            padding: const EdgeInsets.all(6),
-            child: Icon(icon, color: Colors.black87, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black54,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _showSecondAndThird(String text) {
-    final parts = text.split(',').map((e) => e.trim()).toList();
-    if (parts.length >= 3) {
-      return '${parts[1]}, ${parts[2]}';
-    } else if (parts.length == 2) {
-      return parts[1];
-    } else {
-      return parts.first;
-    }
-  }
-
   Widget _buildCvPreview(int index) {
     return Stack(
       children: [
@@ -2141,24 +2095,6 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ),
                             ],
-                          ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          const Text(
-                            'Formation',
-                            style: TextStyle(
-                                color: white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(
-                            height: 5,
-                          ),
-                          Container(
-                            width: MediaQuery.of(context).size.width * 0.28,
-                            height: 1.5,
-                            decoration: const BoxDecoration(color: white),
                           ),
                           const SizedBox(
                             height: 10,
@@ -2624,7 +2560,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _postSwipe(String jobId, {required String action}) async {
-    // keep the http.post if you still need analytics, or remove it entirely
     await http.post(
       Uri.parse('$BASE_URL_AUTH/api/swipe-job'),
       headers: {'Content-Type': 'application/json'},
@@ -2634,13 +2569,13 @@ class _HomePageState extends State<HomePage> {
         'action': action,
       }),
     );
-
-    final prefs = await SharedPreferences.getInstance();
-    final local = prefs.getInt('swipe_count') ?? 0;
-    await prefs.setInt('swipe_count', local + 1);
-
-    setState(() => _swipeCount = local + 1); // immediate UI feedback
-    await _recordFirstSwipeTimestamp();
+    if (action == 'right') {
+      final prefs = await SharedPreferences.getInstance();
+      final local = prefs.getInt('swipe_count') ?? 0;
+      await prefs.setInt('swipe_count', local + 1);
+      setState(() => _swipeCount = local + 1);
+      await _recordFirstSwipeTimestamp();
+    }
   }
 }
 
@@ -3153,7 +3088,7 @@ class _JobFilterSheetState extends State<JobFilterSheet> {
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 40),
+                            padding: const EdgeInsets.only(bottom: 42),
                             child: GestureDetector(
                               onTap: () {
                                 widget.onApply(
@@ -3342,8 +3277,6 @@ class _RingingBellButtonState extends State<RingingBellButton>
     super.dispose();
   }
 }
-
-final GlobalKey _notificationKey = GlobalKey();
 
 class AnimatedFlyingCircle extends StatefulWidget {
   final Offset start;

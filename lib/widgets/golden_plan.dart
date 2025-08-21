@@ -4,13 +4,14 @@ class GoldSubscriptionCard extends StatelessWidget {
   final List<String> features;
   final List<bool> includedInFree;
   final List<bool> includedInGold;
+  final String? currentPlanName;
 
   const GoldSubscriptionCard({
     super.key,
     required this.features,
     required this.includedInFree,
     required this.includedInGold,
-    required List<bool> includedInPlan,
+    required this.currentPlanName,
   });
 
   Widget _buildCheck(bool value) {
@@ -19,6 +20,15 @@ class GoldSubscriptionCard extends StatelessWidget {
       color: value ? Colors.black : Colors.black.withOpacity(0.3),
       size: 20,
     );
+  }
+
+  String getBadgeText(String cardPlan, String? userPlan) {
+    final order = ['free', 'gold', 'platinum'];
+    final cardIdx = order.indexOf(cardPlan);
+    final userIdx = order.indexOf((userPlan ?? 'free').toLowerCase());
+    if (cardIdx == userIdx) return 'Plan actuel';
+    if (cardIdx < userIdx) return 'Déjà inclus';
+    return 'Upgrade';
   }
 
   @override
@@ -47,20 +57,15 @@ class GoldSubscriptionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
-                children: [
-                  Icon(
-                    Icons.emoji_events,
-                    color: Color.fromARGB(255, 241, 181, 0),
-                  ),
-                  SizedBox(
-                    width: 5,
-                  ),
-                  const Text(
+                children: const [
+                  Icon(Icons.emoji_events,
+                      color: Color.fromARGB(255, 241, 181, 0)),
+                  SizedBox(width: 5),
+                  Text(
                     "Gold",
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
@@ -77,9 +82,9 @@ class GoldSubscriptionCard extends StatelessWidget {
                   color: Colors.amber[700],
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Text(
-                  "Upgrade",
-                  style: TextStyle(
+                child: Text(
+                  getBadgeText('gold', currentPlanName),
+                  style: const TextStyle(
                     color: Colors.black,
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
@@ -88,11 +93,9 @@ class GoldSubscriptionCard extends StatelessWidget {
               )
             ],
           ),
-
           const SizedBox(height: 20),
-
-          Row(
-            children: const [
+          const Row(
+            children: [
               Expanded(
                 flex: 6,
                 child: Text(
@@ -110,9 +113,10 @@ class GoldSubscriptionCard extends StatelessWidget {
                   "Gratuit",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: Colors.black),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Colors.black,
+                  ),
                 ),
               ),
               Expanded(
@@ -121,17 +125,16 @@ class GoldSubscriptionCard extends StatelessWidget {
                   "Gold",
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: Colors.black),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Colors.black,
+                  ),
                 ),
               ),
             ],
           ),
-
           const SizedBox(height: 12),
           const Divider(thickness: 1.2, height: 22),
-
           ...List.generate(features.length, (index) {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
@@ -157,9 +160,7 @@ class GoldSubscriptionCard extends StatelessWidget {
               ),
             );
           }),
-
           const SizedBox(height: 18),
-
           const Center(
             child: Text(
               "Voir toutes les fonctions",

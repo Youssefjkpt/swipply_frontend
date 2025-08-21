@@ -56,16 +56,16 @@ android {
         applicationId "com.revoluxe.swipply1"
         minSdkVersion 21
         targetSdkVersion 35
-          versionCode 16 // ✅ Manually set this to the next unused version code
-    versionName "2.0.2" // ✅ Manually set this to the next version name
+          versionCode 19 // ✅ Manually set this to the next unused version code
+    versionName "2.0.5" // ✅ Manually set this to the next version name
         multiDexEnabled true
     }
 
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -89,9 +89,6 @@ flutter {
 }
 
 dependencies {
- // 🔥 1. Import the Firebase Bill-of-Materials
-
-    // 🔥 2. Add Cloud Messaging itself (no version when you use BoM)
 
 
     implementation 'com.google.android.gms:play-services-auth:20.7.0'

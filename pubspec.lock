@@ -9,6 +9,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.3.59"
+  animations:
+    dependency: "direct main"
+    description:
+      name: animations
+      sha256: d3d6dcfb218225bbe68e87ccf6378bbb2e32a94900722c5f81611dad089911cb
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.11"
   ansicolor:
     dependency: transitive
     description:
@@ -936,6 +944,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.0"
+  phone_number:
+    dependency: "direct main"
+    description:
+      name: phone_number
+      sha256: c66d3e2f2c69ce95f10bb923957049b1e5b8c6efea02d7366353fa3b80d4338a
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.0"
+  phone_numbers_parser:
+    dependency: "direct main"
+    description:
+      name: phone_numbers_parser
+      sha256: "8aaa49708c9314d450d80767753c6512402e848138e5a91bf59ed3e0d3ac5d9b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "9.0.3"
   platform:
     dependency: transitive
     description:

@@ -140,21 +140,20 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
       isLoading = false;
     });
     for (var app in _applications) {
-      final id = app['application_id'] as String;
-      final prog = app['progress'] as double;
+      final id = app['application_id'] as String?;
       final err = app['error'] as String?;
-      final lastTime = _lastChange[id] ?? now;
-      final stuckFor = now.difference(lastTime);
+      final jobListing = app['JobListings'] as Map<String, dynamic>?;
+      if (id == null || jobListing == null) continue;
+      // Only consider as error if error_message has text
+      final hasError = err != null && err.trim().isNotEmpty;
+      if (!hasError) continue;
       final count = _retryCount[id] ?? 0;
-      final isFailed = (prog == 100 && err != null) ||
-          stuckFor > const Duration(seconds: 30);
-      if (!isFailed) continue;
-      final jobId =
-          (app['JobListings'] as Map<String, dynamic>)['job_id'] as String;
+      final jobId = jobListing['job_id'] as String?;
+      if (jobId == null) continue;
       if (count == 0) {
         _retryApplication(jobId, id);
       } else if (count == 1) {
-        final backup = await prefs.getString('second_email');
+        final backup = prefs.getString('second_email');
         if (backup != null && backup.isNotEmpty) {
           _retryApplication(jobId, id);
         }
@@ -399,6 +398,17 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
                       final isStuck = DateTime.now().difference(lastTime) >
                           const Duration(seconds: 10);
 
+                      // 1) Determine state
+                      ApplicationState state;
+                      final hasError = error != null && error.trim().isNotEmpty;
+                      if (hasError) {
+                        state = ApplicationState.failWithError;
+                      } else if (rawProgress == 100) {
+                        state = ApplicationState.success;
+                      } else {
+                        state = ApplicationState.inFlight;
+                      }
+
                       if (rawProgress == 100 && error == null) {
                       } else if (rawProgress == 100 && error != null) {
                       } else if (isStuck) {
@@ -531,12 +541,11 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
 
     // 1) Determine state
     ApplicationState state;
-    if (rawProgress == 100 && error == null) {
-      state = ApplicationState.success;
-    } else if (rawProgress == 100 && error != null) {
+    final hasError = error != null && error.trim().isNotEmpty;
+    if (hasError) {
       state = ApplicationState.failWithError;
-    } else if (isStuck) {
-      state = ApplicationState.failStuck;
+    } else if (rawProgress == 100) {
+      state = ApplicationState.success;
     } else {
       state = ApplicationState.inFlight;
     }
@@ -601,7 +610,7 @@ class _JobApplicationsProgressState extends State<JobApplicationsProgress> {
                     const SizedBox(width: 14),
                     Expanded(
                       child: Text(
-                        job['title'] as String? ?? 'Titre indisponible',
+                        job['title'] as String? ?? 'France Travail',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,

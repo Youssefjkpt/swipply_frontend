@@ -143,24 +143,33 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
 
   final List<Map<String, String>> features = [
     {
-      "title": "Préférence de type d'emploi",
+      "title": "Swipes",
       "description":
-          "Choisissez les types d'emploi correspondant à vos compétences et intérêts.",
+          "50 swipes, recharge automatique, découvrez plus d’offres et augmentez nettement vos chances d’être embauché.",
+    },
+    {
+      "title": "Candidature automatique IA",
+      "description":
+          "Laissez l'IA postuler pour vous, automatiquement pour maximiser vos chances.",
     },
     {
       "title": "Filtrer par salaire",
       "description":
-          "Fixez un seuil salarial et découvrez les offres qui répondent à vos attentes.",
-    },
-    {
-      "title": "Candidature automatique IA 1h/jour",
-      "description":
-          "Postulez automatiquement aux meilleures offres grâce à l'IA avancée.",
+          "Consultez uniquement les offres au-dessus de la rémunération souhaitée.",
     },
     {
       "title": "Annuler likes/offres",
       "description":
           "Revenez en arrière pour revoir les opportunités ou offres aimées.",
+    },
+    {
+      "title": "Candidatures prioritaires",
+      "description": "Votre profil sera mieux classé auprès des recruteurs."
+    },
+    {
+      "title": "Meilleures offres pour vous",
+      "description":
+          "Découvrez les emplois correspondant le mieux à votre profil."
     },
   ];
   Timer? _autoDismissTimer;
@@ -577,6 +586,7 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
                       print('🎉 presentPaymentSheet done');
                       await prefs.setString('plan_name', 'Gold');
                       print('💾 prefs updated, navigating home');
+                      await _fetchUserCapabilities();
                       await showGoldCelebrationPopup(context);
                       Navigator.of(context).pushReplacement(
                           MaterialPageRoute(builder: (_) => MainLayout()));

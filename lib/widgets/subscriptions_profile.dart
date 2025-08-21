@@ -1,7 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:swipply/constants/themes.dart';
+import 'dart:convert';
 
-class SubscriptionComparisonCard extends StatelessWidget {
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:swipply/constants/themes.dart';
+import 'package:swipply/env.dart';
+
+class SubscriptionComparisonCard extends StatefulWidget {
   final String planName;
   final String badgeText;
   final Color gradientStart;
@@ -21,12 +26,52 @@ class SubscriptionComparisonCard extends StatelessWidget {
     required this.includedInPlan,
   });
 
+  @override
+  State<SubscriptionComparisonCard> createState() =>
+      _SubscriptionComparisonCardState();
+}
+
+class _SubscriptionComparisonCardState
+    extends State<SubscriptionComparisonCard> {
   Widget _buildCheck(bool value) {
     return Icon(
       value ? Icons.check : Icons.remove,
       color: value ? white : white_gray,
       size: 20,
     );
+  }
+
+// ...in your profile page or parent widget...
+  String? _currentPlanName;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserPlan();
+  }
+
+  Future<void> _fetchUserPlan() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    if (userId == null) return;
+    final response = await http
+        .get(Uri.parse('$BASE_URL_JOBS/api/user-capabilities/$userId'));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        _currentPlanName = (data['plan_name'] as String?)?.toLowerCase();
+      });
+    }
+  }
+
+  String getBadgeText(String cardPlan, String? userPlan) {
+    final order = ['free', 'gold', 'platinum'];
+    final cardIdx = order.indexOf(cardPlan);
+    final userIdx = order.indexOf((userPlan ?? 'free').toLowerCase());
+
+    if (cardIdx == userIdx) return 'Plan actuel';
+    if (cardIdx < userIdx) return 'Déjà inclus';
+    return 'Upgrade';
   }
 
   @override
@@ -39,14 +84,14 @@ class SubscriptionComparisonCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [gradientStart, gradientEnd],
+          colors: [widget.gradientStart, widget.gradientEnd],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: gradientEnd.withOpacity(0.4),
+            color: widget.gradientEnd.withOpacity(0.4),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -89,8 +134,8 @@ class SubscriptionComparisonCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Text(
-                  "Plan actuel",
+                child: Text(
+                  getBadgeText('free', _currentPlanName),
                   style: TextStyle(
                     color: Colors.black,
                     fontWeight: FontWeight.w700,
@@ -128,17 +173,6 @@ class SubscriptionComparisonCard extends StatelessWidget {
                       color: Colors.white),
                 ),
               ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  "Gold",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: Colors.white),
-                ),
-              ),
             ],
           ),
 
@@ -146,7 +180,7 @@ class SubscriptionComparisonCard extends StatelessWidget {
           const Divider(thickness: 1.2, height: 22),
 
           // 🔘 Feature rows
-          ...List.generate(features.length, (index) {
+          ...List.generate(widget.features.length, (index) {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
               child: Row(
@@ -154,18 +188,15 @@ class SubscriptionComparisonCard extends StatelessWidget {
                   Expanded(
                     flex: 6,
                     child: Text(
-                      features[index],
+                      widget.features[index],
                       style:
                           const TextStyle(fontSize: 13.5, color: Colors.white),
                     ),
                   ),
                   Expanded(
                     flex: 2,
-                    child: Center(child: _buildCheck(includedInFree[index])),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Center(child: _buildCheck(includedInPlan[index])),
+                    child: Center(
+                        child: _buildCheck(widget.includedInFree[index])),
                   ),
                 ],
               ),
@@ -191,17 +222,21 @@ class SubscriptionComparisonCard extends StatelessWidget {
 }
 
 class PlatinumSubscriptionCard extends StatelessWidget {
+  final String planName;
   final List<String> features;
   final List<bool> includedInFree;
   final List<bool> includedInGold;
   final List<bool> includedInPlatinum;
+  final String? currentPlanName;
 
   const PlatinumSubscriptionCard({
     super.key,
+    required this.planName,
     required this.features,
     required this.includedInFree,
     required this.includedInGold,
     required this.includedInPlatinum,
+    required this.currentPlanName,
   });
 
   Widget _buildCheck(bool value) {
@@ -210,6 +245,15 @@ class PlatinumSubscriptionCard extends StatelessWidget {
       color: value ? Colors.black : Colors.black.withOpacity(0.3),
       size: 20,
     );
+  }
+
+  String getBadgeText(String cardPlan, String? userPlan) {
+    final order = ['free', 'gold', 'platinum'];
+    final cardIdx = order.indexOf(cardPlan);
+    final userIdx = order.indexOf((userPlan ?? 'free').toLowerCase());
+    if (cardIdx == userIdx) return 'Plan actuel';
+    if (cardIdx < userIdx) return 'Déjà inclus';
+    return 'Upgrade';
   }
 
   @override
@@ -238,7 +282,6 @@ class PlatinumSubscriptionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -247,7 +290,7 @@ class PlatinumSubscriptionCard extends StatelessWidget {
                   Icon(Icons.diamond, color: Colors.black87, size: 22),
                   SizedBox(width: 8),
                   Text(
-                    "Platinum",
+                    "platinum",
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
@@ -271,9 +314,9 @@ class PlatinumSubscriptionCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Text(
-                  "Upgrade",
-                  style: TextStyle(
+                child: Text(
+                  getBadgeText('platinum', currentPlanName),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
@@ -282,10 +325,7 @@ class PlatinumSubscriptionCard extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 15),
-
-          // Header row
           const Row(
             children: [
               Expanded(
@@ -323,11 +363,8 @@ class PlatinumSubscriptionCard extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 16),
           const Divider(thickness: 1.2, color: Colors.black12),
-
-          // Feature rows
           ...List.generate(features.length, (index) {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -356,9 +393,7 @@ class PlatinumSubscriptionCard extends StatelessWidget {
               ),
             );
           }),
-
           const SizedBox(height: 10),
-
           const Center(
             child: Text(
               "Voir toutes les options",

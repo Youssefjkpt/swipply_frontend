@@ -146,9 +146,14 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
 
   final List<Map<String, String>> features = [
     {
-      "title": "Candidature automatique illimitée",
+      "title": "Swipes",
       "description":
-          "Laissez notre IA postuler sans interruption pour maximiser vos chances.",
+          "80 swipes, recharge automatique, maximisez vos chances d’être embauché grâce à davantage d’offres et de candidatures pertinentes.",
+    },
+    {
+      "title": "Candidature automatique IA",
+      "description":
+          "Laissez l'IA postuler pour vous, automatiquement pour maximiser vos chances.",
     },
     {
       "title": "Recommandations d'emploi prioritaires",
@@ -160,9 +165,17 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
           "Distinguez-vous auprès des recruteurs grâce à un badge Platinum.",
     },
     {
-      "title": "Messagerie directe recruteur",
+      "title": "Annuler likes/offres",
+      "description": "Rétablissez les swipes effectués par erreur."
+    },
+    {
+      "title": "Aucune publicité",
+      "description": "Profitez d'une expérience fluide, sans interruption."
+    },
+    {
+      "title": "Meilleures offres pour vous",
       "description":
-          "Contactez directement les recruteurs et soyez repéré plus vite.",
+          "Découvrez les emplois correspondant le mieux à votre profil."
     },
   ];
 
@@ -311,7 +324,7 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
-                    "Optimisez votre recherche d'emploi avec Swipply Platinum.",
+                    "Je maximisez ma recherche d'emploi avec Swipply Platinum.",
                     style: TextStyle(
                       fontSize: 23,
                       fontWeight: FontWeight.w700,

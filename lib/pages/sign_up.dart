@@ -217,7 +217,7 @@ class _SignUpState extends State<SignUp> with TickerProviderStateMixin {
     final body = jsonEncode({
       'full_name': _nameController.text.trim(),
       'email': _emailController.text.trim(),
-      'phone_number': '0000000000',
+      'phone_number': '123456789', // placeholder
       'password': _passwordController.text.trim(),
     });
 

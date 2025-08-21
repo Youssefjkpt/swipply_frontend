@@ -16,7 +16,9 @@
       android:theme="@style/AppTheme"
     android:allowBackup="true"
     android:screenOrientation="portrait"
-    android:enableOnBackInvokedCallback="true">
+    android:enableOnBackInvokedCallback="true"
+    android:usesCleartextTraffic="true"
+   >
 
     <!-- Google Maps API -->
     <meta-data

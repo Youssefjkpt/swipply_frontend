@@ -8,7 +8,8 @@ import 'package:swipply/widgets/golden_plan.dart';
 import 'package:swipply/widgets/subscriptions_profile.dart';
 
 class MiniSubscriptionSwiper extends StatefulWidget {
-  const MiniSubscriptionSwiper({super.key});
+  final String currentPlanName;
+  const MiniSubscriptionSwiper({super.key, required this.currentPlanName});
 
   @override
   State<MiniSubscriptionSwiper> createState() => _MiniSubscriptionSwiperState();
@@ -20,13 +21,28 @@ class _MiniSubscriptionSwiperState extends State<MiniSubscriptionSwiper> {
   Timer? _autoSwipeTimer;
   Timer? _pauseTimer;
 
-  final List<String> liteFeatures = [
-    "Sélection de poste préférée",
-    "1 h de candidature automatique IA/jour",
+  final List<String> liteFeaturesFree = [
+    "4 Swipes chaque jour",
+    "Personnalisation de mon CV",
+    "Candidature automatique avec l'IA",
   ];
-  final List<bool> liteFree = [true, false];
-  final List<bool> liteGold = [true, true];
-  final List<bool> litePlatinum = [true, true];
+  final List<String> liteFeaturesGold = [
+    "50 Swipes chaque semaine",
+    "Personnalisation de mon CV",
+  ];
+  final List<String> liteFeaturesPlatinum = [
+    "80 Swipes chaque semaine",
+    "Personnalisation de mon CV",
+  ];
+  final List<bool> liteFree = [true, false, false];
+  final List<bool> liteGold = [
+    true,
+    true,
+  ];
+  final List<bool> litePlatinum = [
+    true,
+    true,
+  ];
 
   @override
   void initState() {
@@ -95,7 +111,7 @@ class _MiniSubscriptionSwiperState extends State<MiniSubscriptionSwiper> {
                     badgeText: "GRATUIT",
                     gradientStart: blue_gray,
                     gradientEnd: black_gray,
-                    features: liteFeatures,
+                    features: liteFeaturesFree,
                     includedInFree: liteFree,
                     includedInPlan: liteFree,
                   ),
@@ -107,10 +123,10 @@ class _MiniSubscriptionSwiperState extends State<MiniSubscriptionSwiper> {
                       MaterialPageRoute(
                           builder: (context) => SwipplyGoldDetailsPage())),
                   child: GoldSubscriptionCard(
-                    features: liteFeatures,
+                    features: liteFeaturesGold,
                     includedInFree: liteFree,
                     includedInGold: liteGold,
-                    includedInPlan: [],
+                    currentPlanName: widget.currentPlanName,
                   ),
                 );
               } else {
@@ -120,10 +136,12 @@ class _MiniSubscriptionSwiperState extends State<MiniSubscriptionSwiper> {
                       MaterialPageRoute(
                           builder: (context) => SwipplyPremiumDetailsPage())),
                   child: PlatinumSubscriptionCard(
-                    features: liteFeatures,
+                    planName: "Platinum",
+                    features: liteFeaturesPlatinum,
                     includedInFree: liteFree,
                     includedInGold: liteGold,
                     includedInPlatinum: litePlatinum,
+                    currentPlanName: widget.currentPlanName,
                   ),
                 );
               }

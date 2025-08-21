@@ -25,3 +25,6 @@ const notFound = 'assets/A24vQawHMI.json';
 const skip = 'assets/skip.json';
 const teamwork = 'assets/teamwork.json';
 const cool = 'assets/cool.json';
+const coin = 'assets/coin.json';
+const type = 'assets/type.json';
+const contract = 'assets/contract.json';

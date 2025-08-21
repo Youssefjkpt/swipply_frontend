@@ -128,65 +128,66 @@ class InterestsSection extends StatelessWidget {
     final count = interests.length;
     final toShow = showAll ? interests : interests.take(3).toList();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: blue_gray,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Text(
-            'Intérêts',
-            style: TextStyle(
-              color: white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: onEdit,
-            child: const Icon(Icons.edit, color: white_gray, size: 20),
-          ),
-        ]),
-        const SizedBox(height: 15),
-        if (count == 0)
-          const Text(
-            'Aucun intérêt ajouté',
-            style: TextStyle(color: white_gray, fontSize: 15),
-          )
-        else
-          ...toShow.map((i) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(top: 6),
-                        child: Icon(Icons.circle, color: blue, size: 6),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                          child: Text(
-                        i,
-                        style: const TextStyle(color: white_gray, fontSize: 15),
-                      )),
-                    ]),
-              )),
-        if (count > 3)
-          GestureDetector(
-            onTap: onToggleShowAll,
-            child: Text(
-              showAll ? 'Voir moins' : 'Voir plus',
-              style: const TextStyle(
-                color: blue,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
+    return GestureDetector(
+      onTap: onEdit,
+      child: Container(
+        decoration: BoxDecoration(
+          color: blue_gray,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Text(
+              'Intérêts',
+              style: TextStyle(
+                color: white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          ),
-      ]),
+            const Spacer(),
+            const Icon(Icons.edit, color: white_gray, size: 20),
+          ]),
+          const SizedBox(height: 15),
+          if (count == 0)
+            const Text(
+              'Aucun intérêt ajouté',
+              style: TextStyle(color: white_gray, fontSize: 15),
+            )
+          else
+            ...toShow.map((i) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 6),
+                          child: Icon(Icons.circle, color: blue, size: 6),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                            child: Text(
+                          i,
+                          style:
+                              const TextStyle(color: white_gray, fontSize: 15),
+                        )),
+                      ]),
+                )),
+          if (count > 3)
+            GestureDetector(
+              onTap: onToggleShowAll,
+              child: Text(
+                showAll ? 'Voir moins' : 'Voir plus',
+                style: const TextStyle(
+                  color: blue,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+        ]),
+      ),
     );
   }
 }
@@ -1460,98 +1461,98 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                 ),
                 Padding(
                   padding: const EdgeInsets.only(left: 15, right: 15),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: blue_gray,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 🧠 Header
-                        Row(
-                          children: [
-                            const Text(
-                              'Expérience',
-                              style: TextStyle(
-                                color: white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const Spacer(),
-                            GestureDetector(
-                              onTap: () async {
-                                await showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (_) => EditExperienceSheet(
-                                    initialExperiences: experiences,
-                                    onSave: (updated) =>
-                                        setState(() => experiences = updated),
-                                  ),
-                                );
-                              },
-                              child: const Icon(Icons.edit,
-                                  color: white_gray, size: 20),
-                            ),
-                          ],
+                  child: GestureDetector(
+                    onTap: () async {
+                      await showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => EditExperienceSheet(
+                          initialExperiences: experiences,
+                          onSave: (updated) =>
+                              setState(() => experiences = updated),
                         ),
-                        const SizedBox(height: 15),
-
-                        // 📋 List of experiences
-                        ...List.generate(
-                          showAll
-                              ? experiences.length
-                              : (experiences.length > 3
-                                  ? 3
-                                  : experiences.length),
-                          (index) => Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Padding(
-                                  padding: EdgeInsets.only(top: 6),
-                                  child:
-                                      Icon(Icons.circle, color: blue, size: 6),
+                      );
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: blue_gray,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 🧠 Header
+                          Row(
+                            children: [
+                              const Text(
+                                'Expérience',
+                                style: TextStyle(
+                                  color: white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    experiences[index],
-                                    style: const TextStyle(
-                                      color: white_gray,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w400,
+                              ),
+                              const Spacer(),
+                              const Icon(Icons.edit,
+                                  color: white_gray, size: 20),
+                            ],
+                          ),
+                          const SizedBox(height: 15),
+
+                          // 📋 List of experiences
+                          ...List.generate(
+                            showAll
+                                ? experiences.length
+                                : (experiences.length > 3
+                                    ? 3
+                                    : experiences.length),
+                            (index) => Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 6),
+                                    child: Icon(Icons.circle,
+                                        color: blue, size: 6),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      experiences[index],
+                                      style: const TextStyle(
+                                        color: white_gray,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w400,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        // 🔽 Read More / 🔼 Read Less toggle
-                        if (experiences.length > 3)
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                showAll = !showAll;
-                              });
-                            },
-                            child: Text(
-                              showAll ? 'Voir moins' : 'Voir plus',
-                              style: const TextStyle(
-                                color: blue,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
+                                ],
                               ),
                             ),
                           ),
-                      ],
+
+                          // 🔽 Read More / 🔼 Read Less toggle
+                          if (experiences.length > 3)
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  showAll = !showAll;
+                                });
+                              },
+                              child: Text(
+                                showAll ? 'Voir moins' : 'Voir plus',
+                                style: const TextStyle(
+                                  color: blue,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -1616,59 +1617,60 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                       const SizedBox(height: 25),
 
                       // Soft Skills chips + edit
-                      Container(
-                        decoration: BoxDecoration(
-                          color: blue_gray,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(children: [
-                              const Text(
-                                'Soft Skills',
-                                style: TextStyle(
-                                    color: white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                              const Spacer(),
-                              GestureDetector(
-                                onTap: _openEditSoftSkillsSheet,
-                                child: const Icon(Icons.edit,
+                      GestureDetector(
+                        onTap: _openEditSoftSkillsSheet,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: blue_gray,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(children: [
+                                const Text(
+                                  'Compétences Douces',
+                                  style: TextStyle(
+                                      color: white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                                const Spacer(),
+                                const Icon(Icons.edit,
                                     color: white_gray, size: 20),
-                              ),
-                            ]),
-                            const SizedBox(height: 15),
-                            if (softSkills.isEmpty)
-                              const Text(
-                                'Aucune compétence douce',
-                                style:
-                                    TextStyle(color: white_gray, fontSize: 15),
-                              )
-                            else
-                              Wrap(
-                                spacing: 10,
-                                runSpacing: 10,
-                                children: softSkills.map((skill) {
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: black_gray,
-                                      border: Border.all(color: white_gray),
-                                      borderRadius: BorderRadius.circular(100),
-                                    ),
-                                    child: Text(
-                                      skill,
-                                      style: const TextStyle(
-                                          color: white, fontSize: 14),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                          ],
+                              ]),
+                              const SizedBox(height: 15),
+                              if (softSkills.isEmpty)
+                                const Text(
+                                  'Aucune compétence douce',
+                                  style: TextStyle(
+                                      color: white_gray, fontSize: 15),
+                                )
+                              else
+                                Wrap(
+                                  spacing: 10,
+                                  runSpacing: 10,
+                                  children: softSkills.map((skill) {
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 14, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: black_gray,
+                                        border: Border.all(color: white_gray),
+                                        borderRadius:
+                                            BorderRadius.circular(100),
+                                      ),
+                                      child: Text(
+                                        skill,
+                                        style: const TextStyle(
+                                            color: white, fontSize: 14),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(height: 15),
@@ -1687,167 +1689,175 @@ class _CVState extends State<CV> with TickerProviderStateMixin {
                       ),
 
                       const SizedBox(height: 15),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: blue_gray,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Text(
-                                  'Certificats',
-                                  style: TextStyle(
-                                    color: white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const Spacer(),
-                                GestureDetector(
-                                  onTap: _openCertificatesSheet,
-                                  child: const Icon(Icons.edit,
-                                      color: white_gray, size: 20),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 15),
-                            if (certificates.isEmpty)
-                              const Text(
-                                'Aucun certificat ajouté',
-                                style: TextStyle(color: white_gray),
-                              )
-                            else
-                              Column(
-                                children: certificates.map((cert) {
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    padding: const EdgeInsets.all(14),
-                                    decoration: BoxDecoration(
-                                      color: black_gray,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                          color: white_gray.withOpacity(0.2)),
+
+                      GestureDetector(
+                        onTap: _openCertificatesSheet,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: blue_gray,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text(
+                                    'Certificats',
+                                    style: TextStyle(
+                                      color: white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
                                     ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            const Icon(Icons.workspace_premium,
-                                                size: 20, color: blue),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: Text(
-                                                cert['title'] ?? 'Sans titre',
-                                                style: const TextStyle(
-                                                  color: white,
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 15,
+                                  ),
+                                  const Spacer(),
+                                  const Icon(Icons.edit,
+                                      color: white_gray, size: 20),
+                                ],
+                              ),
+                              const SizedBox(height: 15),
+                              if (certificates.isEmpty)
+                                const Text(
+                                  'Aucun certificat ajouté',
+                                  style: TextStyle(color: white_gray),
+                                )
+                              else
+                                Column(
+                                  children: certificates.map((cert) {
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 12),
+                                      padding: const EdgeInsets.all(14),
+                                      decoration: BoxDecoration(
+                                        color: black_gray,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                            color: white_gray.withOpacity(0.2)),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              const Icon(
+                                                  Icons.workspace_premium,
+                                                  size: 20,
+                                                  color: blue),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  cert['title'] ?? 'Sans titre',
+                                                  style: const TextStyle(
+                                                    color: white,
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 15,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                            if (cert['verified'] ==
-                                                'true') // Notice it's a String comparison
-                                              Container(
-                                                margin: const EdgeInsets.only(
-                                                    top: 8),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 10,
-                                                        vertical: 4),
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(50),
-                                                  gradient:
-                                                      const LinearGradient(
-                                                    colors: [
-                                                      Colors.greenAccent,
-                                                      Colors.green
+                                              if (cert['verified'] ==
+                                                  'true') // Notice it's a String comparison
+                                                Container(
+                                                  margin: const EdgeInsets.only(
+                                                      top: 8),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            50),
+                                                    gradient:
+                                                        const LinearGradient(
+                                                      colors: [
+                                                        Colors.greenAccent,
+                                                        Colors.green
+                                                      ],
+                                                    ),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.green
+                                                            .withOpacity(0.4),
+                                                        blurRadius: 6,
+                                                        offset:
+                                                            const Offset(0, 3),
+                                                      ),
                                                     ],
                                                   ),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: Colors.green
-                                                          .withOpacity(0.4),
-                                                      blurRadius: 6,
-                                                      offset:
-                                                          const Offset(0, 3),
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: const Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Icon(Icons.verified,
-                                                        size: 14, color: black),
-                                                    SizedBox(width: 4),
-                                                    Text(
-                                                      'Vérifié',
-                                                      style: TextStyle(
-                                                        color: black,
-                                                        fontSize: 12,
-                                                        fontWeight:
-                                                            FontWeight.w600,
+                                                  child: const Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Icon(Icons.verified,
+                                                          size: 14,
+                                                          color: black),
+                                                      SizedBox(width: 4),
+                                                      Text(
+                                                        'Vérifié',
+                                                        style: TextStyle(
+                                                          color: black,
+                                                          fontSize: 12,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
                                                       ),
-                                                    ),
-                                                  ],
+                                                    ],
+                                                  ),
                                                 ),
-                                              ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 6),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            cert['issuer'] ??
+                                                'Émetteur inconnu',
+                                            style: const TextStyle(
+                                                color: white_gray,
+                                                fontSize: 14),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            cert['date'] ?? 'Sans date',
+                                            style: const TextStyle(
+                                                color: white_gray,
+                                                fontSize: 13),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              const SizedBox(height: 20),
+                              GestureDetector(
+                                onTap: _openCertificatesSheet,
+                                child: Container(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  decoration: BoxDecoration(
+                                    color: black,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: white_gray),
+                                  ),
+                                  child: const Center(
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.add, color: white),
+                                        SizedBox(width: 6),
                                         Text(
-                                          cert['issuer'] ?? 'Émetteur inconnu',
-                                          style: const TextStyle(
-                                              color: white_gray, fontSize: 14),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          cert['date'] ?? 'Sans date',
-                                          style: const TextStyle(
-                                              color: white_gray, fontSize: 13),
+                                          '	Ajouter un certificat',
+                                          style: TextStyle(
+                                            color: white,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ],
                                     ),
-                                  );
-                                }).toList(),
-                              ),
-                            const SizedBox(height: 20),
-                            GestureDetector(
-                              onTap: _openCertificatesSheet,
-                              child: Container(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: black,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: white_gray),
-                                ),
-                                child: const Center(
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.add, color: white),
-                                      SizedBox(width: 6),
-                                      Text(
-                                        '	Ajouter un certificat',
-                                        style: TextStyle(
-                                          color: white,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       )
                     ],
@@ -2607,139 +2617,139 @@ class _SkillsSectionState extends State<SkillsSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: blue_gray,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 🧠 Section Header
-          Row(
-            children: [
-              const Text(
-                'Compétences & maîtrise',
-                style: TextStyle(
-                  color: white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: _openEditSkills,
-                child: const Icon(Icons.edit, color: white_gray, size: 20),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Mettez en avant vos atouts, montrez aux recruteurs vos points forts !',
-            style: TextStyle(color: white_gray, fontSize: 14),
-          ),
-          const SizedBox(height: 20),
-
-          // Displaying Skills
-          if (skills.isEmpty)
-            const Text(
-              'Aucune compétence ajoutée.',
-              style: TextStyle(color: white_gray, fontSize: 15),
-            )
-          else
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: skills.map((skill) {
-                return Container(
-                  decoration: BoxDecoration(
-                    color: _levelToColor(skill['level']),
-                    borderRadius: BorderRadius.circular(100),
+    return GestureDetector(
+      onTap: _openEditSkills,
+      child: Container(
+        decoration: BoxDecoration(
+          color: blue_gray,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 🧠 Section Header
+            Row(
+              children: [
+                const Text(
+                  'Compétences & maîtrise',
+                  style: TextStyle(
+                    color: white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
                   ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
+                const Spacer(),
+                const Icon(Icons.edit, color: white_gray, size: 20),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Mettez en avant vos atouts, montrez aux recruteurs vos points forts !',
+              style: TextStyle(color: white_gray, fontSize: 14),
+            ),
+            const SizedBox(height: 20),
+
+            // Displaying Skills
+            if (skills.isEmpty)
+              const Text(
+                'Aucune compétence ajoutée.',
+                style: TextStyle(color: white_gray, fontSize: 15),
+              )
+            else
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: skills.map((skill) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: _levelToColor(skill['level']),
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.bolt,
+                          size: 16,
+                          color: black,
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            skill['name'],
+                            style: const TextStyle(
+                              color: black,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+
+            const SizedBox(height: 25),
+
+            // 🎯 Level bar
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: const [
+                Text('Débutant', style: TextStyle(color: white)),
+                Text('Intermédiaire', style: TextStyle(color: white_gray)),
+                Text('Expert', style: TextStyle(color: white)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            LinearProgressIndicator(
+              value: skills.isNotEmpty
+                  ? skills
+                          .map((e) => e['level'] as double)
+                          .reduce((a, b) => a + b) /
+                      skills.length
+                  : 0,
+              backgroundColor: black_gray,
+              color: Colors.tealAccent,
+              minHeight: 10,
+              borderRadius: BorderRadius.circular(50),
+            ),
+
+            const SizedBox(height: 25),
+            GestureDetector(
+              onTap: _openEditSkills,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: black,
+                  border: Border.all(color: white_gray),
+                ),
+                child: const Center(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.bolt,
-                        size: 16,
-                        color: black,
-                      ),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          skill['name'],
-                          style: const TextStyle(
-                            color: black,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+                      Icon(Icons.add, color: white),
+                      SizedBox(width: 6),
+                      Text(
+                        'Ajouter une compétence',
+                        style: TextStyle(
+                          color: white,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
-                );
-              }).toList(),
-            ),
-
-          const SizedBox(height: 25),
-
-          // 🎯 Level bar
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text('Débutant', style: TextStyle(color: white)),
-              Text('Intermédiaire', style: TextStyle(color: white_gray)),
-              Text('Expert', style: TextStyle(color: white)),
-            ],
-          ),
-          const SizedBox(height: 6),
-          LinearProgressIndicator(
-            value: skills.isNotEmpty
-                ? skills
-                        .map((e) => e['level'] as double)
-                        .reduce((a, b) => a + b) /
-                    skills.length
-                : 0,
-            backgroundColor: black_gray,
-            color: Colors.tealAccent,
-            minHeight: 10,
-            borderRadius: BorderRadius.circular(50),
-          ),
-
-          const SizedBox(height: 25),
-          GestureDetector(
-            onTap: _openEditSkills,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: black,
-                border: Border.all(color: white_gray),
-              ),
-              child: const Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.add, color: white),
-                    SizedBox(width: 6),
-                    Text(
-                      'Ajouter une compétence',
-                      style: TextStyle(
-                        color: white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2790,9 +2800,9 @@ class _EditSoftSkillsSheetState extends State<EditSoftSkillsSheet> {
         return true;
       },
       child: DraggableScrollableSheet(
-        initialChildSize: 0.85,
+        initialChildSize: 0.80,
         maxChildSize: 0.95,
-        minChildSize: 0.6,
+        minChildSize: 0.4,
         expand: false,
         builder: (_, scroll) => Container(
           padding: const EdgeInsets.all(20),
@@ -2815,7 +2825,7 @@ class _EditSoftSkillsSheetState extends State<EditSoftSkillsSheet> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Sélectionnez vos Soft Skills',
+                'Sélectionnez vos compétences douces',
                 style: TextStyle(
                     color: white, fontSize: 20, fontWeight: FontWeight.w600),
               ),
@@ -3073,85 +3083,93 @@ class _EditStartDateSheetState extends State<EditStartDateSheet> {
 
 const List<String> allSoftSkills = [
   'Communication',
-  'Teamwork',
-  'Adaptability',
-  'Problem-solving',
-  'Critical thinking',
-  'Time management',
-  'Work ethic',
-  'Creativity',
-  'Emotional intelligence',
+  'Travail en équipe',
+  'Adaptabilité',
+  'Résolution de problèmes',
+  'Esprit critique',
+  'Gestion du temps',
+  'Éthique de travail',
+  'Créativité',
+  'Intelligence émotionnelle',
   'Leadership',
-  'Responsibility',
-  'Decision making',
-  'Conflict resolution',
-  'Flexibility',
-  'Organization',
-  'Empathy',
+  'Responsabilité',
+  'Prise de décision',
+  'Résolution de conflits',
+  'Flexibilité',
+  'Organisation',
+  'Empathie',
   'Collaboration',
-  'Stress management',
-  'Multitasking',
-  'Self-motivation',
-  'Listening',
-  'Accountability',
+  'Gestion du stress',
+  'Multitâche',
+  'Motivation personnelle',
+  'Écoute',
+  'Redevabilité',
   'Persuasion',
-  'Negotiation',
+  'Négociation',
   'Patience',
-  'Confidence',
-  'Delegation',
+  'Confiance en soi',
+  'Délégation',
   'Initiative',
-  'Attention to detail',
-  'Public speaking',
-  'Positive attitude',
-  'Active learning',
-  'Strategic thinking',
-  'Constructive feedback',
-  'Giving feedback',
+  'Sens du détail',
+  'Prise de parole en public',
+  'Attitude positive',
+  'Apprentissage actif',
+  'Pensée stratégique',
+  'Feedback constructif',
   'Coaching',
-  'Mentoring',
+  'Mentorat',
   'Discipline',
-  'Cultural awareness',
-  'Resourcefulness',
-  'Integrity',
-  'Goal-setting',
-  'Self-awareness',
-  'Curiosity',
-  'Non-verbal communication',
-  'Humility',
-  'Respectfulness',
-  'Inclusivity',
-  'Receptiveness',
-  'Mindfulness',
-  'Self-regulation',
-  'Stress tolerance',
-  'Analytical skills',
-  'Digital literacy',
-  'Networking',
+  'Sensibilité culturelle',
+  'Débrouillardise',
+  'Intégrité',
+  'Fixation d’objectifs',
+  'Conscience de soi',
+  'Curiosité',
+  'Communication non verbale',
+  'Humilité',
+  'Respect',
+  'Inclusion',
+  'Réceptivité',
+  'Pleine conscience',
+  'Autorégulation',
+  'Tolérance au stress',
+  'Compétences analytiques',
+  'Culture numérique',
+  'Réseautage',
   'Facilitation',
-  'Service orientation',
-  'Relationship building',
-  'Diplomacy',
-  'Assertiveness',
-  'Boundary setting',
-  'Change management',
-  'Persuasive writing',
-  'Storytelling',
-  'Visioning',
-  'Influencing',
-  'Crisis management',
-  'Customer empathy',
-  'Ethical judgment',
-  'Risk assessment',
-  'Process improvement',
-  'Quality orientation',
-  'Global mindset',
-  'Social responsibility',
-  'Data-driven decision making',
-  'Resilience',
-  'Tolerance for ambiguity',
-  'Systems thinking',
-  'Design thinking',
-  'Problem identification',
+  'Orientation service',
+  'Création de relations',
+  'Diplomatie',
+  'Affirmation de soi',
+  'Définition de limites',
+  'Gestion du changement',
+  'Écriture persuasive',
+  'Art du récit',
+  'Vision stratégique',
+  'Influence',
+  'Gestion de crise',
+  'Empathie client',
+  'Jugement éthique',
+  'Évaluation des risques',
+  'Amélioration des processus',
+  'Orientation qualité',
+  'Ouverture internationale',
+  'Responsabilité sociale',
+  'Décision basée sur les données',
+  'Résilience',
+  'Tolérance à l’ambiguïté',
+  'Pensée systémique',
+  'Pensée design',
+  'Identification de problèmes',
+  'Innovation',
+  'Professionnalisme',
+  'Fiabilité',
+  'Amélioration continue',
+  'Collaboration à distance',
+  'Auto-apprentissage',
+  'Agilité',
+  'Esprit entrepreneurial',
+  'Apprentissage continu',
 ];
 
 class AvailabilitySection extends StatefulWidget {
@@ -3184,52 +3202,52 @@ class _AvailabilitySectionState extends State<AvailabilitySection> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
-      child: Container(
-        decoration: BoxDecoration(
-          color: blue_gray,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Text(
-                  'Disponibilité',
-                  style: TextStyle(
-                    color: white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: _openEditStartDate,
-                  child: const Icon(Icons.edit, color: white_gray, size: 20),
-                ),
-              ],
-            ),
-            const SizedBox(height: 15),
-            RichText(
-              text: TextSpan(
-                style: const TextStyle(fontSize: 15),
+      child: GestureDetector(
+        onTap: _openEditStartDate,
+        child: Container(
+          decoration: BoxDecoration(
+            color: blue_gray,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  const TextSpan(
-                    text: 'Date de début: ',
-                    style: TextStyle(color: white, fontSize: 17),
+                  const Text(
+                    'Disponibilité',
+                    style: TextStyle(
+                      color: white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  TextSpan(
-                    text: startDateText,
-                    style: const TextStyle(
-                        color: white_gray,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 17),
-                  ),
+                  const Spacer(),
+                  const Icon(Icons.edit, color: white_gray, size: 20),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 15),
+              RichText(
+                text: TextSpan(
+                  style: const TextStyle(fontSize: 15),
+                  children: [
+                    const TextSpan(
+                      text: 'Date de début: ',
+                      style: TextStyle(color: white, fontSize: 17),
+                    ),
+                    TextSpan(
+                      text: startDateText,
+                      style: const TextStyle(
+                          color: white_gray,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 17),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -4044,7 +4062,7 @@ class _LanguageDetailsSheetState extends State<LanguageDetailsSheet> {
         .toList();
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.4,
+      initialChildSize: 0.7,
       minChildSize: 0.4,
       maxChildSize: 0.95,
       expand: false,
@@ -4231,39 +4249,39 @@ class _ContactInfoSectionState extends State<ContactInfoSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: blue_gray,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'Informations de contact',
-                style: TextStyle(
-                  color: white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+    return GestureDetector(
+      onTap: _openEditModal,
+      child: Container(
+        decoration: BoxDecoration(
+          color: blue_gray,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text(
+                  'Informations de contact',
+                  style: TextStyle(
+                    color: white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: _openEditModal,
-                child: const Icon(Icons.edit, color: white_gray, size: 20),
-              ),
-            ],
-          ),
-          const SizedBox(height: 15),
-          Text('Téléphone : $phone',
-              style: const TextStyle(color: white_gray, fontSize: 15)),
-          const SizedBox(height: 8),
-          Text('Adresse : $address',
-              style: const TextStyle(color: white_gray, fontSize: 15)),
-        ],
+                const Spacer(),
+                const Icon(Icons.edit, color: white_gray, size: 20),
+              ],
+            ),
+            const SizedBox(height: 15),
+            Text('Téléphone : $phone',
+                style: const TextStyle(color: white_gray, fontSize: 15)),
+            const SizedBox(height: 8),
+            Text('Adresse : $address',
+                style: const TextStyle(color: white_gray, fontSize: 15)),
+          ],
+        ),
       ),
     );
   }

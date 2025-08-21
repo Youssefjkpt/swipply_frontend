@@ -140,7 +140,62 @@ class ApiService {
     return _handleResponse(response);
   }
 
-  // api_service.dart (add / replace)
+  static const String fastApiUrl = 'https://swipply-2ue1.onrender.com';
+
+  static Future<List<Map<String, dynamic>>> fetchBestJobsForUser({
+    required String userId,
+    int n = 100,
+    List<String> excludeJobIds = const [],
+    required String fastApiUrl, // e.g. https://your-fastapi
+    required String baseUrlJobs, // e.g. https://your-node
+    String? token,
+  }) async {
+    final bestUrl = '$fastApiUrl/find_best_jobs/$userId?n=$n';
+    final bestRes =
+        await http.get(Uri.parse(bestUrl)).timeout(const Duration(seconds: 30));
+    if (bestRes.statusCode != 200) {
+      throw Exception('best_jobs ${bestRes.statusCode}: ${bestRes.body}');
+    }
+
+    final best = jsonDecode(bestRes.body);
+    final List bestJobs = (best['best_jobs'] as List?) ?? [];
+    final ids = bestJobs
+        .map<String>((j) => j['job_id'] as String)
+        .where((id) => !excludeJobIds.contains(id))
+        .toList();
+
+    if (ids.isEmpty) return [];
+
+    final out = <Map<String, dynamic>>[];
+    const chunkSize = 40;
+
+    for (var i = 0; i < ids.length; i += chunkSize) {
+      final chunk = ids.sublist(
+          i, (i + chunkSize > ids.length) ? ids.length : i + chunkSize);
+
+      // GET /api/jobs?ids=id1,id2,id3
+      final uri = Uri.parse('$baseUrlJobs/api/jobs')
+          .replace(queryParameters: {'ids': chunk.join(',')});
+
+      final resp = await http.get(
+        uri,
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 20));
+
+      if (resp.statusCode != 200) {
+        throw Exception('job_details GET ${resp.statusCode}: ${resp.body}');
+      }
+
+      final List list = jsonDecode(resp.body);
+      out.addAll(list.cast<Map<String, dynamic>>());
+    }
+
+    final byId = {for (final j in out) j['job_id']: j};
+    return ids.map((id) => byId[id]).whereType<Map<String, dynamic>>().toList();
+  }
+
   static Future<List<Map<String, dynamic>>> fetchJobs({
     List<String>? jobCategories,
     List<String>? categoryChips,
@@ -204,7 +259,6 @@ class ApiService {
     );
   }
 
-// services/api_service.dart
   static Future<List<Map<String, dynamic>>> fetchFilteredJobs({
     List<String>? categories,
     List<String>? employmentTypes,
@@ -213,14 +267,14 @@ class ApiService {
     String? userId,
   }) async {
     final params = <String, String>{};
-    if (categories?.isNotEmpty == true) {
-      params['categories'] = categories!.join(',');
+    if (categories != null && categories.isNotEmpty) {
+      params['categories'] = categories.join(',');
     }
-    if (employmentTypes?.isNotEmpty == true) {
-      params['employment'] = employmentTypes!.join(',');
+    if (employmentTypes != null && employmentTypes.isNotEmpty) {
+      params['employment'] = employmentTypes.join(',');
     }
-    if (contractTypes?.isNotEmpty == true) {
-      params['contract'] = contractTypes!.join(',');
+    if (contractTypes != null && contractTypes.isNotEmpty) {
+      params['contract'] = contractTypes.join(',');
     }
     if (sinceHours != null) params['since_h'] = '$sinceHours';
     if (userId != null) params['user_id'] = userId;

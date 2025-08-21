@@ -60,6 +60,27 @@ class _ProfileState extends State<Profile> {
     // And listen for tab changes:
     widget.currentTabIndex.addListener(_fetchIfVisible);
     fetchEmployeeData();
+    _fetchUserPlan();
+  }
+
+  Future<void> _fetchUserPlan() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+    if (userId == null) return;
+    final res = await http
+        .get(Uri.parse('$BASE_URL_JOBS/api/user-capabilities/$userId'));
+    if (!mounted) return;
+    if (res.statusCode == 200) {
+      final data = jsonDecode(res.body);
+      setState(() {
+        _currentPlanName =
+            (data['plan_name'] as String?)?.toLowerCase() ?? 'free';
+      });
+    } else {
+      setState(() {
+        _currentPlanName = 'free';
+      });
+    }
   }
 
   @override
@@ -180,6 +201,7 @@ class _ProfileState extends State<Profile> {
   String _jobTitle = 'Etudiant';
   bool isCVIncomplete = false;
   List<String> missingFields = [];
+  String? _currentPlanName = 'free'; // Add this line to define the variable
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -245,6 +267,7 @@ class _ProfileState extends State<Profile> {
       _hasLoadedOnce = false;
     });
     await fetchEmployeeData();
+    await _fetchUserPlan();
   }
 // Ajoute ça dans la classe _ProfileState
 
@@ -622,362 +645,394 @@ class _ProfileState extends State<Profile> {
 
     return Scaffold(
       backgroundColor: black,
-      body: RefreshIndicator(
-        onRefresh: _refreshProfile,
-        color: Colors.white,
-        backgroundColor: Colors.black,
-        child: ListView(children: [
-          if (isCVIncomplete)
-            Padding(
-              padding: const EdgeInsets.only(top: 10, left: 15, right: 15),
-              child: GestureDetector(
-                onTap: () {
-                  showDialog(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                            backgroundColor: blue_gray,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20)),
-                            title: const Text("Champs manquants",
+      body: _currentPlanName == null
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _refreshProfile,
+              color: Colors.white,
+              backgroundColor: Colors.black,
+              child: ListView(children: [
+                if (isCVIncomplete)
+                  Padding(
+                    padding:
+                        const EdgeInsets.only(top: 10, left: 15, right: 15),
+                    child: GestureDetector(
+                      onTap: () {
+                        showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                                  backgroundColor: blue_gray,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20)),
+                                  title: const Text("Champs manquants",
+                                      style: TextStyle(
+                                          color: white,
+                                          fontWeight: FontWeight.bold)),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: missingFields
+                                        .map((field) => Row(
+                                              children: [
+                                                const Icon(Icons.close_rounded,
+                                                    color: Colors.redAccent,
+                                                    size: 20),
+                                                const SizedBox(width: 8),
+                                                Text(field,
+                                                    style: const TextStyle(
+                                                        color: white_gray,
+                                                        fontSize: 14)),
+                                              ],
+                                            ))
+                                        .toList(),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text("Fermer",
+                                          style:
+                                              TextStyle(color: Colors.white)),
+                                    )
+                                  ],
+                                ));
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF3B30).withOpacity(0.15),
+                          border: Border.all(
+                              color: const Color(0xFFFF3B30), width: 1.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 16),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.warning_amber_rounded,
+                                color: Color(0xFFFF3B30), size: 26),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Text(
+                                "Votre CV est incomplet. Touchez pour voir les sections manquantes.",
                                 style: TextStyle(
-                                    color: white, fontWeight: FontWeight.bold)),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: missingFields
-                                  .map((field) => Row(
-                                        children: [
-                                          const Icon(Icons.close_rounded,
-                                              color: Colors.redAccent,
-                                              size: 20),
-                                          const SizedBox(width: 8),
-                                          Text(field,
-                                              style: const TextStyle(
-                                                  color: white_gray,
-                                                  fontSize: 14)),
-                                        ],
-                                      ))
-                                  .toList(),
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
                             ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text("Fermer",
-                                    style: TextStyle(color: Colors.white)),
-                              )
-                            ],
-                          ));
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFF3B30).withOpacity(0.15),
-                    border:
-                        Border.all(color: const Color(0xFFFF3B30), width: 1.2),
-                    borderRadius: BorderRadius.circular(12),
+                            const Icon(Icons.chevron_right,
+                                color: Colors.white54)
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  child: Row(
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: Column(
                     children: [
-                      const Icon(Icons.warning_amber_rounded,
-                          color: Color(0xFFFF3B30), size: 26),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          "Votre CV est incomplet. Touchez pour voir les sections manquantes.",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.logout,
+                                color: Colors.white, size: 30),
+                            onPressed: () => showLogoutOrDeleteDialog(context),
                           ),
-                        ),
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: _showEditBottomSheet,
+                            child: const Text(
+                              'Modifier',
+                              style: TextStyle(
+                                color: white_gray,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const Icon(Icons.chevron_right, color: Colors.white54)
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.logout,
-                          color: Colors.white, size: 30),
-                      onPressed: () => showLogoutOrDeleteDialog(context),
-                    ),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: _showEditBottomSheet,
-                      child: const Text(
-                        'Modifier',
-                        style: TextStyle(
-                          color: white_gray,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      CircleAvatar(
-                        radius: 65,
-                        backgroundColor: Colors.grey[800],
-                        backgroundImage: _profileImage != null
-                            ? FileImage(_profileImage!)
-                            : null,
-                        child:
-                            _profileImage == null && profilePicturePath != null
-                                ? ClipOval(
-                                    child: SizedBox(
-                                      width: 130,
-                                      height: 130,
-                                      child: FadeInImage.assetNetwork(
-                                        placeholder:
-                                            progress, // Use a transparent loader or create one
-                                        image: '$profilePicturePath',
-                                        fit: BoxFit.cover,
-                                        imageErrorBuilder:
-                                            (context, error, stackTrace) =>
-                                                const Icon(
-                                          Icons.person,
-                                          size: 60,
-                                          color: Colors.white70,
+                      const SizedBox(height: 10),
+                      GestureDetector(
+                        onTap: _pickImage,
+                        child: Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            CircleAvatar(
+                              radius: 65,
+                              backgroundColor: Colors.grey[800],
+                              backgroundImage: _profileImage != null
+                                  ? FileImage(_profileImage!)
+                                  : null,
+                              child: _profileImage == null &&
+                                      profilePicturePath != null
+                                  ? ClipOval(
+                                      child: SizedBox(
+                                        width: 130,
+                                        height: 130,
+                                        child: FadeInImage.assetNetwork(
+                                          placeholder:
+                                              progress, // Use a transparent loader or create one
+                                          image: '$profilePicturePath',
+                                          fit: BoxFit.cover,
+                                          imageErrorBuilder:
+                                              (context, error, stackTrace) =>
+                                                  const Icon(
+                                            Icons.person,
+                                            size: 60,
+                                            color: Colors.white70,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  )
-                                : (_profileImage == null &&
-                                        profilePicturePath == null)
-                                    ? const Icon(Icons.person,
-                                        size: 60, color: Colors.white70)
-                                    : null,
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.black87,
-                          border: Border.all(color: Colors.white, width: 2),
+                                    )
+                                  : (_profileImage == null &&
+                                          profilePicturePath == null)
+                                      ? const Icon(Icons.person,
+                                          size: 60, color: Colors.white70)
+                                      : null,
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.black87,
+                                border:
+                                    Border.all(color: Colors.white, width: 2),
+                              ),
+                              padding: const EdgeInsets.all(6),
+                              child: const Icon(Icons.camera_alt_rounded,
+                                  color: Colors.white, size: 20),
+                            ),
+                          ],
                         ),
-                        padding: const EdgeInsets.all(6),
-                        child: const Icon(Icons.camera_alt_rounded,
-                            color: Colors.white, size: 20),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 15),
+                      const SizedBox(height: 15),
 
-                Text(
-                  sanitizeField(fullName) ?? 'Mon nom',
-                  style: const TextStyle(
-                      color: white, fontSize: 22, fontWeight: FontWeight.w700),
-                  textAlign: TextAlign.center,
-                ),
+                      GestureDetector(
+                        onTap: _showEditBottomSheet,
+                        child: Text(
+                          sanitizeField(fullName) ?? 'Mon nom',
+                          style: const TextStyle(
+                              color: white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
 
-                const SizedBox(height: 5),
+                      const SizedBox(height: 5),
 
-                // Job title field
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      sanitizeField(_jobTitle) ?? 'UX Designer',
-                      style: const TextStyle(color: white_gray, fontSize: 15),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(width: 10),
-                    const Icon(Icons.verified,
-                        color: Colors.greenAccent, size: 18),
-                  ],
-                ),
-                const SizedBox(
-                  height: 30,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    AutoApplyBadge(),
-                    SuperLikeBadge(),
-                    GestureDetector(
+                      // Job title field
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: _showEditBottomSheet,
+                            child: Text(
+                              sanitizeField(_jobTitle) ?? 'UX Designer',
+                              style: const TextStyle(
+                                  color: white_gray, fontSize: 15),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          const Icon(Icons.verified,
+                              color: Colors.greenAccent, size: 18),
+                        ],
+                      ),
+                      const SizedBox(
+                        height: 30,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          AutoApplyBadge(),
+                          SuperLikeBadge(),
+                          GestureDetector(
+                              onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          FullSubscriptionPage())),
+                              child: SubscriptionBadge())
+                        ],
+                      ),
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      const Row(
+                        children: [
+                          Text(
+                            'CV',
+                            style: TextStyle(
+                              color: white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Expanded(
+                              child: SizedBox(
+                            width: 1,
+                          )),
+                          Text(
+                            'Créer un CV',
+                            style: TextStyle(
+                                color: Color.fromARGB(217, 36, 120, 255)),
+                          )
+                        ],
+                      ),
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      GestureDetector(
                         onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => FullSubscriptionPage())),
-                        child: SubscriptionBadge())
-                  ],
-                ),
-                const SizedBox(
-                  height: 10,
-                ),
-                const Row(
-                  children: [
-                    Text(
-                      'CV',
-                      style: TextStyle(
-                        color: white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                                builder: (context) => const CV())),
+                        child: Container(
+                          decoration: BoxDecoration(
+                              color: blue_gray,
+                              borderRadius: BorderRadius.circular(12)),
+                          child: Column(
+                            children: [
+                              const SizedBox(
+                                height: 10,
+                              ),
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    width: MediaQuery.of(context).size.width *
+                                        0.05,
+                                  ),
+                                  Container(
+                                    width: 50,
+                                    decoration: BoxDecoration(
+                                        color: blue,
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
+                                    child: const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.only(
+                                            left: 10,
+                                            right: 10,
+                                            top: 3,
+                                            bottom: 3),
+                                        child: Text(
+                                          'CV',
+                                          style: TextStyle(
+                                              color: blue_gray,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w500),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const Expanded(
+                                    child: SizedBox(
+                                      width: 1,
+                                    ),
+                                  ),
+                                  Text(
+                                    sanitizeField(fullName) ?? 'Mon nom',
+                                    style: TextStyle(
+                                        color: white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  const Expanded(
+                                    child: SizedBox(
+                                      width: 1,
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 50,
+                                    decoration: BoxDecoration(
+                                        color: blue,
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
+                                    child: const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.only(
+                                            left: 10,
+                                            right: 10,
+                                            top: 3,
+                                            bottom: 3),
+                                        child: Text(
+                                          'PDF',
+                                          style: TextStyle(
+                                              color: blue_gray,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w500),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: MediaQuery.of(context).size.width *
+                                        0.05,
+                                  )
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  Expanded(
+                                      child: SizedBox(
+                                    width: 1,
+                                  )),
+                                  Text(
+                                    sanitizeField(_jobTitle) ?? 'UX Designer',
+                                    style: TextStyle(
+                                        color: white_gray,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  Expanded(
+                                      child: SizedBox(
+                                    width: 1,
+                                  )),
+                                ],
+                              ),
+                              const SizedBox(
+                                height: 10,
+                              ),
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  left:
+                                      MediaQuery.of(context).size.width * 0.05,
+                                  right:
+                                      MediaQuery.of(context).size.width * 0.05,
+                                ),
+                                child: Text(
+                                  sanitizeField(resume) ??
+                                      'Aucun CV ajouté pour le moment.',
+                                  style: const TextStyle(
+                                    color: white_gray,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(
+                                height: 10,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                    Expanded(
-                        child: SizedBox(
-                      width: 1,
-                    )),
-                    Text(
-                      'Créer un CV',
-                      style:
-                          TextStyle(color: Color.fromARGB(217, 36, 120, 255)),
-                    )
-                  ],
-                ),
-                const SizedBox(
-                  height: 10,
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (context) => const CV())),
-                  child: Container(
-                    decoration: BoxDecoration(
-                        color: blue_gray,
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Column(
-                      children: [
-                        const SizedBox(
-                          height: 10,
-                        ),
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: MediaQuery.of(context).size.width * 0.05,
-                            ),
-                            Container(
-                              width: 50,
-                              decoration: BoxDecoration(
-                                  color: blue,
-                                  borderRadius: BorderRadius.circular(10)),
-                              child: const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.only(
-                                      left: 10, right: 10, top: 3, bottom: 3),
-                                  child: Text(
-                                    'CV',
-                                    style: TextStyle(
-                                        color: blue_gray,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w500),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const Expanded(
-                              child: SizedBox(
-                                width: 1,
-                              ),
-                            ),
-                            Text(
-                              sanitizeField(fullName) ?? 'Mon nom',
-                              style: TextStyle(
-                                  color: white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                            const Expanded(
-                              child: SizedBox(
-                                width: 1,
-                              ),
-                            ),
-                            Container(
-                              width: 50,
-                              decoration: BoxDecoration(
-                                  color: blue,
-                                  borderRadius: BorderRadius.circular(10)),
-                              child: const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.only(
-                                      left: 10, right: 10, top: 3, bottom: 3),
-                                  child: Text(
-                                    'PDF',
-                                    style: TextStyle(
-                                        color: blue_gray,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w500),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: MediaQuery.of(context).size.width * 0.05,
-                            )
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Expanded(
-                                child: SizedBox(
-                              width: 1,
-                            )),
-                            Text(
-                              sanitizeField(_jobTitle) ?? 'UX Designer',
-                              style: TextStyle(
-                                  color: white_gray,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                            Expanded(
-                                child: SizedBox(
-                              width: 1,
-                            )),
-                          ],
-                        ),
-                        const SizedBox(
-                          height: 10,
-                        ),
-                        Padding(
-                          padding: EdgeInsets.only(
-                            left: MediaQuery.of(context).size.width * 0.05,
-                            right: MediaQuery.of(context).size.width * 0.05,
-                          ),
-                          child: Text(
-                            sanitizeField(resume) ??
-                                'Aucun CV ajouté pour le moment.',
-                            style: const TextStyle(
-                              color: white_gray,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(
-                          height: 10,
-                        ),
-                      ],
-                    ),
+
+                      MiniSubscriptionSwiper(
+                          currentPlanName: _currentPlanName ?? 'free'),
+
+                      SizedBox(
+                        height: 10,
+                      ),
+
+                      SizedBox(
+                        height: 20,
+                      )
+                    ],
                   ),
-                ),
-
-                const MiniSubscriptionSwiper(),
-
-                SizedBox(
-                  height: 10,
-                ),
-
-                SizedBox(
-                  height: 20,
                 )
-              ],
+              ]),
             ),
-          )
-        ]),
-      ),
     );
   }
 
