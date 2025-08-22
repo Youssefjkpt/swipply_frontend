@@ -1338,9 +1338,21 @@ class _HomePageState extends State<HomePage> {
         body: isLoading
             ? const Center(child: CircularProgressIndicator())
             : jobs.isEmpty
-                ? const Center(
-                    child: Text("Aucune offre trouvée.",
-                        style: TextStyle(color: Colors.white)))
+                ? Center(
+                    child: Column(
+                    children: [
+                      SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.2),
+                      Lottie.asset(notFound,
+                          height: MediaQuery.of(context).size.height * 0.3,
+                          width: MediaQuery.of(context).size.width),
+                      SizedBox(
+                        height: 20,
+                      ),
+                      Text("Aucune offre trouvée.",
+                          style: TextStyle(color: Colors.white)),
+                    ],
+                  ))
                 : Stack(
                     children: [
                       Column(children: [
@@ -3091,7 +3103,7 @@ class _JobFilterSheetState extends State<JobFilterSheet> {
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 42),
+                            padding: const EdgeInsets.only(bottom: 20),
                             child: GestureDetector(
                               onTap: () {
                                 widget.onApply(
