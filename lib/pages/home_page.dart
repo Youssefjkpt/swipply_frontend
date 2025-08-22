@@ -1318,12 +1318,15 @@ class _HomePageState extends State<HomePage> {
                         {required categories,
                         required employment,
                         required contract,
-                        required sinceHours}) {
-                      _pullJobs(
-                          cats: categories,
-                          emp: employment,
-                          contr: contract,
-                          sinceH: sinceHours);
+                        required sinceHours}) async {
+                      setState(() {
+                        _filtersActive = true;
+                        _activeCategories = categories;
+                        _activeEmployment = employment;
+                        _activeContract = contract;
+                        _activeSinceHours = sinceHours;
+                      });
+                      await _refreshJobs();
                     },
                   ),
                 );
