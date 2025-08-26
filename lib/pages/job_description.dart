@@ -13,6 +13,7 @@ import 'package:swipply/constants/themes.dart';
 import 'package:swipply/pages/home_page.dart';
 import 'package:swipply/services/api_service.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:swipply/widgets/company_logo.dart';
 
 enum SalaryPeriod { hourly, monthly, yearly, unknown }
 

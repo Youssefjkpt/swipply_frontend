@@ -56,8 +56,8 @@ android {
         applicationId "com.revoluxe.swipply1"
         minSdkVersion 21
         targetSdkVersion 35
-          versionCode 19 // ✅ Manually set this to the next unused version code
-    versionName "2.0.5" // ✅ Manually set this to the next version name
+          versionCode 21 // ✅ Manually set this to the next unused version code
+    versionName "2.0.7" // ✅ Manually set this to the next version name
         multiDexEnabled true
     }
 

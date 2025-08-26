@@ -11,6 +11,7 @@ import 'package:swipply/env.dart';
 import 'package:swipply/pages/home_page.dart';
 import 'package:swipply/pages/job_description.dart';
 import 'package:http/http.dart' as http;
+import 'package:swipply/widgets/company_logo.dart';
 
 class SavedJobs extends StatefulWidget {
   const SavedJobs({super.key});

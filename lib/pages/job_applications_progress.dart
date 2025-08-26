@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipply/constants/images.dart';
 import 'package:swipply/env.dart';
 import 'package:swipply/pages/home_page.dart';
+import 'package:swipply/widgets/company_logo.dart';
 
 class JobApplicationsProgress extends StatefulWidget {
   @override

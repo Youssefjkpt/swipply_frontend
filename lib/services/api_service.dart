@@ -122,6 +122,39 @@ class ApiService {
     return _handleResponse(response);
   }
 
+  static Future<List<Map<String, dynamic>>> fetchJobsByIds(
+    List<String> jobIds,
+  ) async {
+    if (jobIds.isEmpty) return [];
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    final qp = {
+      'ids': jobIds.join(','),
+    };
+
+    final uri = Uri.parse('$BASE_URL_JOBS/api/jobs/by_ids')
+        .replace(queryParameters: qp);
+
+    final resp = await http.get(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (resp.statusCode == 200) {
+      final List data = jsonDecode(resp.body);
+      return data.map((e) => Map<String, dynamic>.from(e)).toList();
+    } else {
+      throw Exception(
+        'Failed to load jobs by IDs: ${resp.statusCode} ${resp.body}',
+      );
+    }
+  }
+
   static Future<dynamic> updateUser(
     String userId,
     String fullName,
@@ -141,59 +174,94 @@ class ApiService {
   }
 
   static const String fastApiUrl = 'https://swipply-2ue1.onrender.com';
-
-  static Future<List<Map<String, dynamic>>> fetchBestJobsForUser({
-    required String userId,
+  static Future<List<Map<String, dynamic>>> fetchBestJobsForUser(
+    String userId, {
     int n = 100,
-    List<String> excludeJobIds = const [],
-    required String fastApiUrl, // e.g. https://your-fastapi
-    required String baseUrlJobs, // e.g. https://your-node
-    String? token,
   }) async {
-    final bestUrl = '$fastApiUrl/find_best_jobs/$userId?n=$n';
-    final bestRes =
-        await http.get(Uri.parse(bestUrl)).timeout(const Duration(seconds: 30));
-    if (bestRes.statusCode != 200) {
-      throw Exception('best_jobs ${bestRes.statusCode}: ${bestRes.body}');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    // Call the Node backend which proxies to FastAPI
+    // (It returns { status, user_id, best_jobs: [{job_id, score}, ...] })
+    final uri = Uri.parse('$BASE_URL_JOBS/find_best_jobs/$userId')
+        .replace(queryParameters: {'n': '$n'});
+
+    debugPrint('📡 Calling BestJobs endpoint: $uri');
+
+    final resp = await http.get(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (resp.statusCode != 200) {
+      throw Exception(
+          'Failed to fetch best jobs: ${resp.statusCode} ${resp.body}');
     }
 
-    final best = jsonDecode(bestRes.body);
-    final List bestJobs = (best['best_jobs'] as List?) ?? [];
-    final ids = bestJobs
-        .map<String>((j) => j['job_id'] as String)
-        .where((id) => !excludeJobIds.contains(id))
-        .toList();
+    final decoded = jsonDecode(resp.body);
+    List<String> ids = [];
+
+    // --- Accept multiple possible shapes ---
+    if (decoded is Map<String, dynamic>) {
+      // FastAPI/Node shape: { status, user_id, best_jobs: [{job_id, score}, ...] }
+      if (decoded['best_jobs'] is List) {
+        ids = (decoded['best_jobs'] as List)
+            .map((e) => (e is Map && e['job_id'] != null)
+                ? e['job_id'].toString()
+                : null)
+            .whereType<String>()
+            .toList();
+      }
+      // Alternate shape: { job_ids: ["id1", "id2", ...] }
+      else if (decoded['job_ids'] is List) {
+        ids = List<String>.from(decoded['job_ids']);
+      }
+    } else if (decoded is List) {
+      // Very defensive: could be ["id1","id2"] or [{job_id:"..."}]
+      if (decoded.isNotEmpty && decoded.first is String) {
+        ids = List<String>.from(decoded);
+      } else if (decoded.isNotEmpty && decoded.first is Map) {
+        ids = decoded
+            .map((e) => (e is Map && e['job_id'] != null)
+                ? e['job_id'].toString()
+                : null)
+            .whereType<String>()
+            .toList();
+      }
+    }
+
+    debugPrint('🔢 BestJobs -> collected ${ids.length} IDs');
 
     if (ids.isEmpty) return [];
 
-    final out = <Map<String, dynamic>>[];
-    const chunkSize = 40;
+    // Fetch full job objects in one call (fast & matches your working filter flow)
+    final qp = {'ids': ids.join(',')};
+    final byIdsUri = Uri.parse('$BASE_URL_JOBS/api/jobs/by_ids')
+        .replace(queryParameters: qp);
 
-    for (var i = 0; i < ids.length; i += chunkSize) {
-      final chunk = ids.sublist(
-          i, (i + chunkSize > ids.length) ? ids.length : i + chunkSize);
+    debugPrint('📦 Hydrating ${ids.length} jobs via: $byIdsUri');
 
-      // GET /api/jobs?ids=id1,id2,id3
-      final uri = Uri.parse('$baseUrlJobs/api/jobs')
-          .replace(queryParameters: {'ids': chunk.join(',')});
+    final byIdsResp = await http.get(
+      byIdsUri,
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
 
-      final resp = await http.get(
-        uri,
-        headers: {
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-      ).timeout(const Duration(seconds: 20));
-
-      if (resp.statusCode != 200) {
-        throw Exception('job_details GET ${resp.statusCode}: ${resp.body}');
-      }
-
-      final List list = jsonDecode(resp.body);
-      out.addAll(list.cast<Map<String, dynamic>>());
+    if (byIdsResp.statusCode != 200) {
+      throw Exception(
+          'Failed to fetch jobs by IDs: ${byIdsResp.statusCode} ${byIdsResp.body}');
     }
 
-    final byId = {for (final j in out) j['job_id']: j};
-    return ids.map((id) => byId[id]).whereType<Map<String, dynamic>>().toList();
+    final List data = jsonDecode(byIdsResp.body);
+    final jobs = data.map((e) => Map<String, dynamic>.from(e)).toList();
+
+    debugPrint('✅ Hydrated ${jobs.length} job details');
+    return jobs;
   }
 
   static Future<List<Map<String, dynamic>>> fetchJobs({

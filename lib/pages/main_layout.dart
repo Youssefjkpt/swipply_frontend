@@ -171,7 +171,7 @@ class _MainLayoutState extends State<MainLayout> {
       controller: _tabController,
       tabBar: CupertinoTabBar(
         activeColor: white,
-        inactiveColor: const Color.fromARGB(255, 95, 102, 120),
+        inactiveColor: const Color.fromARGB(255, 127, 127, 127),
         backgroundColor: black,
         onTap: (i) => _tabController.index = i,
         items: [
@@ -205,7 +205,7 @@ class _MainLayoutState extends State<MainLayout> {
           builder: (_, currentIndex, __) {
             switch (currentIndex) {
               case 0:
-                return const HomePage();
+                return HomePage();
               case 1:
                 return const SavedJobs();
               case 2:
@@ -243,7 +243,7 @@ class NavIcon extends StatelessWidget {
         return Icon(
           icon,
           size: isSelected ? 28 : 24,
-          color: isSelected ? white : const Color.fromARGB(255, 95, 102, 120),
+          color: isSelected ? white : const Color.fromARGB(255, 127, 127, 127),
         );
       },
     );
