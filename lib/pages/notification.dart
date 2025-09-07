@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -212,7 +215,7 @@ class _ApplicationsInProgressPageState extends State<ApplicationsInProgressPage>
       );
     }
     return Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: const Color(0xFF0B0B0E),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -222,233 +225,264 @@ class _ApplicationsInProgressPageState extends State<ApplicationsInProgressPage>
                 color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
           ),
           centerTitle: true,
-          leading: const BackButton(color: Colors.white),
+          leading: Padding(
+            padding: const EdgeInsets.all(4),
+            child: _GlassIconButton(
+                icon: Icons.arrow_back_rounded,
+                onTap: () => Navigator.of(context).pop()),
+          ),
         ),
-        body: SingleChildScrollView(
-          child: Column(children: [
-            // Top container for summary or other content
-            AIApplicationServiceCard(
-              onActivate: () {
-                // TODO: navigate to your AI-activation flow
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => SwipplyPremiumDetailsPage()));
-              },
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  const Text(
-                    'Candidature en cours',
-                    style: TextStyle(
-                        color: white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600),
+        body: Stack(
+          children: [
+            const _AuroraBackground(),
+            SafeArea(
+              child: SingleChildScrollView(
+                child: Column(children: [
+                  // Top container for summary or other content
+                  AIApplicationServiceCard(
+                    onActivate: () {
+                      // TODO: navigate to your AI-activation flow
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  SwipplyPremiumDetailsPage()));
+                    },
                   ),
-                  const Expanded(
-                      child: SizedBox(
-                    width: 1,
-                  )),
-                  GestureDetector(
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => JobApplicationsProgress())),
-                    child: const Row(
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
                       children: [
-                        Text(
-                          'Voir tout',
+                        const Text(
+                          'Candidature en cours',
                           style: TextStyle(
-                              color: white_gray,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400),
+                              color: white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600),
                         ),
-                        Icon(
-                          Icons.keyboard_arrow_right_rounded,
-                          color: white_gray,
-                        )
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ), //////////////////////
-            Container(
-                width: MediaQuery.of(context).size.width,
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: blue_gray,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Builder(
-                  builder: (context) {
-                    return SizedBox(
-                      child: Stack(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        const Expanded(
+                            child: SizedBox(
+                          width: 1,
+                        )),
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      JobApplicationsProgress())),
+                          child: const Row(
                             children: [
-                              // Ligne d’attente + statut
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  // Lottie animé
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                        20, 16, 16, 8),
-                                    child: Container(
-                                      height: 75,
-                                      width: 75,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF384158),
-                                        borderRadius: BorderRadius.circular(10),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color:
-                                                Colors.black.withOpacity(0.4),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8),
-                                        child: Lottie.asset(
-                                          applying,
-                                          fit: BoxFit.contain,
-                                          repeat: true,
-                                          animate: true,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-
-                                  const SizedBox(width: 4),
-
-                                  // Texte patient + ratio
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const SizedBox(
-                                        height: 10,
-                                      ),
-                                      const Text(
-                                        'Patientez un instant…',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 5),
-                                      Row(
-                                        children: [
-                                          SizedBox(
-                                            width: MediaQuery.of(context)
-                                                    .size
-                                                    .width *
-                                                0.3,
-                                            child: const Text(
-                                              'Vos candidatures sont en cours d\'envoi...',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w300,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                              maxLines: 3,
-                                            ),
-                                          ),
-                                          Padding(
-                                            padding:
-                                                const EdgeInsets.only(top: 20),
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                gradient: const LinearGradient(
-                                                  colors: [
-                                                    Color(0xFF00FFAA),
-                                                    Color(0xFF00C28C)
-                                                  ],
-                                                  begin: Alignment.topLeft,
-                                                  end: Alignment.bottomRight,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(100),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color:
-                                                        const Color(0xFF00FFAA)
-                                                            .withOpacity(0.3),
-                                                    blurRadius: 10,
-                                                    offset: const Offset(0, 4),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: const Padding(
-                                                padding: EdgeInsets.fromLTRB(
-                                                    15, 8, 15, 8),
-                                                child: Text(
-                                                  'En attente',
-                                                  style: TextStyle(
-                                                    color: Colors.black,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 14,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                              Text(
+                                'Voir tout',
+                                style: TextStyle(
+                                    color: white_gray,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w400),
                               ),
-
-                              const SizedBox(height: 20),
-                              // …later in your Column:
-                              Padding(
-                                padding:
-                                    const EdgeInsets.only(left: 10, right: 10),
-                                child: AnimatedSegmentedProgressBar(
-                                  progresses: progresses,
-                                  height: 6.0, // match your design
-                                ),
-                              ),
-                              const SizedBox(height: 20),
+                              Icon(
+                                Icons.keyboard_arrow_right_rounded,
+                                color: white_gray,
+                              )
                             ],
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ), //////////////////////
+                  Container(
+                      width: MediaQuery.of(context).size.width,
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: blue_gray,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    );
-                  },
-                )),
-            Row(
-              children: [
-                SizedBox(
-                  width: 20,
-                ),
-                Text(
-                  'Conseils du jour',
-                  style: TextStyle(
-                      color: white, fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                Expanded(
-                    child: SizedBox(
-                  width: 1,
-                ))
-              ],
-            ),
-            WarningEmailBackupCard(warningLottieAsset: warning),
+                      child: Builder(
+                        builder: (context) {
+                          return SizedBox(
+                            child: Stack(
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Ligne d’attente + statut
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        // Lottie animé
+                                        Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                              20, 16, 16, 8),
+                                          child: Container(
+                                            height: 75,
+                                            width: 75,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF384158),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black
+                                                      .withOpacity(0.4),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(8),
+                                              child: Lottie.asset(
+                                                applying,
+                                                fit: BoxFit.contain,
+                                                repeat: true,
+                                                animate: true,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
 
-            OutOfLikesSaveCard(
-                onSavePressed: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => SavedJobs()))),
-            DidYouKnowPersonalizeCard()
-          ]),
+                                        const SizedBox(width: 4),
+
+                                        // Texte patient + ratio
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const SizedBox(
+                                              height: 10,
+                                            ),
+                                            const Text(
+                                              'Patientez un instant…',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 5),
+                                            Row(
+                                              children: [
+                                                SizedBox(
+                                                  width: MediaQuery.of(context)
+                                                          .size
+                                                          .width *
+                                                      0.3,
+                                                  child: const Text(
+                                                    'Vos candidatures sont en cours d\'envoi...',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w300,
+                                                    ),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    maxLines: 3,
+                                                  ),
+                                                ),
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          top: 20),
+                                                  child: Container(
+                                                    decoration: BoxDecoration(
+                                                      gradient:
+                                                          const LinearGradient(
+                                                        colors: [
+                                                          Color(0xFF00FFAA),
+                                                          Color(0xFF00C28C)
+                                                        ],
+                                                        begin:
+                                                            Alignment.topLeft,
+                                                        end: Alignment
+                                                            .bottomRight,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              100),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: const Color(
+                                                                  0xFF00FFAA)
+                                                              .withOpacity(0.3),
+                                                          blurRadius: 10,
+                                                          offset: const Offset(
+                                                              0, 4),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: const Padding(
+                                                      padding:
+                                                          EdgeInsets.fromLTRB(
+                                                              15, 8, 15, 8),
+                                                      child: Text(
+                                                        'En attente',
+                                                        style: TextStyle(
+                                                          color: Colors.black,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+
+                                    const SizedBox(height: 20),
+                                    // …later in your Column:
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                          left: 10, right: 10),
+                                      child: AnimatedSegmentedProgressBar(
+                                        progresses: progresses,
+                                        height: 6.0, // match your design
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      )),
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                      ),
+                      Text(
+                        'Conseils du jour',
+                        style: TextStyle(
+                            color: white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      Expanded(
+                          child: SizedBox(
+                        width: 1,
+                      ))
+                    ],
+                  ),
+                  WarningEmailBackupCard(warningLottieAsset: warning),
+
+                  OutOfLikesSaveCard(
+                      onSavePressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => SavedJobs()))),
+                  DidYouKnowPersonalizeCard()
+                ]),
+              ),
+            ),
+          ],
         ));
   } // Place this inside your build, replacing the static progress bar:
 }
@@ -703,6 +737,98 @@ class _AnimatedSegmentedProgressBarState
   }
 }
 
+class _GlassIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _GlassIconButton({required this.icon, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.06)),
+        ),
+        child: Icon(icon, color: Colors.white, size: 22),
+      ),
+    );
+  }
+}
+
+class _AuroraBackground extends StatefulWidget {
+  const _AuroraBackground();
+  @override
+  State<_AuroraBackground> createState() => _AuroraBackgroundState();
+}
+
+class _AuroraBackgroundState extends State<_AuroraBackground>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController c =
+      AnimationController(vsync: this, duration: const Duration(seconds: 12))
+        ..repeat(reverse: true);
+  @override
+  void dispose() {
+    c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: c,
+      builder: (_, __) {
+        return CustomPaint(
+          painter: _AuroraPainter(c.value),
+          size: Size.infinite,
+        );
+      },
+    );
+  }
+}
+
+class _AuroraPainter extends CustomPainter {
+  final double t;
+  _AuroraPainter(this.t);
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bg = Paint()
+      ..shader = const LinearGradient(
+              colors: [Color(0xFF09090C), Color(0xFF0E0E13)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight)
+          .createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, bg);
+    void blob(Offset o, double r, List<Color> colors) {
+      final rect = Rect.fromCircle(center: o, radius: r);
+      final paint = Paint()
+        ..shader = RadialGradient(colors: colors).createShader(rect);
+      canvas.drawCircle(o, r, paint);
+    }
+
+    final w = size.width;
+    final h = size.height;
+    blob(Offset(w * 0.15 + 20 * t, h * 0.2), 180,
+        [const Color(0xFF00E6C3).withOpacity(0.20), Colors.transparent]);
+    blob(Offset(w * 0.9 - 30 * t, h * 0.15), 160,
+        [const Color(0xFF7CF9D2).withOpacity(0.18), Colors.transparent]);
+    blob(Offset(w * 0.7, h * 0.95 - 25 * t), 220,
+        [const Color(0xFFB388FF).withOpacity(0.18), Colors.transparent]);
+    blob(Offset(w * 0.05, h * 0.8), 180,
+        [const Color(0xFF6EC6FF).withOpacity(0.16), Colors.transparent]);
+  }
+
+  @override
+  bool shouldRepaint(covariant _AuroraPainter old) => old.t != t;
+}
+
 Widget _buildJobCard(Map<String, dynamic> app) {
   final job = app['JobListings'];
   final title = job?['title'] ?? 'Titre de l\'emploi';
@@ -886,4 +1012,119 @@ class FullApplicationsPage extends StatelessWidget {
     );
   }
   // You can reuse the same _buildJobCard or move it here as well.
+}
+
+class GodBackground extends StatefulWidget {
+  final ValueListenable<double> scrollY;
+  const GodBackground({required this.scrollY});
+  @override
+  State<GodBackground> createState() => _GodBackgroundState();
+}
+
+class _GodBackgroundState extends State<GodBackground>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController c =
+      AnimationController(vsync: this, duration: const Duration(seconds: 12))
+        ..repeat(reverse: true);
+  @override
+  void dispose() {
+    c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([c, widget.scrollY]),
+      builder: (_, __) => CustomPaint(
+          painter: _GodPainter(c.value, widget.scrollY.value),
+          size: Size.infinite),
+    );
+  }
+}
+
+class _GodPainter extends CustomPainter {
+  final double t;
+  final double scroll;
+  _GodPainter(this.t, this.scroll);
+  @override
+  void paint(Canvas canvas, Size size) {
+    final parallax = (scroll * 0.02).clamp(-40.0, 80.0);
+    final bg = Paint()
+      ..shader = const LinearGradient(
+        colors: [Color(0xFF07080B), Color(0xFF0B0C12)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, bg);
+    void glowBlob(Offset o, double r, List<Color> colors, double sigma) {
+      final rect = Rect.fromCircle(center: o, radius: r);
+      final paint = Paint()
+        ..shader = RadialGradient(colors: colors).createShader(rect)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, sigma);
+      canvas.drawCircle(o, r, paint);
+    }
+
+    final w = size.width, h = size.height;
+    glowBlob(Offset(w * 0.18 + 30 * t, h * 0.22 + parallax), 160,
+        [const Color(0xFF00FFE1).withOpacity(0.18), Colors.transparent], 24);
+    glowBlob(Offset(w * 0.86 - 25 * t, h * 0.18 + parallax * 0.6), 150,
+        [const Color(0xFF8CFFEB).withOpacity(0.14), Colors.transparent], 22);
+    glowBlob(Offset(w * 0.65, h * 0.98 - 18 * t + parallax * 0.2), 220,
+        [const Color(0xFFC6A7FF).withOpacity(0.12), Colors.transparent], 26);
+    glowBlob(Offset(w * 0.06, h * 0.82 + parallax * 0.8), 180,
+        [const Color(0xFF6EC6FF).withOpacity(0.10), Colors.transparent], 20);
+    final paintWave = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2
+      ..shader = const LinearGradient(
+              colors: [Color(0xFF00FFE1), Color(0xFF7CF9D2)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight)
+          .createShader(Rect.fromLTWH(0, 0, w, h))
+      ..color = Colors.white.withOpacity(0.2)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+    Path wave(double offsetY, double amp, double freq) {
+      final p = Path()..moveTo(0, offsetY + parallax * 0.15);
+      for (double x = 0; x <= w; x += 6) {
+        final y = offsetY +
+            parallax * 0.15 +
+            amp * math.sin((x / w * freq * 2 * math.pi) + (t * 2 * math.pi));
+        p.lineTo(x, y);
+      }
+      return p;
+    }
+
+    canvas.drawPath(wave(h * 0.28, 12, 2.2), paintWave);
+    canvas.drawPath(wave(h * 0.62, 16, 1.6),
+        paintWave..color = paintWave.color.withOpacity(0.14));
+    for (int i = 0; i < 3; i++) {
+      final p = (t + i / 3) % 1.0;
+      final start = Offset(-40, h * 0.2 + i * 60.0 + parallax * 0.3);
+      final end = Offset(w + 40, h * 0.05 + i * 120.0 + parallax * 0.1);
+      final pos = Offset.lerp(start, end, Curves.easeInOut.transform(p))!;
+      final tailPaint = Paint()
+        ..shader = LinearGradient(colors: [
+          Colors.white.withOpacity(0.0),
+          Colors.white.withOpacity(0.2)
+        ]).createShader(Rect.fromCircle(center: pos, radius: 60))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+      canvas.drawCircle(pos.translate(-20, 12), 36, tailPaint);
+      canvas.drawCircle(
+          pos, 2.5, Paint()..color = Colors.white.withOpacity(0.9));
+    }
+    final stars = Paint()
+      ..color = Colors.white.withOpacity(0.08)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+    for (int i = 0; i < 70; i++) {
+      final dx = (i * 73 % w).toDouble();
+      final dy = (i * 131 % h).toDouble() + parallax * 0.2;
+      final pulse = 1 + 0.6 * math.sin(t * 2 * math.pi + i * 0.3);
+      canvas.drawCircle(Offset(dx, dy), 0.6 * pulse, stars);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GodPainter old) =>
+      old.t != t || old.scroll != scroll;
 }

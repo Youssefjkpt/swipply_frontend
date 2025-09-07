@@ -33,3 +33,4 @@ const searchnotcolorful = 'assets/searchnotcolorful.json';
 const loading = 'assets/loadingg.json';
 const loadingfinger = 'assets/loadingfinger.json';
 const loadingblack = 'assets/loadingblack.json';
+const loadinggg = 'assets/loadinggggg.json';

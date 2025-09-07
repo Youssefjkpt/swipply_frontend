@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -131,6 +132,8 @@ class _HomePageState extends State<HomePage> {
   final GlobalKey bellKey = GlobalKey();
   String? fullName, email, phone, resume, jobTitle;
   bool cvLoading = false;
+  bool _initialized = false;
+
   void _runFlyingAnimation(Offset start, Offset end) {
     final overlay = Overlay.of(context, rootOverlay: false);
     late OverlayEntry entry;
@@ -1197,6 +1200,12 @@ class _HomePageState extends State<HomePage> {
       _fetchUserProfile();
       _loadCategories();
       _loadLocalSwipeCount();
+      Future.microtask(() async {
+        WidgetsFlutterBinding.ensureInitialized();
+        setState(() {
+          _initialized = true;
+        });
+      });
     });
   }
 
@@ -1713,13 +1722,40 @@ class _HomePageState extends State<HomePage> {
                                   MediaQuery.of(context).size.height * 0.3,
                             ),
                             width: double.infinity,
-                            child: Image.network(
-                              jobs[index]["company_background_url"] ?? '',
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Image.asset(welcome_img, fit: BoxFit.cover),
-                            ),
+                            child: _initialized
+                                ? CachedNetworkImage(
+                                    imageUrl: jobs[index]
+                                            ["company_background_url"] ??
+                                        '',
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    placeholder: (context, url) => Stack(
+                                      children: [
+                                        // Local fallback image blurred
+                                        Positioned.fill(
+                                          child: ImageFiltered(
+                                            imageFilter: ImageFilter.blur(
+                                                sigmaX: 5, sigmaY: 5),
+                                            child: Image.asset(
+                                              welcome_img,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                        ),
+                                        const Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      ],
+                                    ),
+                                    errorWidget: (context, url, error) =>
+                                        Image.asset(welcome_img,
+                                            fit: BoxFit.cover),
+                                  )
+                                : Container(
+                                    color: Colors.grey[900],
+                                    child: Center(
+                                        child: CircularProgressIndicator()),
+                                  ),
                           ),
                           Positioned(
                             bottom: 0,

@@ -883,17 +883,14 @@ class _JobInformationsState extends State<JobInformations> {
                               onTap: saveJob,
                               child: Padding(
                                 padding: EdgeInsets.only(top: 10),
-                                child: Padding(
-                                  padding: EdgeInsets.only(top: 10),
-                                  child: IconButton(
-                                    onPressed: _toggleSave,
-                                    icon: Icon(
-                                      isSaved
-                                          ? Icons.bookmark_rounded
-                                          : Icons.bookmark_border_rounded,
-                                      color: white,
-                                      size: 28,
-                                    ),
+                                child: IconButton(
+                                  onPressed: _toggleSave,
+                                  icon: Icon(
+                                    isSaved
+                                        ? Icons.bookmark_rounded
+                                        : Icons.bookmark_border_rounded,
+                                    color: white,
+                                    size: 28,
                                   ),
                                 ),
                               ),
