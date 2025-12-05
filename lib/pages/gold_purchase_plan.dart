@@ -4,7 +4,9 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
+
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swipply/constants/images.dart';
@@ -13,6 +15,20 @@ import 'package:swipply/env.dart';
 import 'package:swipply/pages/main_layout.dart';
 
 import 'package:http/http.dart' as http;
+
+import 'package:in_app_purchase_android/billing_client_wrappers.dart';
+
+SubscriptionOfferDetailsWrapper? _findOfferFor(
+  GooglePlayProductDetails product,
+  String basePlanId,
+) {
+  final offers = product.productDetails.subscriptionOfferDetails ?? [];
+  for (final o in offers) {
+    final hasToken = (o.offerIdToken?.isNotEmpty ?? false);
+    if (o.basePlanId == basePlanId && hasToken) return o;
+  }
+  return null;
+}
 
 class SwipplyGoldDetailsPage extends StatefulWidget {
   const SwipplyGoldDetailsPage({super.key});
@@ -28,17 +44,24 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
   late Animation<double> _badgeAngle;
 
   int selectedPlanIndex = 1;
+  late final InAppPurchase _iap = InAppPurchase.instance;
+  StreamSubscription<List<PurchaseDetails>>? _purchaseSub;
+  List<GooglePlayProductDetails> _gpProducts = [];
+
+  final String _goldProductId = 'swipply_gold';
+  final List<String> _basePlanByIndex = [
+    'swipply-gold', // weekly
+    'swipply-month', // monthly
+    'swipply-6month', // 6 months
+  ];
+
   Future<String?> getUserId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('user_id');
   }
 
   final String plan = 'Gold';
-  final List<String> stripePriceIds = [
-    "price_1RsCAVCEZklhkWaBmJi0mezA", // Gold 1 week (8.99 €)
-    "price_1RsCBxCEZklhkWaB2fiGBnab", // Gold 1 month (17.99 €)
-    "price_1RsCDMCEZklhkWaBiG0TOWgB", // Gold 6 months (84.99 €)
-  ];
+
   bool _showCelebration = false;
 
   void showUploadPopup(BuildContext context, {String? errorMessage}) {
@@ -306,11 +329,120 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
       begin: 0.0,
       end: 2 * pi,
     ).animate(_badgeController);
+    _initBilling();
+  }
+
+  Future<void> _initBilling() async {
+    final available = await _iap.isAvailable();
+    if (!available) {
+      showIapErrorPopup(context,
+          "Google Play indisponible sur cet appareil/compte. Installe l’app depuis la piste de test interne et utilise le compte testeur.");
+      return;
+    }
+
+    _purchaseSub?.cancel();
+    _purchaseSub = _iap.purchaseStream.listen(_onPurchases, onError: (err) {
+      showIapErrorPopup(context, "Flux d’achats en erreur: $err");
+    });
+
+    final resp = await _iap.queryProductDetails({_goldProductId});
+
+    if (resp.notFoundIDs.isNotEmpty) {
+      showIapErrorPopup(
+        context,
+        "Produit introuvable: ${resp.notFoundIDs.join(", ")}.\n\nVérifie:\n• Package identique à celui du Play Console\n• Build installé depuis la piste de test (pas en debug sideload)\n• Compte testeur ajouté dans «License testing»\n• Souscription activée.",
+      );
+    }
+
+    _gpProducts =
+        resp.productDetails.whereType<GooglePlayProductDetails>().toList();
+
+    if (_gpProducts.isEmpty) {
+      showIapErrorPopup(context,
+          "Aucun produit Google Play chargé. Réessaie après propagation (5–15 min) et vérifie que les base plans sont ACTIVÉS.");
+      return;
+    }
+
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _buyGoldPlan(String userId) async {
+    if (_gpProducts.isEmpty) {
+      showIapErrorPopup(
+          context, "Produit non chargé. Réessaie dans quelques minutes.");
+      return;
+    }
+
+    final product = _gpProducts.firstWhere(
+      (p) => p.id == _goldProductId,
+      orElse: () =>
+          throw Exception("swipply_gold introuvable dans _gpProducts"),
+    );
+
+    final basePlanId = _basePlanByIndex[selectedPlanIndex];
+    debugPrint('[GOLD][BUY] productId=$_goldProductId basePlanId=$basePlanId');
+
+    final offer = _findOfferFor(product, basePlanId);
+    if (offer == null) {
+      final available = (product.productDetails.subscriptionOfferDetails ?? [])
+          .map((o) =>
+              '${o.basePlanId}:${(o.offerIdToken?.isNotEmpty ?? false) ? "token" : "no-token"}')
+          .join(', ');
+      debugPrint(
+          '[GOLD][BUY] no valid offer for basePlanId=$basePlanId; available=[$available]');
+      showIapErrorPopup(
+        context,
+        "Aucune offre active (avec token) pour \"$basePlanId\".\nOffres disponibles: $available\n"
+        "Crée/active une offre dans Play Console pour ce base plan.",
+      );
+      return;
+    }
+
+    try {
+      final param = GooglePlayPurchaseParam(
+        productDetails: product,
+        offerToken: offer.offerIdToken!,
+        applicationUserName: userId,
+      );
+      await _iap.buyNonConsumable(purchaseParam: param);
+    } catch (e) {
+      debugPrint('[GOLD][BUY] exception: $e');
+      showIapErrorPopup(context, "Erreur pendant l’achat: $e");
+    }
+  }
+
+  Future<void> _onPurchases(List<PurchaseDetails> purchases) async {
+    for (final p in purchases) {
+      if (p.status == PurchaseStatus.purchased) {
+        await _iap.completePurchase(p);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('plan_name', 'Gold');
+        await prefs.setString('swipe_date', '');
+        await prefs.setInt('swipe_count', 0);
+        await _fetchUserCapabilities();
+        await showGoldCelebrationPopup(context);
+        if (mounted) {
+          Navigator.of(context)
+              .pushReplacement(MaterialPageRoute(builder: (_) => MainLayout()));
+        }
+      } else if (p.status == PurchaseStatus.error) {
+        final msg = [
+          if (p.error?.message != null) "Message: ${p.error!.message}",
+          if (p.error?.details != null) "Details: ${p.error!.details}",
+        ].where((e) => e.isNotEmpty).join("\n");
+        showIapErrorPopup(context, "Échec de l’achat.\n$msg");
+      } else if (p.status == PurchaseStatus.canceled) {
+        showIapErrorPopup(context, "Achat annulé par l’utilisateur.");
+      } else if (p.status == PurchaseStatus.pending) {
+        // no popup; user is in Google UI
+      }
+    }
   }
 
   @override
   void dispose() {
     _badgeController.dispose();
+    _purchaseSub?.cancel();
     super.dispose();
   }
 
@@ -557,46 +689,15 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
                     }
                     setState(() => _loading = true);
                     try {
-                      final priceId = stripePriceIds[selectedPlanIndex];
-                      print('📦 creating PaymentIntent for priceId=$priceId');
-                      final uri =
-                          Uri.parse('$BASE_URL_JOBS/create-payment-intent');
-                      final response = await http.post(
-                        uri,
-                        headers: {'Content-Type': 'application/json'},
-                        body: jsonEncode(
-                            {'user_id': userId, 'price_id': priceId}),
-                      );
-                      print('📡 create-intent status=${response.statusCode}');
-                      print('📨 body=${response.body}');
-                      if (response.statusCode != 200) {
-                        throw Exception('HTTP ${response.statusCode}');
-                      }
-                      final body = jsonDecode(response.body);
-                      final clientSecret = body['clientSecret'] as String;
-                      print('🔑 clientSecret=$clientSecret');
-                      await Stripe.instance.initPaymentSheet(
-                        paymentSheetParameters: SetupPaymentSheetParameters(
-                          paymentIntentClientSecret: clientSecret,
-                          merchantDisplayName: 'Swipply',
-                        ),
-                      );
-                      print('✅ initPaymentSheet done');
-                      await Stripe.instance.presentPaymentSheet();
-                      print('🎉 presentPaymentSheet done');
-                      await prefs.setString('plan_name', 'Gold');
-                      print('💾 prefs updated, navigating home');
-                      await _fetchUserCapabilities();
-                      await showGoldCelebrationPopup(context);
-                      Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => MainLayout()));
-                    } catch (e, st) {
-                      print('❌ payment flow error: $e');
-                      print(st);
-                      showStripeErrorPopup(context);
+                      // Optional: log which base plan we think we’re buying
+                      final tried = _basePlanByIndex[selectedPlanIndex];
+                      // ignore: avoid_print
+                      print('Attempting to buy basePlanId=$tried');
+                      await _buyGoldPlan(userId);
+                    } catch (e) {
+                      showIapErrorPopup(context, "Exception inattendue: $e");
                     } finally {
-                      setState(() => _loading = false);
-                      print('🔚 onTap end');
+                      if (mounted) setState(() => _loading = false);
                     }
                   },
                   child: Container(
@@ -670,6 +771,75 @@ class _SwipplyGoldDetailsPageState extends State<SwipplyGoldDetailsPage>
       transitionDuration: const Duration(milliseconds: 250),
       pageBuilder: (_, __, ___) => const SafeArea(
         child: _StripeErrorContent(), // ← no parameter anymore
+      ),
+      transitionBuilder: (_, a1, __, child) => FadeTransition(
+          opacity: CurvedAnimation(parent: a1, curve: Curves.easeOut),
+          child: child),
+    );
+  }
+
+  void showIapErrorPopup(BuildContext context, String message) {
+    showGeneralDialog(
+      context: context,
+      barrierLabel: "iapError",
+      barrierDismissible: true,
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 250),
+      pageBuilder: (_, __, ___) => SafeArea(
+        child: Center(
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.80,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: blue_gray,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(
+                    color: Colors.black45, blurRadius: 12, offset: Offset(0, 6))
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Achat impossible",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.none),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      decoration: TextDecoration.none),
+                ),
+                const SizedBox(height: 18),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 24),
+                    decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(8)),
+                    child: const Text("Fermer",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            decoration: TextDecoration.none)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
       transitionBuilder: (_, a1, __, child) => FadeTransition(
           opacity: CurvedAnimation(parent: a1, curve: Curves.easeOut),

@@ -9,8 +9,9 @@ import 'package:swipply/constants/images.dart';
 import 'package:swipply/constants/themes.dart';
 import 'package:swipply/env.dart';
 import 'package:swipply/pages/main_layout.dart';
-import 'package:url_launcher/url_launcher_string.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
+import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 import 'package:http/http.dart' as http;
 
 class SwipplyPremiumDetailsPage extends StatefulWidget {
@@ -25,38 +26,44 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
   int selectedPlanIndex = 1;
 
   final List<String> planLabels = ["1 semaine", "1 mois", "6 mois"];
-// ─── 1) Replace your stripePriceIds with the correct Platinum IDs ─────────
-  final List<String> stripePriceIds = [
-    "price_1RsCDuCEZklhkWaBnwxL88MX", // Platinum 1 week (12.99 €)
-    "price_1RsCEPCEZklhkWaBP8ntV5wu", // Platinum 1 month (24.99 €)
-    "price_1RsCF6CEZklhkWaBzfiJ9nLA", // Platinum 6 months (94.99 €)
-  ];
-
-// ─── 2) Replace your displayed prices ───────────────────────────────────────
   final List<double> planPrices = [12.99, 24.99, 94.99];
-
-// ─── 3) Badges (1 week = “Populaire”, 1 month = “Économique”, 6 mois = “Meilleure offre”) ──
   final List<String> planBadges = [
     "Populaire",
     "Économique",
-    "Meilleure offre",
+    "Meilleure offre"
   ];
-
-// ─── 4) Sub-text showing €/week equivalents ────────────────────────────────
   final List<String> planSubtexts = [
     "12,99 € / sem.",
-    "6,20 € / sem.", // 24.99 € ÷ 4 sem.
-    "3,99 € / sem.", // 94.99 € ≃ 26 sem. ⇒ 3.99 € / sem.
+    "6,20 € / sem.",
+    "3,99 € / sem."
   ];
-
-// ─── 5) (Optional) Rough “savings” labels ──────────────────────────────────
-  final List<String> savings = [
-    "",
-    "Écon. 52 %", // 24.99 vs (12.99 × 4≈51.96)
-    "Écon. 70 %", // 94.99 vs (12.99 × 26≈337.74)
-  ];
+  final List<String> savings = ["", "Écon. 52 %", "Écon. 70 %"];
 
   bool _loading = false;
+
+// ✅ Play Billing core
+  final InAppPurchase _iap = InAppPurchase.instance;
+  StreamSubscription<List<PurchaseDetails>>? _purchaseSub;
+  List<GooglePlayProductDetails> _gpProducts = [];
+  final Map<String, Map<String, GooglePlayProductDetails>> _offerMap = {};
+
+// ✅ Product IDs
+  final String _platinumProductId = 'swipply_platinum';
+// With this (order must match your UI cards):
+  final List<String> _basePlanByIndex = [
+    'swipply-platinum-week',
+    'swipply-platinum-month',
+    'swipply-platinum-6month',
+  ];
+
+// ✅ User state
+  int? _personalizeLimit;
+  int? _swipeLimit;
+  bool _canPersonalize = false;
+  String plan = 'Platinum';
+
+// ─── 4) Sub-text showing €/week equivalents ────────────────────────────────
+
   void showUploadPopup(BuildContext context, {String? errorMessage}) {
     final bool isError = errorMessage != null;
     void showSuccessCheckPopup(BuildContext context, TickerProvider vsync) {
@@ -138,7 +145,252 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
     );
   }
 
-  String plan = 'Platinum';
+// 3) Fix the helper that builds the offers map (it referenced the wrong variable)
+  Future<Map<String, Map<String, GooglePlayProductDetails>>>
+      loadProductsAndOffers() async {
+    final ids = {
+      _platinumProductId,
+    };
+    final resp = await _iap.queryProductDetails(ids);
+    final products =
+        resp.productDetails.whereType<GooglePlayProductDetails>().toList();
+
+    final map = <String, Map<String, GooglePlayProductDetails>>{};
+    for (final p in products) {
+      final offers = p.productDetails.subscriptionOfferDetails ?? [];
+      for (final o in offers) {
+        map.putIfAbsent(p.id, () => {});
+        map[p.id]![o.basePlanId] = p;
+      }
+    }
+    return map;
+  }
+
+  bool hasOfferFor(String productId, String basePlanId,
+      Map<String, Map<String, GooglePlayProductDetails>> offerMap) {
+    final product = offerMap[productId]?[basePlanId];
+    if (product == null) return false;
+    final offers = product.productDetails.subscriptionOfferDetails ?? [];
+
+    return offers.any((o) =>
+        o.basePlanId == basePlanId && (o.offerIdToken?.isNotEmpty ?? false));
+  } // ✅ Safely find an active offer for a basePlanId
+
+  // 2) Make offer lookup robust and noisy
+  SubscriptionOfferDetailsWrapper? _findOfferFor(
+    GooglePlayProductDetails product,
+    String basePlanId,
+  ) {
+    final offers = product.productDetails.subscriptionOfferDetails ?? [];
+    for (final o in offers) {
+      final hasToken = (o.offerIdToken?.isNotEmpty ?? false);
+      if (o.basePlanId == basePlanId && hasToken) return o;
+    }
+    return null;
+  }
+
+  // 6) Also harden the shared onContinueTap() you wrote so it logs similarly
+  Future<void> onContinueTap({
+    required String productId,
+    required String basePlanId,
+    required Map<String, Map<String, GooglePlayProductDetails>> offerMap,
+  }) async {
+    debugPrint('[BUY2] productId=$productId basePlanId=$basePlanId');
+    final product = offerMap[productId]?[basePlanId];
+    if (product == null) {
+      debugPrint('[BUY2] no product for basePlanId=$basePlanId');
+      showUploadPopup(context,
+          errorMessage:
+              "Offre indisponible pour ce plan. Réessayez dans quelques minutes.");
+      return;
+    }
+
+    final gp = product as GooglePlayProductDetails;
+    final offer = _findOfferFor(gp, basePlanId);
+    if (offer == null) {
+      debugPrint(
+          '[BUY2] no offer token for basePlanId=$basePlanId product=${gp.id}');
+      showUploadPopup(context,
+          errorMessage:
+              "Aucune offre active pour ce plan. Vérifiez vos paramètres Play Console.");
+      return;
+    }
+
+    try {
+      setState(() => _loading = true);
+      debugPrint(
+          '[BUY2] buyNonConsumable offerToken len=${offer.offerIdToken?.length}');
+      final param = GooglePlayPurchaseParam(
+        productDetails: gp,
+        offerToken: offer.offerIdToken!,
+      );
+      await InAppPurchase.instance.buyNonConsumable(purchaseParam: param);
+    } catch (e) {
+      debugPrint('[BUY2] exception: $e');
+      showStripeErrorPopup(context);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _onPurchases(List<PurchaseDetails> purchases) async {
+    for (final p in purchases) {
+      if (p.status == PurchaseStatus.purchased) {
+        await _iap.completePurchase(p);
+
+        final prefs = await SharedPreferences.getInstance();
+        final isPlatinum = p.productID == _platinumProductId;
+        await prefs.setString('plan_name', isPlatinum ? 'Platinum' : 'Gold');
+        await prefs.setString('swipe_date', '');
+        await prefs.setInt('swipe_count', 0);
+
+        await _fetchUserCapabilities();
+        await showGoldCelebrationPopup(context);
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => MainLayout()),
+        );
+      } else if (p.status == PurchaseStatus.error) {
+        final msg = [
+          if (p.error?.message != null) "Message: ${p.error!.message}",
+          if (p.error?.details != null) "Details: ${p.error!.details}",
+        ].where((e) => e.isNotEmpty).join("\n");
+        _showIapError("Échec de l’achat.\n$msg");
+      } else if (p.status == PurchaseStatus.canceled) {
+        _showIapError("Achat annulé par l’utilisateur.");
+      }
+    }
+  }
+
+  // 4) Beef up _initBilling with diagnostics
+  Future<void> _initBilling() async {
+    debugPrint('[IAP] init start');
+    final available = await _iap.isAvailable();
+    debugPrint('[IAP] isAvailable=$available');
+    if (!available) {
+      _showIapError("Google Play indisponible sur cet appareil/compte.");
+      return;
+    }
+
+    _purchaseSub?.cancel();
+    _purchaseSub = _iap.purchaseStream.listen(_onPurchases, onError: (err) {
+      debugPrint('[IAP] purchaseStream error: $err');
+      _showIapError("Flux d’achats en erreur: $err");
+    });
+
+    final resp = await _iap.queryProductDetails({
+      _platinumProductId,
+    });
+    debugPrint(
+        '[IAP] notFoundIDs=${resp.notFoundIDs} count=${resp.productDetails.length}');
+    if (resp.notFoundIDs.isNotEmpty) {
+      _showIapError("Produit introuvable: ${resp.notFoundIDs.join(", ")}.\n"
+          "• Installe depuis la piste de test\n"
+          "• Ajoute un compte testeur\n"
+          "• Vérifie base plans & propagation.");
+      return;
+    }
+
+    _gpProducts =
+        resp.productDetails.whereType<GooglePlayProductDetails>().toList();
+    if (_gpProducts.isEmpty) {
+      _showIapError("Aucun productDetails chargé. Propagation 5–30 min.");
+      return;
+    }
+
+    _offerMap.clear();
+    for (final p in _gpProducts) {
+      final offers = p.productDetails.subscriptionOfferDetails ?? [];
+      debugPrint('[IAP] product=${p.id} offers=${offers.length}');
+      for (final o in offers) {
+        debugPrint(
+            '[IAP]  basePlanId=${o.basePlanId} hasToken=${o.offerIdToken?.isNotEmpty == true}');
+        _offerMap.putIfAbsent(p.id, () => {});
+        _offerMap[p.id]![o.basePlanId] = p;
+      }
+    }
+
+    if (mounted) setState(() {});
+    debugPrint(
+        '[IAP] init done. products=${_gpProducts.map((e) => e.id).toList()}');
+  }
+
+  void _showIapError(String message) {
+    showGeneralDialog(
+      context: context,
+      barrierLabel: "iapError",
+      barrierDismissible: true,
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 250),
+      pageBuilder: (_, __, ___) => SafeArea(
+        child: Center(
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.80,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: blue_gray,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(
+                    color: Colors.black45, blurRadius: 12, offset: Offset(0, 6))
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Achat impossible",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.none)),
+                const SizedBox(height: 10),
+                Text(message,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                        decoration: TextDecoration.none)),
+                const SizedBox(height: 18),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 24),
+                    decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(8)),
+                    child: const Text("Fermer",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            decoration: TextDecoration.none)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      transitionBuilder: (_, a1, __, child) => FadeTransition(
+          opacity: CurvedAnimation(parent: a1, curve: Curves.easeOut),
+          child: child),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _initBilling(); // important
+  }
+
+  @override
+  void dispose() {
+    _purchaseSub?.cancel();
+    super.dispose();
+  }
+
   Future<String?> getUserId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('user_id');
@@ -478,68 +730,54 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
               ),
             ),
             GestureDetector(
+              // 5) Make the "Continuer" handler bulletproof and logged
               onTap: () async {
                 final userId = await getUserId();
-                final priceId = stripePriceIds[selectedPlanIndex];
                 if (userId == null) {
-                  showStripeErrorPopup(
-                    context,
-                  );
+                  _showIapError("Utilisateur non identifié.");
+                  return;
+                }
+
+                final String productId = _platinumProductId;
+                final String basePlanId = _basePlanByIndex[selectedPlanIndex];
+
+                debugPrint('[BUY] productId=$productId basePlanId=$basePlanId');
+
+                final p = _offerMap[productId]?[basePlanId];
+                if (p == null) {
+                  debugPrint(
+                      '[BUY] no product mapped for basePlanId=$basePlanId. keys=${_offerMap[productId]?.keys.toList()}');
+                  _showIapError(
+                      "Offre indisponible pour ce plan. Vérifie la console Play.");
+                  return;
+                }
+
+                final offer = _findOfferFor(p, basePlanId);
+                if (offer == null) {
+                  debugPrint(
+                      '[BUY] no active offer token for basePlanId=$basePlanId product=${p.id}');
+                  _showIapError("Aucune offre active pour $basePlanId.");
                   return;
                 }
 
                 setState(() => _loading = true);
-
                 try {
-                  // 1) Call backend to create a PaymentIntent
-                  final uri = Uri.parse('$BASE_URL_JOBS/create-payment-intent');
-                  final response = await http.post(
-                    uri,
-                    headers: {'Content-Type': 'application/json'},
-                    body: jsonEncode({
-                      'user_id': userId,
-                      'price_id': priceId,
-                    }),
+                  debugPrint(
+                      '[BUY] calling buyNonConsumable with offerToken len=${offer.offerIdToken?.length}');
+                  final param = GooglePlayPurchaseParam(
+                    productDetails: p,
+                    offerToken: offer.offerIdToken!,
+                    applicationUserName: userId,
                   );
-
-                  if (response.statusCode != 200) {
-                    throw Exception('Backend erreur : ${response.body}');
-                  }
-
-                  final body = jsonDecode(response.body);
-                  final clientSecret = body['clientSecret'] as String;
-
-                  // 2) Initialize the Stripe Payment Sheet
-                  await Stripe.instance.initPaymentSheet(
-                    paymentSheetParameters: SetupPaymentSheetParameters(
-                      paymentIntentClientSecret: clientSecret,
-                      merchantDisplayName: 'Swipply',
-                    ),
-                  );
-
-                  // 3) Present the Payment Sheet
-                  await Stripe.instance.presentPaymentSheet();
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setString('plan_name', 'Platinum'); // ← new plan
-                  await prefs.setString('swipe_date', ''); // ← force a reset
-// ← add this:
-                  await prefs.setInt('swipe_count', 0);
-
-// 1) Pull down fresh limits from server:
-                  await _fetchUserCapabilities();
-                  // 4) On success, show confirmation
-                  await showGoldCelebrationPopup(context);
-                  Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => MainLayout()));
-                  //////////////////////////////////////////////////////////////////
+                  await _iap.buyNonConsumable(purchaseParam: param);
                 } catch (e) {
-                  showStripeErrorPopup(
-                    context,
-                  );
+                  debugPrint('[BUY] exception: $e');
+                  _showIapError("Erreur d’achat: $e");
                 } finally {
-                  setState(() => _loading = false);
+                  if (mounted) setState(() => _loading = false);
                 }
               },
+
               child: Container(
                 width: double.infinity,
                 margin: const EdgeInsets.all(20),
@@ -593,9 +831,6 @@ class _SwipplyPremiumDetailsPageState extends State<SwipplyPremiumDetailsPage> {
     }
   }
 
-  int? _personalizeLimit;
-  int? _swipeLimit;
-  bool _canPersonalize = false;
   void showStripeErrorPopup(BuildContext context) {
     showGeneralDialog(
       context: context,

@@ -1281,7 +1281,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          backgroundColor: black_gray,
+          backgroundColor: Colors.black,
           elevation: 0,
           title: const Text(
             'Swipply',

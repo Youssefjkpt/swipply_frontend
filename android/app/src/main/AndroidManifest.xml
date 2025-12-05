@@ -1,14 +1,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.revoluxe.swipply1">
+          xmlns:tools="http://schemas.android.com/tools"
+          package="com.revoluxe.swipply1">
 
     <!-- Permissions -->
+<!-- Minimal, policy-compliant permissions -->
+
+ <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove" />
+  <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"  tools:node="remove" />
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.CAMERA" />
-
+    <uses-permission android:name="com.android.vending.BILLING" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
     android:name="androidx.multidex.MultiDexApplication"
     android:label="Swipply"
